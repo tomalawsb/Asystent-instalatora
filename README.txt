@@ -1,4 +1,4 @@
-Pomocnik Instalatora PWA v1.2.0
+Pomocnik Instalatora PWA v1.3.0
 
 Wersja webowa/PWA działająca bez serwera.
 
@@ -32,3 +32,11 @@ Zmiany v1.2.0:
 - jedno pole dyktowania może zawierać dane klienta i pozycje wyceny naraz,
 - przykład: klient Jan Kowalski, ulica Szymanowskiego 48 Mielec, telefon 501 222 333, 5 kamer po 200 zł, kabel 10 m po 2 zł,
 - po rozbiciu tekstu aplikacja automatycznie wpisuje wykryte dane do formularza i dodaje pozycje do wyceny.
+
+
+Zmiany v1.3.0:
+- poprawiony parser dyktowania dla tekstu bez słowa „klient”, np. „Bogusław Biernacki ul. Szymanowskiego 48 montaż 4 kamer IP, 4 puszki montażowe pod kamery”,
+- aplikacja rozpoznaje imię i nazwisko z początku zdania,
+- adres nie gubi już numeru domu przed słowem „montaż”,
+- poprawione rozpoznawanie odmian typu „kamer”, „kamery”, „puszki”,
+- poprawiona kolejność dodawanych pozycji z dyktowania.

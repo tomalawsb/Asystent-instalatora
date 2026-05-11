@@ -1,4 +1,4 @@
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.0';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const CATALOG = window.PRICE_CATALOG || {};
@@ -68,13 +68,13 @@ const POLISH_NUMBER_WORDS = {
 const CLIENT_FIELD_STOP_WORDS = [
   'telefon', 'tel', 'numer', 'adres', 'ulica', 'ul', 'klient', 'klientka', 'imię', 'imie', 'nazwisko',
   'montaż', 'montaz', 'kamera', 'kamery', 'kamer', 'kabel', 'przewód', 'przewod', 'dojazd', 'robocizna',
-  'rejestrator', 'router', 'domofon', 'wideodomofon', 'alarm', 'czujka', 'pilot', 'anteny', 'antena'
+  'rejestrator', 'router', 'domofon', 'wideodomofon', 'alarm', 'czujka', 'pilot', 'anteny', 'antena', 'puszka', 'puszki', 'uchwyt', 'uchwyty', 'ip', 'cctv'
 ];
 
 const ADDRESS_STOP_WORDS = [
   'telefon', 'tel', 'numer telefonu', 'klient', 'klientka', 'imię', 'imie', 'nazwisko', 'montaż', 'montaz',
   'kamera', 'kamery', 'kamer', 'kabel', 'przewód', 'przewod', 'dojazd', 'robocizna', 'rejestrator',
-  'router', 'domofon', 'wideodomofon', 'alarm', 'czujka', 'pilot', 'antena', 'anteny'
+  'router', 'domofon', 'wideodomofon', 'alarm', 'czujka', 'pilot', 'antena', 'anteny', 'puszka', 'puszki', 'uchwyt', 'uchwyty', 'ip', 'cctv'
 ];
 
 let state = createEmptyQuote();
@@ -683,9 +683,17 @@ function parseSmartCommand(rawText) {
 
 function stripClientFragmentsForItems(text) {
   let out = ` ${String(text || '')} `;
+  const serviceStartWords = '(?:montaż|montaz|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|switch|poe|dysk|puszka|puszki|uchwyt|uchwyty|rj45)';
+  const quantityServiceWords = '(?:kamera|kamery|kamer|kabel|przewód|przewod|rejestrator|router|domofon|wideodomofon|alarm|czujka|czujki|pilot|pilotów|pilotow|antena|anteny|switch|poe|dysk|puszka|puszki|uchwyt|uchwyty|rj45)';
+
   out = out.replace(/(?:^|\s)(?:telefon|tel|numer telefonu|komórka|komorka)\s*(?:to\s+|jest\s+)?(?:\+?48\s*)?\d{3}[\s.-]?\d{3}[\s.-]?\d{3}(?=\s|$)/gi, ' ');
-  out = out.replace(/(?:^|\s)(?:adres|ulica|ul|przy ulicy|na adres|pod adresem)\s+.*?(?=\s+(?:telefon|tel|klient|klientka|imię|imie|nazwisko|(?:\d+[.,]?\d*\s+)?(?:montaż|montaz|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|switch|poe|dysk|puszka|uchwyt|rj45))(?=\s|$)|$)/gi, ' ');
-  out = out.replace(/(?:^|\s)(?:imię i nazwisko|imie i nazwisko|imię nazwisko|imie nazwisko|miej nazwisko|klientka|klient|u klienta|u klientki|pan|pani|nazwisko|imię|imie)\s+.*?(?=\s+(?:adres|ulica|ul|telefon|tel|(?:\d+[.,]?\d*\s+)?(?:montaż|montaz|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|switch|poe|dysk|puszka|uchwyt|rj45))(?=\s|$)|$)/gi, ' ');
+
+  // Usuń imię i nazwisko podane na początku bez słowa „klient”, np.
+  // „Bogusław Biernacki ul. Szymanowskiego 48 montaż 4 kamer”.
+  out = out.replace(/^\s*[a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ]+\s+[a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ]+(?=\s+(?:ul\.?|ulica|adres|przy ulicy|na adres|pod adresem)\s+)/i, ' ');
+
+  out = out.replace(new RegExp('(?:^|\\s)(?:adres|ulica|ul\\.?|przy ulicy|na adres|pod adresem)\\s+.*?(?=\\s+(?:telefon|tel|klient|klientka|imię|imie|nazwisko|' + serviceStartWords + '|\\d+[.,]?\\d*\\s+' + quantityServiceWords + ')(?=\\s|$)|$)', 'gi'), ' ');
+  out = out.replace(new RegExp('(?:^|\\s)(?:imię i nazwisko|imie i nazwisko|imię nazwisko|imie nazwisko|miej nazwisko|klientka|klient|u klienta|u klientki|pan|pani|nazwisko|imię|imie)\\s+.*?(?=\\s+(?:adres|ulica|ul\\.?|telefon|tel|' + serviceStartWords + '|\\d+[.,]?\\d*\\s+' + quantityServiceWords + ')(?=\\s|$)|$)', 'gi'), ' ');
   return out.replace(/\s+/g, ' ').trim();
 }
 
@@ -699,16 +707,32 @@ function parseClientData(rawText, normalizedText) {
 }
 
 function parseClientName(rawText) {
+  const compact = cleanDictationSpaces(rawText);
   const patterns = [
     /(?:imię\s+i\s+nazwisko|imie\s+i\s+nazwisko|imię\s+nazwisko|imie\s+nazwisko|miej\s+nazwisko|klientka|klient|u\s+klienta|u\s+klientki|pan|pani|nazwisko|imię|imie)\s+(?:to\s+|jest\s+)?([a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\-']*(?:\s+[a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\-']*){0,4})/i,
     /(?:dla|do)\s+([a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\-']+\s+[a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\-']+)/i
   ];
   for (const pattern of patterns) {
-    const match = rawText.match(pattern);
+    const match = compact.match(pattern);
     if (!match) continue;
     const name = cleanNameFragment(match[1]);
     if (name) return name;
   }
+
+  // Dyktowanie w praktyce często zaczyna się od samego imienia i nazwiska,
+  // np. „Bogusław Biernacki ul. Szymanowskiego 48 montaż 4 kamer”.
+  const beforeAddress = compact.match(/^(.{3,80}?)(?=\s+(?:ul\.?|ulica|adres|przy ulicy|na adres|pod adresem)\s+)/i);
+  if (beforeAddress) {
+    const name = cleanNameFragment(beforeAddress[1]);
+    if (isLikelyPersonName(name)) return name;
+  }
+
+  const beforeService = compact.match(/^(.{3,80}?)(?=\s+(?:telefon|tel|montaż|montaz|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|puszka|puszki)\b)/i);
+  if (beforeService) {
+    const name = cleanNameFragment(beforeService[1]);
+    if (isLikelyPersonName(name)) return name;
+  }
+
   return '';
 }
 
@@ -753,8 +777,12 @@ function cleanDictationSpaces(text) {
 
 function cutAtAddressStop(text) {
   let out = ` ${String(text || '')} `;
-  const serviceWithQuantity = out.match(/\s+\d+[.,]?\d*\s+(?:montaż|montaz|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|switch|poe|dysk|puszka|uchwyt|rj45)(?=\s|$)/i);
-  if (serviceWithQuantity) out = out.slice(0, serviceWithQuantity.index + 1);
+
+  // Nie wolno ucinać numeru domu. Poprzednia wersja brała „48 montaż”
+  // jako ilość usługi i zostawiała samo „ul. Szymanowskiego”.
+  const serviceStart = out.match(/\s+(?:montaż|montaz|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|switch|poe|dysk|puszka|puszki|uchwyt|uchwyty|rj45)(?=\s|$)/i);
+  if (serviceStart) out = out.slice(0, serviceStart.index + 1);
+
   for (const stop of ADDRESS_STOP_WORDS) {
     const re = new RegExp(`\\s+(?:i\\s+)?${escapeRegExp(stop)}(?=\\s|$)`, 'i');
     const match = out.match(re);
@@ -770,9 +798,18 @@ function cleanNameFragment(fragment) {
     text = text.replace(re, '').trim();
   }
   text = text.replace(/\b(i|oraz|tak|dalej|to|jest|będzie|bedzie)\b/gi, ' ').replace(/\s+/g, ' ').trim();
-  const words = text.split(' ').filter(Boolean).slice(0, 3);
+  const words = text.split(' ').filter(Boolean).filter(word => !/\d/.test(word)).slice(0, 3);
   if (!words.length) return '';
   return titleCase(words.join(' '));
+}
+
+function isLikelyPersonName(text) {
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  if (words.length < 2 || words.length > 4) return false;
+  if (words.some(word => /\d/.test(word))) return false;
+  const lower = words.join(' ').toLowerCase();
+  if (CLIENT_FIELD_STOP_WORDS.some(stop => lower.includes(stop))) return false;
+  return true;
 }
 
 function cleanAddressFragment(fragment, forceStreetPrefix) {
@@ -814,7 +851,7 @@ function appendUniqueNote(existing, note) {
 
 function normalizeSpeechText(text) {
   let out = String(text || '').toLowerCase();
-  out = out.normalize('NFD').replace(/[\u0300-\u036f]/g, match => match);
+  out = out.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   out = out.replace(/,/g, '.');
   out = out.replace(/zlotych|złotych|zloty|złoty|złote|zlote|pln/g, 'zł');
   out = out.replace(/metrów|metry|metrow|metra/g, 'm');
@@ -829,14 +866,14 @@ function normalizeSpeechText(text) {
 function findVoiceMatches(text) {
   const matches = [];
   for (const rule of VOICE_ITEM_RULES) {
+    let best = null;
     for (const keyword of rule.keywords) {
       const re = new RegExp(`\\b${escapeRegExp(keyword)}[a-ząćęłńóśźż-]*\\b`, 'i');
       const m = text.match(re);
-      if (m) {
-        matches.push({ rule, keyword: m[0], index: m.index });
-        break;
-      }
+      if (!m) continue;
+      if (!best || m.index < best.index) best = { rule, keyword: m[0], index: m.index };
     }
+    if (best) matches.push(best);
   }
   return matches.sort((a, b) => a.index - b.index);
 }
