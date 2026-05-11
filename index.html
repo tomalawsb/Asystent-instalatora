@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6f8fb">
   <meta name="description" content="Pomocnik Instalatora — szybkie wyceny, klienci, cennik i notatki z wizyt.">
-  <title>Pomocnik Instalatora PWA v1.2</title>
+  <title>Pomocnik Instalatora PWA v1.8</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +13,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow">PWA v1.2.0</div>
+        <div class="eyebrow">PWA v1.8.0</div>
         <h1>Pomocnik Instalatora</h1>
       </div>
       <div class="top-actions">
@@ -78,8 +78,23 @@
               </div>
             </div>
 
+            <div id="parserPreview" class="parser-preview" hidden>
+              <div class="preview-head">
+                <div>
+                  <h3>Rozpoznane dane do zatwierdzenia</h3>
+                  <p>Program niczego nie dopisze do wyceny, dopóki nie klikniesz „Zatwierdź rozbicie”.</p>
+                </div>
+              </div>
+              <div id="parserPreviewContent"></div>
+              <div class="action-row">
+                <button id="acceptParserBtn" class="btn btn-primary">Zatwierdź rozbicie</button>
+                <button id="rejectParserBtn" class="btn btn-ghost">Odrzuć</button>
+              </div>
+            </div>
+
             <div class="action-row">
               <button id="suggestBtn" class="btn btn-soft">Podpowiedz z notatek</button>
+              <button id="undoParseBtn" class="btn btn-ghost" hidden>Cofnij ostatnie rozbicie</button>
               <button id="copyReportBtn" class="btn btn-soft">Kopiuj raport</button>
             </div>
             <div id="parserInfo" class="info-box" hidden></div>
@@ -141,7 +156,7 @@
             <button id="addServiceBtn" class="btn btn-primary">Dodaj</button>
           </div>
 
-          <div class="table-wrap">
+          <div class="table-wrap services-table-wrap">
             <table>
               <thead>
                 <tr>
@@ -156,6 +171,7 @@
               <tbody id="servicesBody"></tbody>
             </table>
           </div>
+          <div id="serviceCards" class="service-cards" aria-label="Usługi w wycenie"></div>
           <div id="emptyServices" class="empty-state">Brak usług w wycenie.</div>
         </section>
 
@@ -170,7 +186,7 @@
           <div class="section-head">
             <div>
               <h2>Zapisane wyceny</h2>
-              <p>Dane są zapisane lokalnie w tej przeglądarce.</p>
+              <p>Dane są zapisane lokalnie albo synchronizowane z Dropboxem, jeśli włączysz ten tryb w ustawieniach.</p>
             </div>
             <button id="exportBackupBtn" class="btn btn-soft">Kopia JSON</button>
           </div>
@@ -184,10 +200,40 @@
           <div class="section-head">
             <div>
               <h2>Cennik</h2>
-              <p>Wersja przeniesiona z pliku cennik.json.</p>
+              <p>Możesz dodawać, poprawiać, usuwać, importować i eksportować pozycje cennika.</p>
             </div>
             <input id="catalogSearch" class="search" type="search" placeholder="Szukaj usługi...">
           </div>
+
+          <div class="catalog-editor">
+            <h3>Edycja cennika</h3>
+            <p>Zmiany zapisują się lokalnie w przeglądarce. Eksport JSON pozwala przenieść cennik na inne urządzenie.</p>
+            <div class="form-grid">
+              <label>Kategoria
+                <input id="catalogEditCategory" list="catalogCategoryList" type="text" placeholder="np. Kamery CCTV">
+                <datalist id="catalogCategoryList"></datalist>
+              </label>
+              <label>Nazwa usługi
+                <input id="catalogEditName" type="text" placeholder="np. Montaż kamery IP z puszką">
+              </label>
+              <label>Jednostka
+                <input id="catalogEditUnit" type="text" placeholder="np. szt, mb, godz, usł">
+              </label>
+              <label>Cena netto
+                <input id="catalogEditPrice" type="number" min="0" step="0.01" placeholder="np. 200">
+              </label>
+            </div>
+            <div class="action-row">
+              <button id="saveCatalogItemBtn" class="btn btn-primary">Zapisz pozycję</button>
+              <button id="clearCatalogEditorBtn" class="btn btn-ghost">Wyczyść formularz</button>
+              <button id="exportCatalogBtn" class="btn btn-soft">Eksport cennika</button>
+              <button id="importCatalogBtn" class="btn btn-soft">Import cennika</button>
+              <button id="resetCatalogBtn" class="btn btn-danger">Przywróć domyślny</button>
+              <input id="importCatalogFile" type="file" accept="application/json,.json" hidden>
+            </div>
+            <div id="catalogEditInfo" class="catalog-edit-info" hidden></div>
+          </div>
+
           <div id="catalogView" class="catalog-view"></div>
         </section>
       </section>
@@ -207,8 +253,76 @@
             <button id="saveSettingsBtn" class="btn btn-primary">Zapisz ustawienia</button>
             <button id="clearDataBtn" class="btn btn-danger">Usuń dane lokalne</button>
           </div>
-          <div class="note">
-            Ta wersja nie ma jeszcze Dropbox API. Synchronizacja między telefonem i komputerem będzie w kolejnym etapie.
+
+          <div class="dictionary-panel">
+            <h3>Słownik własnych zwrotów</h3>
+            <p>Jedna zasada w jednej linii. Format: błędny lub skrócony zwrot = poprawny zwrot.</p>
+            <textarea id="phraseDictionary" rows="8" spellcheck="false"></textarea>
+            <div class="action-row">
+              <button id="savePhraseDictionaryBtn" class="btn btn-primary">Zapisz słownik</button>
+              <button id="resetPhraseDictionaryBtn" class="btn btn-soft">Przywróć domyślny</button>
+            </div>
+          </div>
+
+
+
+          <div class="learning-panel">
+            <h3>Uczenie parsera z ręcznych poprawek</h3>
+            <p>Jeżeli po zatwierdzeniu rozbicia zmienisz ilość, cenę albo nazwę pozycji dodanej przez parser, program zapamięta korektę dla podobnego tekstu.</p>
+            <div id="learnedRulesView"></div>
+            <div class="action-row">
+              <button id="clearLearnedRulesBtn" class="btn btn-danger">Usuń zapamiętane korekty</button>
+            </div>
+          </div>
+
+          <div class="parser-test-panel">
+            <h3>Test parsera</h3>
+            <p>Tu sprawdzisz, czy parser dalej dobrze liczy konkretny tekst po kolejnych poprawkach programu.</p>
+            <textarea id="parserTestInput" rows="6" spellcheck="false" placeholder="Wklej tekst do rozbicia..."></textarea>
+            <div class="mini-grid">
+              <label>Oczekiwane netto
+                <input id="parserExpectedNet" type="number" min="0" step="0.01" placeholder="np. 1040">
+              </label>
+              <label>Oczekiwane brutto
+                <input id="parserExpectedGross" type="number" min="0" step="0.01" placeholder="np. 1279.20">
+              </label>
+            </div>
+            <div class="action-row">
+              <button id="runParserTestBtn" class="btn btn-primary">Uruchom test</button>
+              <button id="fillExampleParserTestBtn" class="btn btn-soft">Wstaw przykład Bogusława</button>
+            </div>
+            <div id="parserTestResult" class="parser-test-result"></div>
+          </div>
+
+          <div class="dropbox-panel">
+            <h3>Dropbox — synchronizacja telefonu i komputera</h3>
+            <p>Synchronizacja używa jednego pliku JSON w Dropboxie. Usunięte wyceny dostają znacznik usunięcia, więc nie powinny wracać po scaleniu danych z drugiego urządzenia.</p>
+            <div class="form-grid">
+              <label>Tryb zapisu
+                <select id="storageMode">
+                  <option value="local">Lokalnie w przeglądarce</option>
+                  <option value="dropbox">Dropbox</option>
+                </select>
+              </label>
+              <label>Ścieżka pliku w Dropbox
+                <input id="dropboxPath" type="text" value="/pomocnik_instalatora_data.json">
+              </label>
+              <label class="span-2">Access token Dropbox
+                <input id="dropboxToken" type="password" autocomplete="off" placeholder="Wklej token aplikacji Dropbox">
+              </label>
+              <label class="checkbox-row span-2">
+                <input id="dropboxAutoSync" type="checkbox">
+                <span>Automatycznie synchronizuj po zapisaniu albo usunięciu wyceny</span>
+              </label>
+            </div>
+            <div class="action-row">
+              <button id="saveDropboxSettingsBtn" class="btn btn-primary">Zapisz Dropbox</button>
+              <button id="dropboxSyncBtn" class="btn btn-soft">Synchronizuj teraz</button>
+              <button id="dropboxPullBtn" class="btn btn-soft">Pobierz i scal</button>
+              <button id="dropboxPushBtn" class="btn btn-soft">Wyślij lokalne</button>
+              <button id="dropboxTestBtn" class="btn btn-ghost">Test połączenia</button>
+            </div>
+            <div id="dropboxStatus" class="dropbox-status">Tryb lokalny — Dropbox wyłączony.</div>
           </div>
         </section>
       </section>
