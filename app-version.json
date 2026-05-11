@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
   "name": "Pomocnik Instalatora PWA",
-  "date": "2026-05-11"
+  "version": "1.2.0",
+  "build": "voice-client-parser-v1"
 }

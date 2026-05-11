@@ -232,6 +232,25 @@ td input { min-height: 32px; padding: 5px 8px; }
 }
 .empty-state.visible { display: block; }
 
+
+.voice-panel {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #cfe1f8;
+  border-radius: 15px;
+  background: #f5f9ff;
+}
+.voice-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.voice-panel textarea {
+  min-height: 74px;
+  background: #fff;
+}
+
 .info-box, .note {
   margin-top: 10px;
   padding: 11px 12px;
