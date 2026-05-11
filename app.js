@@ -1,4 +1,4 @@
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.4.0';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const CATALOG = window.PRICE_CATALOG || {};
@@ -39,7 +39,7 @@ const VOICE_ITEM_RULES = [
   { key: 'camera', category: 'Kamery CCTV', name: 'Montaż kamery IP zewnętrznej', unit: 'szt', keywords: ['kamera', 'kamery', 'kamer', 'cctv'] },
   { key: 'ptz', category: 'Kamery CCTV', name: 'Montaż kamery obrotowej PTZ', unit: 'szt', keywords: ['ptz', 'obrotowa', 'obrotowe'] },
   { key: 'nvr', category: 'Kamery CCTV', name: 'Konfiguracja rejestratora NVR', unit: 'szt', keywords: ['rejestrator', 'nvr', 'dvr'] },
-  { key: 'remote_preview', category: 'Kamery CCTV', name: 'Uruchomienie podglądu zdalnego', unit: 'usł', keywords: ['podgląd', 'podglad', 'aplikacja', 'telefonie'] },
+  { key: 'remote_preview', category: 'Kamery CCTV', name: 'Uruchomienie podglądu zdalnego', unit: 'usł', keywords: ['podgląd zdalny', 'podglad zdalny', 'podgląd w telefonie', 'podglad w telefonie', 'podgląd na telefonie', 'podglad na telefonie'] },
   { key: 'cable_lan', category: 'Kamery CCTV', name: 'Prowadzenie skrętki zewnętrznej', unit: 'mb', keywords: ['kabel', 'kabla', 'przewód', 'przewodu', 'skrętka', 'skretka', 'lan', 'utp'] },
   { key: 'rj45', category: 'Sieć / Wi‑Fi', name: 'Zarabianie końcówki RJ45', unit: 'szt', keywords: ['rj45', 'wtyk', 'wtyki', 'końcówka', 'koncowka', 'końcówki', 'koncowki'] },
   { key: 'fplug', category: 'Anteny / Sygnał', name: 'Zarabianie złącza F', unit: 'szt', keywords: ['złącze f', 'zlacze f', 'końcówka f', 'koncowka f', 'fka', 'f-ki'] },
@@ -48,7 +48,9 @@ const VOICE_ITEM_RULES = [
   { key: 'wifi', category: 'Sieć / Wi‑Fi', name: 'Test i optymalizacja Wi‑Fi', unit: 'usł', keywords: ['wifi', 'wi-fi', 'zasięg', 'zasieg'] },
   { key: 'switch_poe', category: 'Kamery CCTV', name: 'Switch PoE 4-port', unit: 'szt', keywords: ['switch', 'poe'] },
   { key: 'disk', category: 'Kamery CCTV', name: 'Montaż dysku do rejestratora', unit: 'szt', keywords: ['dysk', 'dysku', 'hdd'] },
-  { key: 'box_holder', category: 'Kamery CCTV', name: 'Montaż puszki / uchwytu kamery', unit: 'szt', keywords: ['puszka', 'puszki', 'uchwyt', 'uchwyty'] },
+  { key: 'box_holder', category: 'Kamery CCTV', name: 'Montaż puszki / uchwytu kamery', unit: 'szt', keywords: ['puszka montażowa', 'puszki montażowe', 'puszka montazowa', 'puszki montazowe', 'puszka', 'puszki', 'uchwyt', 'uchwyty'] },
+  { key: 'electrical_box', category: 'Kamery CCTV', name: 'Puszka prądowa', unit: 'szt', keywords: ['puszka prądowa', 'puszki prądowe', 'puszka pradowa', 'puszki pradowe'] },
+  { key: 'app_training', category: 'Serwis', name: 'Nauka obsługi i instalacja aplikacji', unit: 'usł', keywords: ['nauka obsługi aplikacji', 'nauka obslugi aplikacji', 'instalacja aplikacji'] },
   { key: 'domofon', category: 'Domofon', name: 'Montaż wideodomofonu 1-rodzinnego', unit: 'szt', keywords: ['domofon', 'wideodomofon', 'unifon'] },
   { key: 'alarm_sensor', category: 'Alarm', name: 'Montaż czujki PIR', unit: 'szt', keywords: ['czujka', 'czujki', 'pir'] },
   { key: 'gate_remote', category: 'Automatyka bram', name: 'Programowanie pilotów', unit: 'szt', keywords: ['pilot', 'pilota', 'pilotów', 'pilotow'] },
@@ -57,25 +59,47 @@ const VOICE_ITEM_RULES = [
 ];
 
 const POLISH_NUMBER_WORDS = {
-  'zero': 0, 'jeden': 1, 'jedna': 1, 'jedno': 1, 'dwa': 2, 'dwie': 2, 'trzy': 3, 'cztery': 4,
-  'pięć': 5, 'piec': 5, 'sześć': 6, 'szesc': 6, 'siedem': 7, 'osiem': 8, 'dziewięć': 9, 'dziewiec': 9,
-  'dziesięć': 10, 'dziesiec': 10, 'jedenaście': 11, 'jedenascie': 11, 'dwanaście': 12, 'dwanascie': 12,
-  'trzynaście': 13, 'trzynascie': 13, 'czternaście': 14, 'czternascie': 14, 'piętnaście': 15, 'pietnascie': 15,
-  'dwadzieścia': 20, 'dwadziescia': 20, 'trzydzieści': 30, 'trzydziesci': 30, 'czterdzieści': 40, 'czterdziesci': 40,
-  'pięćdziesiąt': 50, 'piecdziesiat': 50, 'sto': 100
+  'zero': 0,
+  'jeden': 1, 'jedna': 1, 'jedno': 1, 'jednej': 1, 'jednego': 1, 'pierwsza': 1, 'pierwszy': 1,
+  'dwa': 2, 'dwie': 2, 'dwóch': 2, 'dwoch': 2, 'dwoma': 2, 'drugie': 2, 'drugi': 2,
+  'trzy': 3, 'trzech': 3, 'trzema': 3,
+  'cztery': 4, 'czterech': 4, 'czterema': 4,
+  'pięć': 5, 'piec': 5, 'pięciu': 5, 'pieciu': 5,
+  'sześć': 6, 'szesc': 6, 'sześciu': 6, 'szesciu': 6,
+  'siedem': 7, 'siedmiu': 7,
+  'osiem': 8, 'ośmiu': 8, 'osmiu': 8,
+  'dziewięć': 9, 'dziewiec': 9, 'dziewięciu': 9, 'dziewieciu': 9,
+  'dziesięć': 10, 'dziesiec': 10, 'dziesięciu': 10, 'dziesieciu': 10,
+  'jedenaście': 11, 'jedenascie': 11, 'jednastu': 11,
+  'dwanaście': 12, 'dwanascie': 12, 'dwunastu': 12,
+  'trzynaście': 13, 'trzynascie': 13, 'trzynastu': 13,
+  'czternaście': 14, 'czternascie': 14, 'czternastu': 14,
+  'piętnaście': 15, 'pietnascie': 15, 'piętnastu': 15, 'pietnastu': 15,
+  'szesnaście': 16, 'szesnascie': 16, 'szesnastu': 16,
+  'siedemnaście': 17, 'siedemnascie': 17, 'siedemnastu': 17,
+  'osiemnaście': 18, 'osiemnascie': 18, 'osiemnastu': 18,
+  'dziewiętnaście': 19, 'dziewietnascie': 19, 'dziewiętnastu': 19, 'dziewietnastu': 19,
+  'dwadzieścia': 20, 'dwadziescia': 20, 'dwudziestu': 20,
+  'trzydzieści': 30, 'trzydziesci': 30, 'trzydziestu': 30,
+  'czterdzieści': 40, 'czterdziesci': 40, 'czterdziestu': 40,
+  'pięćdziesiąt': 50, 'piecdziesiat': 50, 'pięćdziesięciu': 50, 'piecdziesieciu': 50,
+  'sto': 100, 'stu': 100
 };
 
 const CLIENT_FIELD_STOP_WORDS = [
-  'telefon', 'tel', 'numer', 'adres', 'ulica', 'ul', 'klient', 'klientka', 'imię', 'imie', 'nazwisko',
-  'montaż', 'montaz', 'kamera', 'kamery', 'kamer', 'kabel', 'przewód', 'przewod', 'dojazd', 'robocizna',
+  'telefon', 'tel', 'numer', 'adres', 'ulica', 'ul', 'miejscowość', 'miejscowosc', 'klient', 'klientka', 'imię', 'imie', 'nazwisko',
+  'montaż', 'montaz', 'instalacja', 'będę', 'bede', 'kamera', 'kamery', 'kamer', 'kabel', 'przewód', 'przewod', 'dojazd', 'robocizna',
   'rejestrator', 'router', 'domofon', 'wideodomofon', 'alarm', 'czujka', 'pilot', 'anteny', 'antena', 'puszka', 'puszki', 'uchwyt', 'uchwyty', 'ip', 'cctv'
 ];
 
 const ADDRESS_STOP_WORDS = [
-  'telefon', 'tel', 'numer telefonu', 'klient', 'klientka', 'imię', 'imie', 'nazwisko', 'montaż', 'montaz',
+  'telefon', 'tel', 'numer telefonu', 'klient', 'klientka', 'imię', 'imie', 'nazwisko', 'miejscowość', 'miejscowosc',
+  'montaż', 'montaz', 'instalacja', 'instalację', 'instalacje', 'będę', 'bede',
   'kamera', 'kamery', 'kamer', 'kabel', 'przewód', 'przewod', 'dojazd', 'robocizna', 'rejestrator',
   'router', 'domofon', 'wideodomofon', 'alarm', 'czujka', 'pilot', 'antena', 'anteny', 'puszka', 'puszki', 'uchwyt', 'uchwyty', 'ip', 'cctv'
 ];
+
+const KNOWN_CITIES = ['mielec', 'tarnów', 'tarnow', 'rzeszów', 'rzeszow', 'dębica', 'debica', 'kolbuszowa', 'przecław', 'przeclaw', 'radomyśl', 'radomysl'];
 
 let state = createEmptyQuote();
 let deferredInstallPrompt = null;
@@ -616,6 +640,7 @@ function analyzeVoiceCommandFromField() {
   if (result.client.address) state.clientAddress = result.client.address;
   if (result.distanceKm !== null) state.distanceKm = result.distanceKm;
   if (result.distanceRate !== null) state.distanceRate = result.distanceRate;
+  if (result.freeKm !== null) state.freeKm = result.freeKm;
   if (result.detectedType) state.jobType = result.detectedType;
 
   state.notes = appendUniqueNote(state.notes, raw);
@@ -629,6 +654,7 @@ function analyzeVoiceCommandFromField() {
   if (result.client.phone) infoParts.push(`telefon: ${result.client.phone}`);
   if (result.items.length) infoParts.push(`dodano pozycji: ${result.items.length}`);
   if (result.distanceKm !== null) infoParts.push(`ustawiono dojazd: ${result.distanceKm} km`);
+  if (result.freeKm !== null) infoParts.push(`darmowy dojazd: ${result.freeKm} km`);
   if (result.unknown.length) infoParts.push(`niepewne fragmenty: ${result.unknown.join(', ')}`);
 
   showInfo(infoParts.length ? `Wykryto i wpisano: ${infoParts.join('. ')}.` : 'Nie wykryłem danych klienta ani pozycji do wyceny. Dopisz tekst prościej albo wpisz dane ręcznie.');
@@ -638,33 +664,39 @@ function parseSmartCommand(rawText) {
   const text = normalizeSpeechText(rawText);
   const client = parseClientData(rawText, text);
   const itemText = stripClientFragmentsForItems(text);
-  const found = findVoiceMatches(itemText);
   const items = [];
   const unknown = [];
   let distanceKm = null;
   let distanceRate = null;
+  let freeKm = null;
 
   const distance = parseDistance(itemText);
   if (distance) {
     distanceKm = distance.km;
     if (distance.rate !== null) distanceRate = distance.rate;
   }
+  const parsedFreeKm = parseFreeKm(itemText);
+  if (parsedFreeKm !== null) freeKm = parsedFreeKm;
 
+  const special = extractSpecialVoiceItems(itemText);
+  items.push(...special.items);
+  const suppressedKeys = new Set(special.suppressedKeys || []);
+
+  const found = findVoiceMatches(itemText).filter(match => !suppressedKeys.has(match.rule.key));
   for (const match of found) {
     if (items.some(item => item._voiceKey === match.rule.key)) continue;
     const context = getItemContext(itemText, match.index);
     const quantityInfo = parseQuantityForRule(context, match.rule);
     const price = parsePriceNear(context, quantityInfo.unit || match.rule.unit);
     const catalog = findCatalogService(match.rule.category, match.rule.name);
-    const item = {
-      id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+    const item = buildVoiceItem({
       category: match.rule.category,
       name: match.rule.name,
       unit: quantityInfo.unit || match.rule.unit,
       quantity: quantityInfo.quantity,
       priceNet: price !== null ? price : number(catalog?.price_net, 0),
-      _voiceKey: match.rule.key
-    };
+      key: match.rule.key
+    });
     items.push(item);
   }
 
@@ -672,28 +704,121 @@ function parseSmartCommand(rawText) {
   const detectedType = items[0]?.category || detectedTypes[0] || '';
   const clauses = itemText.split(/[.;,\n]+|\s+oraz\s+/).map(x => x.trim()).filter(Boolean);
   for (const clause of clauses) {
-    const hasKnown = found.some(match => clause.includes(match.keyword));
+    const hasKnown = found.some(match => clause.includes(match.keyword)) || special.usedFragments.some(fragment => clause.includes(fragment));
     const looksLikePrice = /\d+[,.]?\d*\s*(zł|zl|pln|m|mb|km|szt|godz)/i.test(clause);
     if (!hasKnown && looksLikePrice && !/dojazd/.test(clause)) unknown.push(clause);
   }
 
   for (const item of items) delete item._voiceKey;
-  return { client, items, detectedType, distanceKm, distanceRate, unknown };
+  return { client, items, detectedType, distanceKm, distanceRate, freeKm, unknown };
+}
+
+function buildVoiceItem({ category, name, unit, quantity, priceNet, key }) {
+  return {
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+    category,
+    name,
+    unit,
+    quantity: number(quantity, 1),
+    priceNet: number(priceNet, 0),
+    _voiceKey: key || name
+  };
+}
+
+function extractSpecialVoiceItems(text) {
+  const items = [];
+  const suppressedKeys = new Set();
+  const usedFragments = [];
+
+  const cameraBoxCombo = text.match(/(?:cena\s+za\s+)?(?:montaz|instalacj\w*)\s+(?:\d+(?:[.]\d+)?\s+)?(?:1\s+|jednej\s+)?kamer\w*\s+(?:i|z|plus)\s+puszk\w*(?:\s+to)?\s*(\d+(?:[.]\d+)?)\s*zł(?:\s+netto)?/i);
+  if (cameraBoxCombo) {
+    const qty = extractCameraQuantity(text) || 1;
+    items.push(buildVoiceItem({
+      category: 'Kamery CCTV',
+      name: 'Montaż kamery IP z puszką',
+      unit: 'szt',
+      quantity: qty,
+      priceNet: number(cameraBoxCombo[1]),
+      key: 'camera_box_combo'
+    }));
+    suppressedKeys.add('camera');
+    suppressedKeys.add('box_holder');
+    usedFragments.push(cameraBoxCombo[0]);
+  }
+
+  const appService = text.match(/(?:nauka\s+obslugi\s+aplikacji(?:\s+i\s+instalacja\s+aplikacji)?|instalacja\s+aplikacji(?:\s+i\s+nauka\s+obslugi)?)\s*(?:po|za|to|kosztuje|kosztuja)?\s*(\d+(?:[.]\d+)?)\s*zł/i);
+  if (appService) {
+    items.push(buildVoiceItem({
+      category: 'Serwis',
+      name: 'Nauka obsługi i instalacja aplikacji',
+      unit: 'usł',
+      quantity: 1,
+      priceNet: number(appService[1]),
+      key: 'app_training'
+    }));
+    suppressedKeys.add('app_training');
+    usedFragments.push(appService[0]);
+  }
+
+  const mountingBoxes = parseBoxMaterial(text, 'montaz', 'Puszka montażowa pod kamerę', 'mounting_box_material');
+  if (mountingBoxes) {
+    items.push(mountingBoxes);
+    suppressedKeys.add('box_holder');
+    usedFragments.push('puszk');
+  }
+
+  const electricalBoxes = parseBoxMaterial(text, 'prad', 'Puszka prądowa', 'electrical_box');
+  if (electricalBoxes) {
+    items.push(electricalBoxes);
+    suppressedKeys.add('electrical_box');
+    usedFragments.push('prad');
+  }
+
+  return { items, suppressedKeys: [...suppressedKeys], usedFragments };
+}
+
+function parseBoxMaterial(text, typeRoot, name, key) {
+  const variants = typeRoot === 'montaz'
+    ? '(?:puszk\\w*\\s+montaz\\w*|montaz\\w*\\s+puszk\\w*)'
+    : '(?:puszk\\w*\\s+prad\\w*|prad\\w*)';
+  const patterns = [
+    new RegExp(`(\\d+(?:[.]\\d+)?)\\s+${variants}.*?(?:po|za|za\\s+sztuke|kosztuja\\s+za\\s+sztuke|kosztuje\\s+za\\s+sztuke)?\\s*(\\d+(?:[.]\\d+)?)\\s*zł`, 'i'),
+    new RegExp(`${variants}.*?(?:po|za|za\\s+sztuke|kosztuja\\s+za\\s+sztuke|kosztuje\\s+za\\s+sztuke)?\\s*(\\d+(?:[.]\\d+)?)\\s*zł.*?(\\d+(?:[.]\\d+)?)\\s+puszk`, 'i')
+  ];
+  for (let i = 0; i < patterns.length; i += 1) {
+    const match = text.match(patterns[i]);
+    if (!match) continue;
+    const quantity = i === 0 ? number(match[1], 1) : number(match[2], 1);
+    const price = i === 0 ? number(match[2], 0) : number(match[1], 0);
+    if (quantity > 0 && price >= 0) {
+      return buildVoiceItem({ category: 'Kamery CCTV', name, unit: 'szt', quantity, priceNet: price, key });
+    }
+  }
+  return null;
+}
+
+function extractCameraQuantity(text) {
+  const patterns = [
+    /(\d+(?:[.]\d+)?)\s*(?:szt\s*)?(?:kamer\w*|kamery|kamera)\b/i,
+    /(?:instalacj\w*|montaz|montowal|montował|montuje|zakladam|zakładam)\s+(\d+(?:[.]\d+)?)\s*(?:szt\s*)?(?:kamer\w*|kamery|kamera)\b/i
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) return number(match[1], 1);
+  }
+  return null;
 }
 
 function stripClientFragmentsForItems(text) {
   let out = ` ${String(text || '')} `;
-  const serviceStartWords = '(?:montaż|montaz|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|switch|poe|dysk|puszka|puszki|uchwyt|uchwyty|rj45)';
+  const serviceStartWords = '(?:montaż|montaz|instalacja|instalacje|instalację|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|switch|poe|dysk|puszka|puszki|uchwyt|uchwyty|rj45|nauka)';
   const quantityServiceWords = '(?:kamera|kamery|kamer|kabel|przewód|przewod|rejestrator|router|domofon|wideodomofon|alarm|czujka|czujki|pilot|pilotów|pilotow|antena|anteny|switch|poe|dysk|puszka|puszki|uchwyt|uchwyty|rj45)';
 
   out = out.replace(/(?:^|\s)(?:telefon|tel|numer telefonu|komórka|komorka)\s*(?:to\s+|jest\s+)?(?:\+?48\s*)?\d{3}[\s.-]?\d{3}[\s.-]?\d{3}(?=\s|$)/gi, ' ');
-
-  // Usuń imię i nazwisko podane na początku bez słowa „klient”, np.
-  // „Bogusław Biernacki ul. Szymanowskiego 48 montaż 4 kamer”.
-  out = out.replace(/^\s*[a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ]+\s+[a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ]+(?=\s+(?:ul\.?|ulica|adres|przy ulicy|na adres|pod adresem)\s+)/i, ' ');
-
-  out = out.replace(new RegExp('(?:^|\\s)(?:adres|ulica|ul\\.?|przy ulicy|na adres|pod adresem)\\s+.*?(?=\\s+(?:telefon|tel|klient|klientka|imię|imie|nazwisko|' + serviceStartWords + '|\\d+[.,]?\\d*\\s+' + quantityServiceWords + ')(?=\\s|$)|$)', 'gi'), ' ');
-  out = out.replace(new RegExp('(?:^|\\s)(?:imię i nazwisko|imie i nazwisko|imię nazwisko|imie nazwisko|miej nazwisko|klientka|klient|u klienta|u klientki|pan|pani|nazwisko|imię|imie)\\s+.*?(?=\\s+(?:adres|ulica|ul\\.?|telefon|tel|' + serviceStartWords + '|\\d+[.,]?\\d*\\s+' + quantityServiceWords + ')(?=\\s|$)|$)', 'gi'), ' ');
+  out = out.replace(/^\s*.*?(?=\s+(?:ul\.?|ulica|adres|przy ulicy|na adres|pod adresem)\s+)/i, ' ');
+  out = out.replace(new RegExp('(?:^|\\s)(?:miejscowość|miejscowosc)\\s+\\S+(?=\\s+(?:' + serviceStartWords + '|telefon|tel|adres|ulica|ul\\.?)(?=\\s|$)|$)', 'gi'), ' ');
+  out = out.replace(new RegExp('(?:^|\\s)(?:adres|ulica|ul\\.?|przy ulicy|na adres|pod adresem)\\s+.*?(?=\\s+(?:miejscowość|miejscowosc|telefon|tel|klient|klientka|imię|imie|nazwisko|' + serviceStartWords + ')(?=\\s|$)|$)', 'gi'), ' ');
+  out = out.replace(new RegExp('(?:^|\\s)(?:imię i nazwisko|imie i nazwisko|imię nazwisko|imie nazwisko|miej nazwisko|klientka|klient|u klienta|u klientki|pan|pani|nazwisko|imię|imie)\\s+.*?(?=\\s+(?:adres|ulica|ul\\.?|telefon|tel|' + serviceStartWords + ')(?=\\s|$)|$)', 'gi'), ' ');
   return out.replace(/\s+/g, ' ').trim();
 }
 
@@ -719,15 +844,13 @@ function parseClientName(rawText) {
     if (name) return name;
   }
 
-  // Dyktowanie w praktyce często zaczyna się od samego imienia i nazwiska,
-  // np. „Bogusław Biernacki ul. Szymanowskiego 48 montaż 4 kamer”.
-  const beforeAddress = compact.match(/^(.{3,80}?)(?=\s+(?:ul\.?|ulica|adres|przy ulicy|na adres|pod adresem)\s+)/i);
+  const beforeAddress = compact.match(/^(.{3,100}?)(?=\s+(?:(?:miejscowość|miejscowosc)\s+\S+\s+)?(?:ul\.?|ulica|adres|przy ulicy|na adres|pod adresem)\s+)/i);
   if (beforeAddress) {
     const name = cleanNameFragment(beforeAddress[1]);
     if (isLikelyPersonName(name)) return name;
   }
 
-  const beforeService = compact.match(/^(.{3,80}?)(?=\s+(?:telefon|tel|montaż|montaz|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|puszka|puszki)\b)/i);
+  const beforeService = compact.match(/^(.{3,80}?)(?=\s+(?:telefon|tel|montaż|montaz|instalacja|będę|bede|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|puszka|puszki)\b)/i);
   if (beforeService) {
     const name = cleanNameFragment(beforeService[1]);
     if (isLikelyPersonName(name)) return name;
@@ -749,22 +872,64 @@ function parseClientPhone(rawText) {
 
 function parseClientAddress(rawText, normalizedText) {
   const compact = cleanDictationSpaces(rawText);
-  const patterns = [
-    /(?:adres|ulica|ul\.?|przy\s+ulicy)\s+(.{3,120})/i,
-    /(?:na\s+adres|pod\s+adresem)\s+(.{3,120})/i
-  ];
-  for (const pattern of patterns) {
-    const match = compact.match(pattern);
-    if (!match) continue;
-    const rawAddress = cutAtAddressStop(match[1]);
-    const address = cleanAddressFragment(rawAddress, /^ul\.?|^ulica/i.test(match[0]));
-    if (address) return address;
+  const city = parseCity(compact);
+  const explicitStreet = compact.match(/(?:adres|ulica|ul\.?|przy\s+ulicy)\s+(.{3,140})/i);
+  if (explicitStreet) {
+    const rawAddress = cutAtAddressStop(explicitStreet[1]);
+    const cityFromAddress = findKnownCityInText(rawAddress);
+    const address = cleanAddressFragment(removeKnownCityFromAddress(rawAddress), true);
+    return joinAddressAndCity(address, city || cityFromAddress);
+  }
+
+  const namedAddress = compact.match(/(?:na\s+adres|pod\s+adresem)\s+(.{3,140})/i);
+  if (namedAddress) {
+    const rawAddress = cutAtAddressStop(namedAddress[1]);
+    const cityFromAddress = findKnownCityInText(rawAddress);
+    const address = cleanAddressFragment(removeKnownCityFromAddress(rawAddress), false);
+    return joinAddressAndCity(address, city || cityFromAddress);
+  }
+
+  const cityBeforeStreet = compact.match(new RegExp('(?:^|\\s)(' + KNOWN_CITIES.join('|') + ')\\s+(?:ul\\.?|ulica)\\s+(.{3,100})', 'i'));
+  if (cityBeforeStreet) {
+    const address = cleanAddressFragment(cutAtAddressStop(cityBeforeStreet[2]), true);
+    return joinAddressAndCity(address, city || titleCase(cityBeforeStreet[1]));
   }
 
   const cityAddress = compact.match(/([a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\- ]+\s+\d+[a-zA-Z]?\/?\d*\s+(?:Mielec|Tarnów|Tarnow|Rzeszów|Rzeszow|Dębica|Debica|Kolbuszowa|Przecław|Przeclaw|Radomyśl|Radomysl)[a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\- ]*)/i);
   if (cityAddress) return cleanAddressFragment(cutAtAddressStop(cityAddress[1]), false);
 
   return '';
+}
+
+function parseCity(text) {
+  const explicit = String(text || '').match(/(?:miejscowość|miejscowosc|miasto)\s+([a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\-]+)/i);
+  if (explicit) return titleCase(explicit[1]);
+  const beforeStreet = String(text || '').match(new RegExp('(?:^|\\s)(' + KNOWN_CITIES.join('|') + ')\\s+(?:ul\\.?|ulica)\\s+', 'i'));
+  if (beforeStreet) return titleCase(beforeStreet[1]);
+  return '';
+}
+
+function findKnownCityInText(text) {
+  const lower = String(text || '').toLowerCase();
+  const found = KNOWN_CITIES.find(city => new RegExp(`\\b${escapeRegExp(city)}\\b`, 'i').test(lower));
+  return found ? titleCase(found) : '';
+}
+
+function removeKnownCityFromAddress(text) {
+  let out = String(text || '');
+  for (const city of KNOWN_CITIES) {
+    out = out.replace(new RegExp(`\\b${escapeRegExp(city)}\\b`, 'ig'), ' ');
+  }
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+function joinAddressAndCity(address, city) {
+  const cleanAddress = String(address || '').trim();
+  const cleanCity = String(city || '').trim();
+  if (!cleanAddress) return cleanCity;
+  if (!cleanCity) return cleanAddress;
+  if (cleanAddress.toLowerCase().includes(cleanCity.toLowerCase())) return cleanAddress;
+  return `${cleanAddress}, ${cleanCity}`;
 }
 
 function cleanDictationSpaces(text) {
@@ -780,7 +945,7 @@ function cutAtAddressStop(text) {
 
   // Nie wolno ucinać numeru domu. Poprzednia wersja brała „48 montaż”
   // jako ilość usługi i zostawiała samo „ul. Szymanowskiego”.
-  const serviceStart = out.match(/\s+(?:montaż|montaz|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|switch|poe|dysk|puszka|puszki|uchwyt|uchwyty|rj45)(?=\s|$)/i);
+  const serviceStart = out.match(/\s+(?:montaż|montaz|instalacja|instalację|instalacje|będę|bede|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|switch|poe|dysk|puszka|puszki|uchwyt|uchwyty|rj45)(?=\s|$)/i);
   if (serviceStart) out = out.slice(0, serviceStart.index + 1);
 
   for (const stop of ADDRESS_STOP_WORDS) {
@@ -798,7 +963,9 @@ function cleanNameFragment(fragment) {
     text = text.replace(re, '').trim();
   }
   text = text.replace(/\b(i|oraz|tak|dalej|to|jest|będzie|bedzie)\b/gi, ' ').replace(/\s+/g, ' ').trim();
-  const words = text.split(' ').filter(Boolean).filter(word => !/\d/.test(word)).slice(0, 3);
+  let words = text.split(' ').filter(Boolean).filter(word => !/\d/.test(word));
+  while (words.length > 2 && KNOWN_CITIES.includes(words[words.length - 1].toLowerCase())) words.pop();
+  words = words.slice(0, 3);
   if (!words.length) return '';
   return titleCase(words.join(' '));
 }
@@ -854,7 +1021,8 @@ function normalizeSpeechText(text) {
   out = out.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   out = out.replace(/,/g, '.');
   out = out.replace(/zlotych|złotych|zloty|złoty|złote|zlote|pln/g, 'zł');
-  out = out.replace(/metrów|metry|metrow|metra/g, 'm');
+  out = out.replace(/\bkilometrów\b|\bkilometry\b|\bkilometrow\b|\bkilometra\b|\bkilometr\b/g, 'km');
+  out = out.replace(/\bmetrów\b|\bmetry\b|\bmetrow\b|\bmetra\b|\bmetr\b/g, 'm');
   out = out.replace(/sztuk|sztuki|sztukę|sztuke/g, 'szt');
   out = out.replace(/godzinę|godzine|godziny|godzin/g, 'godz');
   for (const [word, value] of Object.entries(POLISH_NUMBER_WORDS)) {
@@ -882,12 +1050,12 @@ function findVoiceMatches(text) {
 function getItemContext(text, index) {
   const before = text.slice(0, index);
   const after = text.slice(index);
-  const separator = /[,;.\n]|\s+i\s+|\s+oraz\s+|\s+plus\s+/gi;
+  const separator = /[,;.\n]|\s+i\s+|\s+oraz\s+|\s+plus\s+|\s+\d+(?:[.]\d+)?\s*zł\s+(?:za\s+)?(?:m|mb|metr|km|szt)\s+/gi;
   const startMatches = [...before.matchAll(separator)];
   let lastStart = startMatches.length ? startMatches[startMatches.length - 1].index + startMatches[startMatches.length - 1][0].length : Math.max(0, index - 45);
   const prefix = text.slice(lastStart, index);
   if (/zł\s*$/i.test(prefix) || /zł\s+\w{0,12}\s*$/i.test(prefix)) lastStart = index;
-  const endMatch = after.match(/[,;.\n]|\s+i\s+|\s+oraz\s+|\s+plus\s+/i);
+  const endMatch = after.match(/[,;.\n]|\s+i\s+|\s+oraz\s+|\s+plus\s+|\s+dojazd\b|\s+cena\s+za\b|\s+nauka\s+|\s+\d+(?:[.]\d+)?\s*(?:puszk|kabel|przewod|przewód|kamer|kamery|kamera)\b/i);
   const end = endMatch ? index + endMatch.index : Math.min(text.length, index + 95);
   return text.slice(lastStart, end).trim();
 }
@@ -936,9 +1104,26 @@ function parsePriceNear(context, unit) {
 }
 
 function parseDistance(text) {
-  const match = text.match(/dojazd\s+(\d+(?:[.]\d+)?)\s*km(?:\s*(?:po|za)\s*(\d+(?:[.]\d+)?)\s*zł)?/i);
-  if (!match) return null;
-  return { km: number(match[1]), rate: match[2] ? number(match[2]) : null };
+  const patterns = [
+    /dojazd\s+(\d+(?:[.]\d+)?)\s*km(?:\s*(?:po|za)?\s*(\d+(?:[.]\d+)?)\s*zł(?:\s*(?:za|\/)?\s*(?:km|kilometr|kilometrów|kilometrow))?)?/i,
+    /(\d+(?:[.]\d+)?)\s*km\s+dojazd\w*(?:\s*(?:po|za)?\s*(\d+(?:[.]\d+)?)\s*zł)?/i
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) return { km: number(match[1]), rate: match[2] ? number(match[2]) : null };
+  }
+  return null;
+}
+
+function parseFreeKm(text) {
+  if (/\b(?:nie\s+ma|bez|brak|zero|0)\s+(?:darmowego|bezplatnego|bezpłatnego)\s+dojazdu\b/i.test(text)) return 0;
+  if (/\b(?:bez|brak|zero|0)\s+(?:darmowych|bezplatnych|bezpłatnych)\s+(?:kilometr\w*|km)\b/i.test(text)) return 0;
+  if (/\b(?:nie\s+licz|nie\s+liczyc|cały|caly)\s+(?:darmowego\s+)?dojazd\w*\b/i.test(text)) return 0;
+  if (/\bdojazd\s+(?:bez|brak|zero|0)\s+(?:darmowych|bezplatnych|bezpłatnych)\s+km\b/i.test(text)) return 0;
+  if (/\b(?:dojazd\s+)?(?:płatny|platny)\s+od\s+0\s*km\b/i.test(text)) return 0;
+  const match = text.match(/(?:darmow\w*|bezplatn\w*|bezpłatn\w*)\s+(\d+(?:[.]\d+)?)\s*km/i);
+  if (match) return number(match[1], 0);
+  return null;
 }
 
 function normalizeUnit(unit, fallback) {

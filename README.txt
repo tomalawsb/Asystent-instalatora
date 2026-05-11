@@ -1,4 +1,4 @@
-Pomocnik Instalatora PWA v1.3.0
+Pomocnik Instalatora PWA v1.4.0
 
 Wersja webowa/PWA działająca bez serwera.
 
@@ -40,3 +40,23 @@ Zmiany v1.3.0:
 - adres nie gubi już numeru domu przed słowem „montaż”,
 - poprawione rozpoznawanie odmian typu „kamer”, „kamery”, „puszki”,
 - poprawiona kolejność dodawanych pozycji z dyktowania.
+
+
+Zmiany v1.4.0:
+- przebudowany parser dyktowania pod naturalne zdania montera, bez konieczności klikania po listach,
+- poprawne rozpoznawanie przykładów z Bogusławem Biernackim, Mielcem i ul. Szymanowskiego 48,
+- obsługa miasta przed ulicą i po ulicy, np. „Mielec ul Szymanowskiego 48” oraz „ul Szymanowskiego 48 miejscowość Mielec”,
+- rozpoznawanie odmian liczebników: „czterech”, „dwóch”, „dwie”, „jednej” itd.,
+- rozpoznawanie dojazdu: „dojazd 15 km 2 zł za kilometr”,
+- obsługa „nie ma darmowego dojazdu” / „bez darmowych kilometrów” jako 0 km darmowych,
+- obsługa ceny za komplet: „montaż jednej kamery i puszki to 200 zł netto”,
+- obsługa „nauka obsługi aplikacji i instalacja aplikacji 50 zł”,
+- rozróżnienie „puszki montażowe” i „puszki prądowe”, także przy kolejności typu „60 zł dwie puszki”,
+- ograniczenie błędnego przypisywania ceny dojazdu albo kabla do kamery,
+- podbity cache PWA do v1.4.0.
+
+Sprawdzone testowo przykłady:
+- Bogusław Biernacki Mielec ul Szymanowskiego 48 będę montował 4 kamery IP 4 puszki montażowe
+- Bogusław Biernacki ul Szymanowskiego 48 miejscowość Mielec instalacja czterech kamer IP
+- Bogusław Biernacki ul Szymanowskiego 48 miejscowość Mielec instalacja czterech kamer IP dojazd 15 km 2 zł za kilometr nie ma darmowego dojazdu
+- Bogusław Biernacki ul Szymanowskiego 48 miejscowość Mielec instalacja czterech kamer IP dojazd 15 km 2 zł za kilometr nie ma darmowego dojazdu cena za montaż jednej kamery i puszki to 200 zł netto nauka obsługi aplikacji i instalacja aplikacji 50 zł puszki montażowe kosztują za sztukę 60 zł dwie puszki i prądowe 20 zł dwie puszki

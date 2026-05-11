@@ -119,6 +119,21 @@ window.PRICE_CATALOG = {
       "name": "Diagnostyka monitoringu",
       "unit": "godz",
       "price_net": 140.0
+    },
+    {
+      "name": "Montaż kamery IP z puszką",
+      "unit": "szt",
+      "price_net": 200.0
+    },
+    {
+      "name": "Puszka montażowa pod kamerę",
+      "unit": "szt",
+      "price_net": 60.0
+    },
+    {
+      "name": "Puszka prądowa",
+      "unit": "szt",
+      "price_net": 20.0
     }
   ],
   "Anteny / Sygnał": [
@@ -571,6 +586,11 @@ window.PRICE_CATALOG = {
       "name": "Dojazd",
       "unit": "km",
       "price_net": 2.0
+    },
+    {
+      "name": "Nauka obsługi i instalacja aplikacji",
+      "unit": "usł",
+      "price_net": 50.0
     }
   ]
 };

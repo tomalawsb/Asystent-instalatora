@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pomocnik-instalatora-pwa-v1-3-0';
+const CACHE_NAME = 'pomocnik-instalatora-pwa-v1-4-0';
 const FILES = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const FILES = [
   './pricing-data.js',
   './cennik.json',
   './manifest.json',
+  './app-version.json',
   './icon-192.svg',
   './icon-512.svg'
 ];
