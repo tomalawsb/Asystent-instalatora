@@ -592,5 +592,77 @@ window.PRICE_CATALOG = {
       "unit": "usł",
       "price_net": 50.0
     }
+  ],
+  "Przewody / Okablowanie": [
+    {
+      "name": "Kabel antenowy RG6 CU",
+      "unit": "mb",
+      "price_net": 2.5
+    },
+    {
+      "name": "Skrętka UTP Cat 5e CU",
+      "unit": "mb",
+      "price_net": 2.0
+    },
+    {
+      "name": "Skrętka żelowana Cat 5e CU",
+      "unit": "mb",
+      "price_net": 2.2
+    },
+    {
+      "name": "Skrętka UTP Cat 6 CU",
+      "unit": "mb",
+      "price_net": 2.0
+    },
+    {
+      "name": "Skrętka żelowana Cat 6 CU",
+      "unit": "mb",
+      "price_net": 3.5
+    },
+    {
+      "name": "Przewód prądowy YDYp 3×1,5",
+      "unit": "mb",
+      "price_net": 3.5
+    },
+    {
+      "name": "Przewód prądowy YDYp 3×2,5",
+      "unit": "mb",
+      "price_net": 5.5
+    },
+    {
+      "name": "Prowadzenie przewodu — łatwe",
+      "unit": "mb",
+      "price_net": 5.0
+    },
+    {
+      "name": "Prowadzenie przewodu — standardowe",
+      "unit": "mb",
+      "price_net": 8.0
+    },
+    {
+      "name": "Prowadzenie przewodu — trudne",
+      "unit": "mb",
+      "price_net": 14.0
+    },
+    {
+      "name": "Prowadzenie przewodu w peszlu",
+      "unit": "mb",
+      "price_net": 12.0
+    },
+    {
+      "name": "Prowadzenie przewodu w listwie",
+      "unit": "mb",
+      "price_net": 10.0
+    },
+    {
+      "name": "Prowadzenie przewodu w ziemi",
+      "unit": "mb",
+      "price_net": 20.0
+    },
+    {
+      "name": "Przewiert przez ścianę pod przewód",
+      "unit": "szt",
+      "price_net": 35.0
+    }
   ]
 };

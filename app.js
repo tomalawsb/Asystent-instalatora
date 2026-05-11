@@ -1,4 +1,4 @@
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.9.0';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -15,6 +15,7 @@ const TYPE_HINTS = {
   'Domofon': ['Montaż wideodomofonu 1-rodzinnego', 'Montaż panelu bramowego', 'Montaż elektrozaczepu'],
   'Alarm': ['Montaż centrali alarmowej', 'Montaż czujki PIR', 'Montaż sygnalizatora zewnętrznego'],
   'Automatyka bram': ['Montaż napędu bramy przesuwnej', 'Montaż fotokomórek', 'Programowanie pilotów'],
+  'Przewody / Okablowanie': ['Kabel antenowy RG6 CU', 'Skrętka UTP Cat 5e CU', 'Skrętka UTP Cat 6 CU', 'Prowadzenie przewodu — standardowe'],
   'Serwis': ['Diagnostyka / serwis', 'Aktualizacja oprogramowania', 'Dojazd']
 };
 
@@ -22,6 +23,7 @@ const KEYWORDS_TO_TYPES = {
   'kamera': 'Kamery CCTV', 'kamery': 'Kamery CCTV', 'monitoring': 'Kamery CCTV', 'rejestrator': 'Kamery CCTV', 'nvr': 'Kamery CCTV', 'poe': 'Kamery CCTV', 'ptz': 'Kamery CCTV',
   'anten': 'Anteny / Sygnał', 'dvb': 'Anteny / Sygnał', 'satel': 'Anteny / Sygnał', 'konwerter': 'Anteny / Sygnał', 'sygnał': 'Anteny / Sygnał', 'sygnal': 'Anteny / Sygnał',
   'wifi': 'Sieć / Wi‑Fi', 'wi-fi': 'Sieć / Wi‑Fi', 'router': 'Sieć / Wi‑Fi', 'internet': 'Sieć / Wi‑Fi', 'lan': 'Sieć / Wi‑Fi', 'rj45': 'Sieć / Wi‑Fi', 'mesh': 'Sieć / Wi‑Fi',
+  'skrętka': 'Przewody / Okablowanie', 'skretka': 'Przewody / Okablowanie', 'cat': 'Przewody / Okablowanie', 'rg6': 'Przewody / Okablowanie', 'przewód': 'Przewody / Okablowanie', 'przewod': 'Przewody / Okablowanie', 'zelowany': 'Przewody / Okablowanie', 'żelowany': 'Przewody / Okablowanie',
   'domofon': 'Domofon', 'wideodomofon': 'Domofon', 'furtk': 'Domofon', 'elektrozaczep': 'Domofon',
   'alarm': 'Alarm', 'central': 'Alarm', 'czujk': 'Alarm', 'sygnalizator': 'Alarm', 'pir': 'Alarm',
   'bram': 'Automatyka bram', 'pilot': 'Automatyka bram', 'fotokomór': 'Automatyka bram', 'napęd': 'Automatyka bram',
@@ -35,6 +37,7 @@ const CHECKLISTS = {
   'Domofon': ['Sprawdzić okablowanie do furtki', 'Ustalić miejsce monitora / unifonu', 'Sprawdzić elektrozaczep lub zworę', 'Zweryfikować zasilanie urządzeń'],
   'Alarm': ['Ustalić strefy i wejścia', 'Ustalić miejsca czujek', 'Sprawdzić zasilanie i akumulator', 'Sprawdzić komunikację GSM / aplikację'],
   'Automatyka bram': ['Sprawdzić stan mechaniczny bramy', 'Zweryfikować zasilanie napędu', 'Ustalić miejsca fotokomórek i lampy', 'Sprawdzić możliwość sterowania z telefonu'],
+  'Przewody / Okablowanie': ['Ustalić typ przewodu: antenowy / internetowy / prądowy', 'Policzyć metry przewodu', 'Określić teren prowadzenia: łatwy / standardowy / trudny', 'Sprawdzić czy materiał i robocizna mają być liczone osobno'],
   'Serwis': ['Opisać objawy usterki', 'Sprawdzić istniejący sprzęt', 'Zanotować wynik diagnozy', 'Ustalić zakres naprawy lub konfiguracji']
 };
 
@@ -60,6 +63,75 @@ const VOICE_ITEM_RULES = [
   { key: 'gate_remote', category: 'Automatyka bram', name: 'Programowanie pilotów', unit: 'szt', keywords: ['pilot', 'pilota', 'pilotów', 'pilotow'] },
   { key: 'labor', category: 'Serwis', name: 'Robocizna', unit: 'godz', keywords: ['robocizna', 'praca', 'godzina', 'godziny', 'godzin'] },
   { key: 'service', category: 'Serwis', name: 'Diagnostyka / serwis', unit: 'godz', keywords: ['serwis', 'diagnostyka', 'naprawa'] }
+];
+
+
+const CABLE_MATERIAL_TYPES = [
+  {
+    key: 'cable_rg6_cu',
+    name: 'Kabel antenowy RG6 CU',
+    category: 'Przewody / Okablowanie',
+    unit: 'mb',
+    defaultPrice: 2.50,
+    score: text => (/\brg\s*-?\s*6\b|\brg6\b|anten\w*|koncentryk|koncentryczn\w*/i.test(text) ? 20 : 0)
+  },
+  {
+    key: 'cable_cat6_gel_cu',
+    name: 'Skrętka żelowana Cat 6 CU',
+    category: 'Przewody / Okablowanie',
+    unit: 'mb',
+    defaultPrice: 3.50,
+    score: text => (/zelowan\w*|żelowan\w*|ziemn\w*|zewnetrzn\w*|zewnętrzn\w*|pe\b/i.test(text) ? (/\bcat\s*6\b|\bkat\s*6\b|kategoria\s*6/i.test(text) ? 30 : 0) : 0)
+  },
+  {
+    key: 'cable_cat6_cu',
+    name: 'Skrętka UTP Cat 6 CU',
+    category: 'Przewody / Okablowanie',
+    unit: 'mb',
+    defaultPrice: 2.00,
+    score: text => (/\bcat\s*6\b|\bkat\s*6\b|kategoria\s*6/i.test(text) ? 18 : 0)
+  },
+  {
+    key: 'cable_cat5e_gel_cu',
+    name: 'Skrętka żelowana Cat 5e CU',
+    category: 'Przewody / Okablowanie',
+    unit: 'mb',
+    defaultPrice: 2.20,
+    score: text => (/zelowan\w*|żelowan\w*|ziemn\w*|zewnetrzn\w*|zewnętrzn\w*|pe\b/i.test(text) ? (/\bcat\s*5e\b|\bkat\s*5e\b|kategoria\s*5e/i.test(text) ? 30 : (/skretk\w*|skrętk\w*|internetow\w*|lan|utp/i.test(text) ? 24 : 0)) : 0)
+  },
+  {
+    key: 'cable_cat5e_cu',
+    name: 'Skrętka UTP Cat 5e CU',
+    category: 'Przewody / Okablowanie',
+    unit: 'mb',
+    defaultPrice: 2.00,
+    score: text => (/\bcat\s*5e\b|\bkat\s*5e\b|kategoria\s*5e|skretk\w*|skrętk\w*|internetow\w*|lan|utp/i.test(text) ? 18 : 0)
+  },
+  {
+    key: 'cable_power_ydyp_3x25',
+    name: 'Przewód prądowy YDYp 3×2,5',
+    category: 'Przewody / Okablowanie',
+    unit: 'mb',
+    defaultPrice: 5.50,
+    score: text => ((/prad\w*|prąd\w*|elektryczn\w*|zasilaj\w*|ydyp|ydy/i.test(text) ? 12 : 0) + (/3\s*x\s*2[.,]?5|3×2[.,]?5/i.test(text) ? 15 : 0))
+  },
+  {
+    key: 'cable_power_ydyp_3x15',
+    name: 'Przewód prądowy YDYp 3×1,5',
+    category: 'Przewody / Okablowanie',
+    unit: 'mb',
+    defaultPrice: 3.50,
+    score: text => (/prad\w*|prąd\w*|elektryczn\w*|zasilaj\w*|ydyp|ydy/i.test(text) ? 14 : 0)
+  }
+];
+
+const CABLE_LABOR_TYPES = [
+  { key: 'cable_labor_easy', name: 'Prowadzenie przewodu — łatwe', priceNet: 5.00, test: text => /latw\w*|łatw\w*|prosto|bez\s+problemu|po\s+wierzchu|po\s+zewnatrz|po\s+zewnątrz/i.test(text) },
+  { key: 'cable_labor_ground', name: 'Prowadzenie przewodu w ziemi', priceNet: 20.00, test: text => /w\s+ziemi|ziemn\w*|zakop\w*|wykop\w*|rurze\s+ziemnej/i.test(text) },
+  { key: 'cable_labor_conduit', name: 'Prowadzenie przewodu w peszlu', priceNet: 12.00, test: text => /peszl\w*|rurce|rurze|rura\s+oslonowa|rura\s+osłonowa/i.test(text) },
+  { key: 'cable_labor_strip', name: 'Prowadzenie przewodu w listwie', priceNet: 10.00, test: text => /listw\w*|maskowan\w*|korytk\w*/i.test(text) },
+  { key: 'cable_labor_hard', name: 'Prowadzenie przewodu — trudne', priceNet: 14.00, test: text => /trudn\w*|ciezk\w*|ciężk\w*|strych|poddasz\w*|dach|komin|przewiert\w*|przekuc\w*|pod\s+elewacj\w*/i.test(text) },
+  { key: 'cable_labor_standard', name: 'Prowadzenie przewodu — standardowe', priceNet: 8.00, test: () => true }
 ];
 
 const POLISH_NUMBER_WORDS = {
@@ -188,10 +260,24 @@ function loadCatalog() {
     const stored = localStorage.getItem(CATALOG_KEY);
     if (stored) {
       const parsed = validateCatalogObject(JSON.parse(stored));
-      if (parsed) return parsed;
+      if (parsed) return mergeCatalogWithDefaults(parsed);
     }
   } catch {}
   return getDefaultCatalog();
+}
+
+function mergeCatalogWithDefaults(customCatalog) {
+  const merged = getDefaultCatalog();
+  const custom = validateCatalogObject(customCatalog) || {};
+  for (const [category, items] of Object.entries(custom)) {
+    if (!merged[category]) merged[category] = [];
+    for (const item of items) {
+      const idx = merged[category].findIndex(existing => existing.name.toLowerCase() === item.name.toLowerCase());
+      if (idx >= 0) merged[category][idx] = item;
+      else merged[category].push(item);
+    }
+  }
+  return merged;
 }
 
 function saveCatalog(catalog) {
@@ -1626,7 +1712,7 @@ function parseSmartCommand(rawText) {
   for (const clause of clauses) {
     const hasKnown = found.some(match => clause.includes(match.keyword)) || special.usedFragments.some(fragment => clause.includes(fragment));
     const looksLikePrice = /\d+[,.]?\d*\s*(zł|zl|pln|m|mb|km|szt|godz)/i.test(clause);
-    if (!hasKnown && looksLikePrice && !/dojazd/.test(clause)) unknown.push(clause);
+    if (!hasKnown && looksLikePrice && !/dojazd/.test(clause) && !looksLikeCableClause(clause)) unknown.push(clause);
   }
 
   const learnedApplied = applyLearnedCorrections(rawText, items);
@@ -1695,7 +1781,134 @@ function extractSpecialVoiceItems(text) {
     usedFragments.push('prad');
   }
 
+  const cableResult = parseCableVoiceItems(text);
+  if (cableResult.items.length) {
+    items.push(...cableResult.items);
+    suppressedKeys.add('cable_lan');
+    usedFragments.push(...cableResult.usedFragments);
+  }
+
   return { items, suppressedKeys: [...suppressedKeys], usedFragments };
+}
+
+
+function parseCableVoiceItems(text) {
+  const clauses = splitCableClauses(text);
+  const items = [];
+  const usedFragments = [];
+  const seen = new Set();
+
+  for (const clause of clauses) {
+    if (!looksLikeCableClause(clause)) continue;
+    const length = parseCableLength(clause);
+    if (!length || length <= 0) continue;
+
+    const materialType = detectCableMaterialType(clause);
+    if (!materialType) continue;
+
+    const materialKey = `${materialType.key}_${length}`;
+    if (!seen.has(materialKey)) {
+      const materialCatalog = findCatalogService(materialType.category, materialType.name);
+      const explicitMaterialPrice = parseCableMaterialPrice(clause);
+      items.push(buildVoiceItem({
+        category: materialType.category,
+        name: materialType.name,
+        unit: 'mb',
+        quantity: length,
+        priceNet: explicitMaterialPrice !== null ? explicitMaterialPrice : number(materialCatalog?.price_net, materialType.defaultPrice),
+        key: materialType.key
+      }));
+      seen.add(materialKey);
+    }
+
+    if (!/(?:^|\s)(?:sam\s+material|sam\s+materiał|bez\s+prowadzenia|bez\s+robocizny)(?=\s|$)/i.test(clause)) {
+      const laborType = detectCableLaborType(clause);
+      const laborCatalog = findCatalogService('Przewody / Okablowanie', laborType.name);
+      const explicitLaborPrice = parseCableLaborPrice(clause);
+      const laborKey = `${laborType.key}_${length}`;
+      if (!seen.has(laborKey)) {
+        items.push(buildVoiceItem({
+          category: 'Przewody / Okablowanie',
+          name: laborType.name,
+          unit: 'mb',
+          quantity: length,
+          priceNet: explicitLaborPrice !== null ? explicitLaborPrice : number(laborCatalog?.price_net, laborType.priceNet),
+          key: laborType.key
+        }));
+        seen.add(laborKey);
+      }
+    }
+
+    usedFragments.push(clause);
+  }
+
+  return { items, usedFragments };
+}
+
+function splitCableClauses(text) {
+  const raw = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!raw) return [];
+  const parts = raw.split(/[,;\n]+|\s+oraz\s+|\s+plus\s+|\s+i\s+(?=(?:\d|kabel|kabla|przewod|przewodu|przewód|skrętka|skretka|cat|kat|rg6|anten|prad|prąd|internet))/i);
+  const out = parts.map(x => x.trim()).filter(Boolean);
+  return out.length ? out : [raw];
+}
+
+function looksLikeCableClause(text) {
+  return /\b(kabel|kabla|kabli|przewod|przewodu|przewód|przewody|skretk\w*|skrętk\w*|cat\s*\d|kat\s*\d|rg\s*-?\s*6|rg6|antenow\w*|internetow\w*|zelowan\w*|żelowan\w*|ydyp|ydy|elektryczn\w*|prad\w*|prąd\w*)\b/i.test(text);
+}
+
+function parseCableLength(text) {
+  const patterns = [
+    /(\d+(?:[.]\d+)?)\s*(?:m|mb)\b/i,
+    /(\d+(?:[.]\d+)?)\s*(?:metr\w*)\b/i,
+    /(?:kabel|kabla|przewod\w*|przewód\w*|skretk\w*|skrętk\w*|cat\s*\d\w*|kat\s*\d\w*|rg6|antenow\w*|internetow\w*)\D{0,40}(\d+(?:[.]\d+)?)\s*(?:m|mb|metr\w*)\b/i
+  ];
+  for (const pattern of patterns) {
+    const match = String(text || '').match(pattern);
+    if (match) return number(match[1], 0);
+  }
+  return 0;
+}
+
+function detectCableMaterialType(text) {
+  let best = null;
+  for (const type of CABLE_MATERIAL_TYPES) {
+    const score = type.score(text);
+    if (score > 0 && (!best || score > best.score)) best = { ...type, score };
+  }
+  return best;
+}
+
+function detectCableLaborType(text) {
+  for (const type of CABLE_LABOR_TYPES) {
+    if (type.test(text)) return type;
+  }
+  return CABLE_LABOR_TYPES[CABLE_LABOR_TYPES.length - 1];
+}
+
+function parseCableMaterialPrice(text) {
+  const source = String(text || '').split(/(?:prowadzen\w*|ciagnieci\w*|ciągnięci\w*|przeciagani\w*|przeciągani\w*|robocizn\w*)/i)[0];
+  const patterns = [
+    /(?:kabel|kabla|przewod\w*|przewód\w*|skretk\w*|skrętk\w*|cat\s*\d\w*|kat\s*\d\w*|rg6|antenow\w*|internetow\w*)\D{0,60}?(?:po|za|kosztuje|kosztuja)\s*(\d+(?:[.]\d+)?)\s*zł\s*(?:za|\/)?\s*(?:m|mb|metr)/i,
+    /(\d+(?:[.]\d+)?)\s*zł\s*(?:za|\/)?\s*(?:m|mb|metr)\D{0,50}?(?:kabel|kabla|przewod\w*|przewód\w*|skretk\w*|skrętk\w*|cat\s*\d\w*|kat\s*\d\w*|rg6|antenow\w*|internetow\w*)/i
+  ];
+  for (const pattern of patterns) {
+    const match = source.match(pattern);
+    if (match) return number(match[1], 0);
+  }
+  return null;
+}
+
+function parseCableLaborPrice(text) {
+  const patterns = [
+    /(?:prowadzen\w*|ciagnieci\w*|ciągnięci\w*|przeciagani\w*|przeciągani\w*|robocizn\w*)\D{0,60}?(?:po|za|kosztuje)?\s*(\d+(?:[.]\d+)?)\s*zł\s*(?:za|\/)?\s*(?:m|mb|metr)/i,
+    /(\d+(?:[.]\d+)?)\s*zł\s*(?:za|\/)?\s*(?:m|mb|metr)\D{0,50}?(?:prowadzen\w*|ciagnieci\w*|ciągnięci\w*|przeciagani\w*|przeciągani\w*|robocizn\w*)/i
+  ];
+  for (const pattern of patterns) {
+    const match = String(text || '').match(pattern);
+    if (match) return number(match[1], 0);
+  }
+  return null;
 }
 
 function parseBoxMaterial(text, typeRoot, name, key) {
