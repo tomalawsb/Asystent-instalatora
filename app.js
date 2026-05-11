@@ -1,4 +1,4 @@
-const APP_VERSION = '1.9.0';
+const APP_VERSION = '2.0 - 1105262245';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -16,6 +16,7 @@ const TYPE_HINTS = {
   'Alarm': ['Montaż centrali alarmowej', 'Montaż czujki PIR', 'Montaż sygnalizatora zewnętrznego'],
   'Automatyka bram': ['Montaż napędu bramy przesuwnej', 'Montaż fotokomórek', 'Programowanie pilotów'],
   'Przewody / Okablowanie': ['Kabel antenowy RG6 CU', 'Skrętka UTP Cat 5e CU', 'Skrętka UTP Cat 6 CU', 'Prowadzenie przewodu — standardowe'],
+  'Dopłaty / Trudne warunki': ['Dopłata za trudny dostęp / wysokość', 'Dopłata za montaż na kominie lub maszcie', 'Dopłata za kucie / przekucie', 'Dopłata za kopanie / trudny grunt'],
   'Serwis': ['Diagnostyka / serwis', 'Aktualizacja oprogramowania', 'Dojazd']
 };
 
@@ -24,6 +25,7 @@ const KEYWORDS_TO_TYPES = {
   'anten': 'Anteny / Sygnał', 'dvb': 'Anteny / Sygnał', 'satel': 'Anteny / Sygnał', 'konwerter': 'Anteny / Sygnał', 'sygnał': 'Anteny / Sygnał', 'sygnal': 'Anteny / Sygnał',
   'wifi': 'Sieć / Wi‑Fi', 'wi-fi': 'Sieć / Wi‑Fi', 'router': 'Sieć / Wi‑Fi', 'internet': 'Sieć / Wi‑Fi', 'lan': 'Sieć / Wi‑Fi', 'rj45': 'Sieć / Wi‑Fi', 'mesh': 'Sieć / Wi‑Fi',
   'skrętka': 'Przewody / Okablowanie', 'skretka': 'Przewody / Okablowanie', 'cat': 'Przewody / Okablowanie', 'rg6': 'Przewody / Okablowanie', 'przewód': 'Przewody / Okablowanie', 'przewod': 'Przewody / Okablowanie', 'zelowany': 'Przewody / Okablowanie', 'żelowany': 'Przewody / Okablowanie',
+  'trudny': 'Dopłaty / Trudne warunki', 'trudne': 'Dopłaty / Trudne warunki', 'wysoko': 'Dopłaty / Trudne warunki', 'drabina': 'Dopłaty / Trudne warunki', 'komin': 'Dopłaty / Trudne warunki', 'strych': 'Dopłaty / Trudne warunki', 'przewiert': 'Dopłaty / Trudne warunki', 'kopanie': 'Dopłaty / Trudne warunki', 'wykop': 'Dopłaty / Trudne warunki',
   'domofon': 'Domofon', 'wideodomofon': 'Domofon', 'furtk': 'Domofon', 'elektrozaczep': 'Domofon',
   'alarm': 'Alarm', 'central': 'Alarm', 'czujk': 'Alarm', 'sygnalizator': 'Alarm', 'pir': 'Alarm',
   'bram': 'Automatyka bram', 'pilot': 'Automatyka bram', 'fotokomór': 'Automatyka bram', 'napęd': 'Automatyka bram',
@@ -38,6 +40,7 @@ const CHECKLISTS = {
   'Alarm': ['Ustalić strefy i wejścia', 'Ustalić miejsca czujek', 'Sprawdzić zasilanie i akumulator', 'Sprawdzić komunikację GSM / aplikację'],
   'Automatyka bram': ['Sprawdzić stan mechaniczny bramy', 'Zweryfikować zasilanie napędu', 'Ustalić miejsca fotokomórek i lampy', 'Sprawdzić możliwość sterowania z telefonu'],
   'Przewody / Okablowanie': ['Ustalić typ przewodu: antenowy / internetowy / prądowy', 'Policzyć metry przewodu', 'Określić teren prowadzenia: łatwy / standardowy / trudny', 'Sprawdzić czy materiał i robocizna mają być liczone osobno'],
+  'Dopłaty / Trudne warunki': ['Sprawdzić, czy trzeba użyć drabiny / wejść na wysokość', 'Sprawdzić liczbę przewiertów i rodzaj ścian', 'Ustalić czy będzie kopanie, bruk albo trudny grunt', 'Ustalić czy montaż jest na kominie, maszcie, strychu lub elewacji'],
   'Serwis': ['Opisać objawy usterki', 'Sprawdzić istniejący sprzęt', 'Zanotować wynik diagnozy', 'Ustalić zakres naprawy lub konfiguracji']
 };
 
@@ -510,6 +513,14 @@ function initEvents() {
   $('newQuoteBtn').addEventListener('click', newQuote);
   $('exportTxtBtn').addEventListener('click', () => downloadTxt(state));
   $('printBtn').addEventListener('click', () => window.print());
+  $('copyClientSmsBtn').addEventListener('click', () => copyTextToClipboard(buildClientSms(state), 'SMS do klienta skopiowany do schowka.'));
+  $('offerPdfBtn').addEventListener('click', () => generateOfferPdf(state));
+  $('refreshClientMessageBtn').addEventListener('click', renderClientMessagePreview);
+  $('copyClientSmsPreviewBtn').addEventListener('click', () => copyTextToClipboard(buildClientSms(state), 'SMS do klienta skopiowany do schowka.'));
+  $('copyClientDescriptionBtn').addEventListener('click', () => copyTextToClipboard(buildClientDescription(state), 'Opis wyceny skopiowany do schowka.'));
+  $('offerPdfPreviewBtn').addEventListener('click', () => generateOfferPdf(state));
+  $('refreshMaterialsBtn').addEventListener('click', renderMaterialsPreview);
+  $('copyMaterialsBtn').addEventListener('click', () => copyMaterialsList(state));
   $('copyReportBtn').addEventListener('click', copyReport);
   $('catalogSearch').addEventListener('input', renderCatalog);
   $('saveCatalogItemBtn').addEventListener('click', saveCatalogItemFromForm);
@@ -557,6 +568,7 @@ function syncFromForm() {
   }
   renderSummary();
   renderChecklist();
+  renderClientMessagePreview();
 }
 
 function syncToForm() {
@@ -697,6 +709,8 @@ function renderAll() {
   renderServices();
   renderSummary();
   renderChecklist();
+  renderClientMessagePreview();
+  renderMaterialsPreview();
   renderSavedQuotes();
   renderCatalog();
   renderCatalogCategoryList();
@@ -783,6 +797,8 @@ function renderSummary() {
   $('sumVat').textContent = money(totals.vat);
   $('sumGross').textContent = money(totals.gross);
   $('distanceInfo').textContent = `Płatne km: ${totals.billedKm}. Dojazd: ${money(totals.distanceNet)} netto`;
+  renderClientMessagePreview();
+  renderMaterialsPreview();
 }
 
 function renderChecklist() {
@@ -825,6 +841,9 @@ function renderSavedQuotes() {
     node.querySelector('p').textContent = `${quote.visitDate || 'brak daty'} • ${quote.jobType || 'brak typu'} • ${money(totals.gross)} brutto`;
     node.querySelector('.load').addEventListener('click', () => loadQuote(quote.id));
     node.querySelector('.txt').addEventListener('click', () => downloadTxt(quote));
+    node.querySelector('.sms').addEventListener('click', () => copyTextToClipboard(buildClientSms(quote), 'SMS z zapisanej wyceny skopiowany do schowka.'));
+    node.querySelector('.pdf').addEventListener('click', () => generateOfferPdf(quote));
+    node.querySelector('.materials').addEventListener('click', () => copyMaterialsList(quote));
     node.querySelector('.delete').addEventListener('click', () => deleteQuote(quote.id));
     wrap.appendChild(node);
   }
@@ -1038,6 +1057,8 @@ function buildReport(quote = state) {
   lines.push('');
   lines.push('NOTATKI:');
   lines.push(quote.notes || '-');
+  lines.push('');
+  lines.push(buildMaterialsText(quote));
   return lines.join('\n');
 }
 
@@ -1052,6 +1073,305 @@ async function copyReport() {
     showInfo('Raport skopiowany do schowka.');
   } catch {
     showInfo('Nie udało się skopiować raportu. Użyj eksportu TXT.');
+  }
+}
+
+function renderClientMessagePreview() {
+  const box = $('clientMessagePreview');
+  if (!box) return;
+  box.value = buildClientSms(state);
+}
+
+function buildClientSms(quote = state) {
+  const totals = calculateTotals(quote);
+  const job = quote.jobType || 'usługa instalacyjna';
+  const address = quote.clientAddress ? ` pod adresem ${quote.clientAddress}` : '';
+  const scope = summarizeServices(quote, 3);
+  const date = quote.visitDate ? ` Termin: ${formatDate(quote.visitDate)}.` : '';
+  const distance = totals.distanceNet > 0 ? ` Dojazd: ${money(totals.distanceNet)} netto.` : '';
+  return normalizeSpaces(`Dzień dobry, wycena: ${job}${address}. Zakres: ${scope}. Razem: ${money(totals.gross)} brutto (${money(totals.net)} netto).${distance}${date}`);
+}
+
+function buildClientDescription(quote = state) {
+  const totals = calculateTotals(quote);
+  const lines = [];
+  lines.push('Dzień dobry,');
+  lines.push('');
+  lines.push(`Przesyłam wycenę: ${quote.jobType || 'usługa instalacyjna'}${quote.clientAddress ? `, adres: ${quote.clientAddress}` : ''}.`);
+  if (quote.visitDate) lines.push(`Planowany termin wizyty: ${formatDate(quote.visitDate)}.`);
+  lines.push('');
+  lines.push('Zakres prac:');
+  if (quote.services.length) {
+    quote.services.forEach(item => lines.push(`- ${formatServiceLine(item)}`));
+  } else {
+    lines.push('- zakres do ustalenia / brak pozycji w wycenie');
+  }
+  if (totals.distanceNet > 0) lines.push(`- dojazd: ${totals.billedKm} km płatne × ${money(quote.distanceRate)} = ${money(totals.distanceNet)} netto`);
+  lines.push('');
+  lines.push(`Razem netto: ${money(totals.net)}`);
+  lines.push(`VAT: ${money(totals.vat)}`);
+  lines.push(`Razem brutto: ${money(totals.gross)}`);
+  lines.push('');
+  lines.push('Kwoty są przygotowane na podstawie podanych danych. Jeżeli zakres prac zmieni się na miejscu, wycena może wymagać aktualizacji.');
+  return lines.join('\n');
+}
+
+
+function buildMaterialsData(quote = state) {
+  const materials = new Map();
+  const tools = new Set();
+  const checks = new Set();
+  const allText = `${quote.jobType || ''} ${quote.notes || ''} ${(quote.services || []).map(item => item.name).join(' ')}`.toLowerCase();
+
+  const addMaterial = (name, quantity = 1, unit = 'szt', note = '') => {
+    const cleanName = String(name || '').trim();
+    if (!cleanName) return;
+    const cleanUnit = String(unit || 'szt').trim() || 'szt';
+    const key = `${cleanName.toLowerCase()}|${cleanUnit}|${note}`;
+    const current = materials.get(key) || { name: cleanName, quantity: 0, unit: cleanUnit, note };
+    current.quantity = round2(number(current.quantity) + number(quantity, 1));
+    materials.set(key, current);
+  };
+  const addTool = text => { if (text) tools.add(text); };
+  const addCheck = text => { if (text) checks.add(text); };
+
+  for (const item of quote.services || []) {
+    const name = String(item.name || '');
+    const lower = name.toLowerCase();
+    const qty = Math.max(0, number(item.quantity, 1));
+    const unit = String(item.unit || 'szt').toLowerCase();
+
+    if (/montaż kamery|montaz kamery|kamera ip|kamera obrotowa|\bptz\b/.test(lower) && !/konfiguracja|podgląd|podglad|aplikacja|prowadzenie|okablowanie|serwis|diagnostyka/.test(lower)) {
+      addMaterial(/ptz|obrotow/.test(lower) ? 'Kamery obrotowe PTZ' : 'Kamery IP', qty, 'szt');
+      addTool('wiertarka / wkrętarka');
+      addTool('kołki, wkręty i uszczelnienie');
+    }
+    if (/z puszką|z puszka/.test(lower)) addMaterial('Puszki montażowe pod kamery', qty, 'szt');
+    if (/puszk.*montaż|puszk.*montaz|uchwyt.*kamer/.test(lower)) addMaterial('Puszki montażowe pod kamery', qty, 'szt');
+    if (/puszk.*prąd|puszk.*prad|puszka elektrycz/.test(lower)) addMaterial('Puszki prądowe / elektryczne', qty, 'szt');
+
+    if (/skrętka|skretka|cat\s*5e|cat\s*6|kat\s*5e|kat\s*6|utp|ftp|lan|rg6|antenowy|koncentryk|koncentryczny|przewód\w*|przewod\w*|ydyp|ydy|kabel/.test(lower)) {
+      if (/prowadzenie|ciągnięcie|ciagniecie|ułożenie|ulozenie|robocizna/.test(lower)) {
+        addCheck(`Przygotować przewód do trasy: ${qty} ${unit === 'mb' ? 'mb' : unit}`);
+      } else if (unit === 'mb' || /mb|metr/.test(unit)) {
+        addMaterial(name, qty, 'mb');
+      } else {
+        addMaterial(name, qty, item.unit || 'szt');
+      }
+      addTool('tester przewodów / miernik ciągłości');
+      addTool('opaski, uchwyty, peszel albo listwy według trasy');
+    }
+
+    if (/rj45|końcówk.*rj45|koncowk.*rj45|wtyk.*rj45/.test(lower)) {
+      addMaterial('Wtyki RJ45', qty, 'szt');
+      addMaterial('Osłonki RJ45', qty, 'szt', 'opcjonalnie');
+      addTool('zaciskarka RJ45');
+      addTool('tester LAN');
+    }
+    if (/złącza f|zlacza f|złącze f|zlacze f|końcówk.* f|koncowk.* f|\bf-ki\b|\bfka\b/.test(lower)) {
+      addMaterial('Złącza F', qty, 'szt');
+      addTool('ściągacz izolacji / nóż do kabla antenowego');
+    }
+    if (/switch.*poe|poe.*switch/.test(lower)) addMaterial('Switch PoE', qty, 'szt');
+    if (/dysk.*rejestrator|hdd|ssd/.test(lower)) addMaterial('Dysk do rejestratora', qty, 'szt');
+    if (/rejestrator|\bnvr\b|\bdvr\b/.test(lower) && !/konfiguracja/.test(lower)) addMaterial('Rejestrator NVR/DVR', qty, 'szt');
+    if (/konfiguracja rejestratora|uruchomienie podglądu|uruchomienie podgladu|aplikacj/.test(lower)) addCheck('Przygotować dane logowania, aplikację, dostęp do internetu i hasła klienta');
+    if (/antena|dvb|satelit/.test(lower) && /montaż|montaz/.test(lower)) {
+      addMaterial('Antena / osprzęt antenowy', qty, 'szt');
+      addTool('miernik sygnału TV/SAT');
+    }
+    if (/wideodomofon|domofon|unifon/.test(lower)) addMaterial('Zestaw domofonu / wideodomofonu', qty, 'kpl');
+    if (/elektrozaczep/.test(lower)) addMaterial('Elektrozaczep', qty, 'szt');
+    if (/czujk.*pir|\bpir\b/.test(lower)) addMaterial('Czujki PIR', qty, 'szt');
+    if (/sygnalizator/.test(lower)) addMaterial('Sygnalizator alarmowy', qty, 'szt');
+    if (/pilot/.test(lower)) addMaterial('Piloty / baterie do pilotów', qty, 'szt');
+  }
+
+  if (/kamera|monitoring|poe|rejestrator|nvr|cctv/.test(allText)) {
+    addTool('laptop lub telefon do konfiguracji kamer');
+    addTool('próbnik zasilania / multimetr');
+    addCheck('Sprawdzić zasilanie PoE/zasilacze i dostęp do routera');
+  }
+  if (/wysoko|drabina|komin|maszt|dach|elewacja|strych/.test(allText)) {
+    addTool('drabina / sprzęt do pracy na wysokości');
+    addCheck('Sprawdzić bezpieczeństwo pracy na wysokości i dostęp do miejsca montażu');
+  }
+  if (/przewiert|przekucie|kucie|ścian|scian|beton|cegła|cegla/.test(allText)) {
+    addTool('wiertarka udarowa / SDS i odpowiednie wiertła');
+    addCheck('Sprawdzić grubość ścian i trasę przewiertu');
+  }
+  if (/kopanie|ziemia|grunt|kostka|bruk|wykop/.test(allText)) {
+    addTool('łopata / narzędzia do wykopu');
+    addMaterial('Peszel/rura osłonowa do ziemi', 1, 'kpl', 'długość według trasy');
+    addCheck('Sprawdzić przebieg instalacji w ziemi i miejsce położenia kostki/bruku');
+  }
+  if ([...materials.values()].some(item => item.unit === 'mb')) {
+    addCheck('Doliczyć zapas przewodu około 10–15% względem trasy');
+  }
+  if (!materials.size) addCheck('Brak wykrytych materiałów — sprawdź ręcznie, co trzeba zabrać');
+
+  return {
+    materials: [...materials.values()].sort((a, b) => a.name.localeCompare(b.name, 'pl')),
+    tools: [...tools].sort((a, b) => a.localeCompare(b, 'pl')),
+    checks: [...checks].sort((a, b) => a.localeCompare(b, 'pl'))
+  };
+}
+
+function formatMaterialQuantity(item) {
+  const quantity = number(item.quantity, 1);
+  const shown = Number.isInteger(quantity) ? String(quantity) : String(quantity).replace('.', ',');
+  return `${shown} ${item.unit || 'szt'}`;
+}
+
+function buildMaterialsText(quote = state) {
+  const data = buildMaterialsData(quote);
+  const lines = [];
+  lines.push('LISTA MATERIAŁÓW DO ZABRANIA');
+  lines.push(`Klient: ${quote.clientName || '-'}`);
+  lines.push(`Adres: ${quote.clientAddress || '-'}`);
+  if (quote.visitDate) lines.push(`Termin: ${formatDate(quote.visitDate)}`);
+  lines.push('');
+  lines.push('Materiały / osprzęt:');
+  if (data.materials.length) data.materials.forEach(item => lines.push(`- ${formatMaterialQuantity(item)} — ${item.name}${item.note ? ` (${item.note})` : ''}`));
+  else lines.push('- brak wykrytych materiałów');
+  lines.push('');
+  lines.push('Narzędzia / akcesoria:');
+  if (data.tools.length) data.tools.forEach(item => lines.push(`- ${item}`));
+  else lines.push('- standardowe narzędzia instalatora');
+  lines.push('');
+  lines.push('Do sprawdzenia przed wyjazdem:');
+  if (data.checks.length) data.checks.forEach(item => lines.push(`- ${item}`));
+  else lines.push('- brak dodatkowych uwag');
+  return lines.join('\n');
+}
+
+function renderMaterialsPreview() {
+  const box = $('materialsPreview');
+  if (!box) return;
+  const data = buildMaterialsData(state);
+  const materialRows = data.materials.length
+    ? data.materials.map(item => `<li><strong>${escapeHtml(formatMaterialQuantity(item))}</strong> — ${escapeHtml(item.name)}${item.note ? ` <span>${escapeHtml(item.note)}</span>` : ''}</li>`).join('')
+    : '<li>Brak wykrytych materiałów — sprawdź ręcznie.</li>';
+  const toolsRows = data.tools.length
+    ? data.tools.map(item => `<li>${escapeHtml(item)}</li>`).join('')
+    : '<li>Standardowe narzędzia instalatora.</li>';
+  const checksRows = data.checks.length
+    ? data.checks.map(item => `<li>${escapeHtml(item)}</li>`).join('')
+    : '<li>Brak dodatkowych uwag.</li>';
+  box.innerHTML = `
+    <div class="materials-grid">
+      <div><h3>Materiały / osprzęt</h3><ul>${materialRows}</ul></div>
+      <div><h3>Narzędzia / akcesoria</h3><ul>${toolsRows}</ul></div>
+      <div><h3>Do sprawdzenia</h3><ul>${checksRows}</ul></div>
+    </div>`;
+}
+
+function copyMaterialsList(quote = state) {
+  return copyTextToClipboard(buildMaterialsText(quote), 'Lista materiałów skopiowana do schowka.');
+}
+
+function summarizeServices(quote = state, maxItems = 3) {
+  if (!quote.services?.length) return 'do ustalenia';
+  const parts = quote.services.slice(0, maxItems).map(item => `${number(item.quantity, 1)}× ${item.name}`);
+  const left = quote.services.length - parts.length;
+  if (left > 0) parts.push(`+ ${left} poz.`);
+  return parts.join(', ');
+}
+
+function formatServiceLine(item) {
+  const total = number(item.quantity, 1) * number(item.priceNet);
+  return `${item.name} — ${number(item.quantity, 1)} ${item.unit || 'usł'} × ${money(item.priceNet)} = ${money(total)} netto`;
+}
+
+function normalizeSpaces(text) {
+  return String(text || '').replace(/\s+/g, ' ').replace(/\s+([,.])/g, '$1').trim();
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('pl-PL');
+}
+
+function buildOfferHtml(quote = state) {
+  const settings = loadSettings();
+  const totals = calculateTotals(quote);
+  const title = `Oferta ${quote.clientName || 'wycena'}`;
+  const rows = quote.services?.length
+    ? quote.services.map((item, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.unit || 'usł')}</td><td>${number(item.quantity, 1)}</td><td>${money(item.priceNet)}</td><td>${money(number(item.quantity, 1) * number(item.priceNet))}</td></tr>`).join('')
+    : '<tr><td colspan="6">Brak pozycji w wycenie.</td></tr>';
+  const distanceRow = totals.distanceNet > 0
+    ? `<tr><td colspan="5">Dojazd: ${totals.billedKm} km płatne × ${money(quote.distanceRate)}</td><td>${money(totals.distanceNet)}</td></tr>`
+    : '';
+  return `<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(title)}</title>
+<style>
+  *{box-sizing:border-box} body{font-family:Segoe UI,Arial,sans-serif;margin:0;background:#f5f7fb;color:#172033} .page{max-width:920px;margin:24px auto;background:white;padding:34px;border:1px solid #d9e2ef;border-radius:18px} .top{display:flex;justify-content:space-between;gap:18px;border-bottom:3px solid #1d5fa7;padding-bottom:18px;margin-bottom:22px} h1{margin:0;font-size:28px} h2{font-size:17px;margin:24px 0 10px}.muted{color:#667085}.box{border:1px solid #d9e2ef;border-radius:12px;padding:12px;background:#fbfdff}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px} table{width:100%;border-collapse:collapse;margin-top:8px} th,td{border-bottom:1px solid #d9e2ef;padding:9px;text-align:left;vertical-align:top} th{font-size:12px;color:#667085;text-transform:uppercase} .totals{margin-left:auto;width:min(360px,100%);display:grid;gap:7px}.totals div{display:flex;justify-content:space-between;border:1px solid #d9e2ef;border-radius:10px;padding:9px;background:#fbfdff}.totals .gross{font-size:20px;font-weight:800;background:#ecfdf3;color:#067647}.actions{position:sticky;top:0;background:#f5f7fb;padding:10px;text-align:center}.actions button{padding:10px 16px;border-radius:10px;border:1px solid #1d5fa7;background:#1d5fa7;color:white;font-weight:800}.note{white-space:pre-wrap}.signature{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:60px}.line{border-top:1px solid #444;text-align:center;padding-top:8px;color:#667085}@media print{body{background:white}.actions{display:none}.page{margin:0;max-width:none;border:0;border-radius:0}.top{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="actions"><button onclick="window.print()">Drukuj / zapisz jako PDF</button></div>
+<main class="page">
+  <section class="top">
+    <div><div class="muted">${escapeHtml(settings.companyName)}</div><h1>Oferta / wycena</h1><div class="muted">Wygenerowano: ${formatDate(new Date().toISOString().slice(0, 10))}</div></div>
+    <div class="box"><b>Razem brutto</b><br><span style="font-size:26px;font-weight:900;color:#067647">${money(totals.gross)}</span></div>
+  </section>
+  <section class="grid">
+    <div class="box"><b>Klient</b><br>${escapeHtml(quote.clientName || '-')}<br>${escapeHtml(quote.clientPhone || '')}</div>
+    <div class="box"><b>Adres / termin</b><br>${escapeHtml(quote.clientAddress || '-')}<br>${escapeHtml(formatDate(quote.visitDate))}</div>
+  </section>
+  <h2>Zakres</h2>
+  <div class="box">${escapeHtml(quote.jobType || 'Usługa instalacyjna')}</div>
+  <h2>Pozycje wyceny</h2>
+  <table><thead><tr><th>Lp.</th><th>Pozycja</th><th>Jm.</th><th>Ilość</th><th>Cena netto</th><th>Razem netto</th></tr></thead><tbody>${rows}${distanceRow}</tbody></table>
+  <h2>Podsumowanie</h2>
+  <section class="totals">
+    <div><span>Netto</span><b>${money(totals.net)}</b></div>
+    <div><span>VAT</span><b>${money(totals.vat)}</b></div>
+    <div class="gross"><span>Brutto</span><b>${money(totals.gross)}</b></div>
+  </section>
+  <h2>Uwagi</h2>
+  <div class="box note">${escapeHtml(quote.notes || 'Brak dodatkowych uwag.')}</div>
+  <h2>Warunki</h2>
+  <div class="box">Oferta przygotowana na podstawie przekazanych informacji. Zmiana zakresu prac, materiałów lub warunków montażu może zmienić końcową cenę.</div>
+  <section class="signature"><div class="line">Wykonawca</div><div class="line">Klient</div></section>
+</main>
+</body>
+</html>`;
+}
+
+function generateOfferPdf(quote = state) {
+  if (quote === state) syncFromForm();
+  const html = buildOfferHtml(quote);
+  const fileName = sanitizeFileName(`oferta_${quote.clientName || 'klient'}_${quote.visitDate || new Date().toISOString().slice(0, 10)}.html`);
+  const win = window.open('', '_blank');
+  if (!win) {
+    downloadFile(fileName, html, 'text/html;charset=utf-8');
+    showInfo('Przeglądarka zablokowała nowe okno. Pobrano plik HTML oferty — otwórz go i zapisz jako PDF z drukowania.');
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => {
+    try { win.print(); }
+    catch { /* okno może być jeszcze ładowane */ }
+  }, 450);
+  showInfo('Otworzono ofertę. W oknie drukowania wybierz „Zapisz jako PDF”.');
+}
+
+async function copyTextToClipboard(text, okMessage) {
+  try {
+    await navigator.clipboard.writeText(text);
+    showInfo(okMessage || 'Tekst skopiowany do schowka.');
+  } catch {
+    downloadFile('tekst_do_klienta.txt', text, 'text/plain;charset=utf-8');
+    showInfo('Nie udało się skopiować do schowka. Pobrano tekst jako plik TXT.');
   }
 }
 
@@ -1588,19 +1908,33 @@ function acceptParserPreview() {
   }
   syncFromForm();
   lastBreakdownSnapshot = structuredCloneSafe(state);
-  applyParsedResult(pendingParse.raw, pendingParse.result);
+  const resultToApply = structuredCloneSafe(pendingParse.result);
+  const selectedSurcharges = collectSelectedSurcharges(pendingParse.result);
+  if (selectedSurcharges.length) resultToApply.items.push(...selectedSurcharges);
+  applyParsedResult(pendingParse.raw, resultToApply);
   pendingParse = null;
   hideParserPreview();
   syncToForm();
   renderAll();
   $('undoParseBtn').hidden = false;
-  showInfo('Zatwierdzono rozbicie i dopisano dane do wyceny. Możesz cofnąć tę operację przyciskiem „Cofnij ostatnie rozbicie”.');
+  showInfo(selectedSurcharges.length
+    ? `Zatwierdzono rozbicie i dodano ${selectedSurcharges.length} wybraną dopłatę / dopłaty. Możesz cofnąć tę operację przyciskiem „Cofnij ostatnie rozbicie”.`
+    : 'Zatwierdzono rozbicie i dopisano dane do wyceny. Możesz cofnąć tę operację przyciskiem „Cofnij ostatnie rozbicie”.');
 }
 
 function rejectParserPreview(showMessage = true) {
   pendingParse = null;
   hideParserPreview();
   if (showMessage) showInfo('Odrzucono rozbicie. Wycena nie została zmieniona.');
+}
+
+function collectSelectedSurcharges(result) {
+  const suggestions = result?.surchargeSuggestions || [];
+  if (!suggestions.length) return [];
+  return [...document.querySelectorAll('[data-surcharge-index]:checked')]
+    .map(input => suggestions[number(input.dataset.surchargeIndex, -1)]?.item)
+    .filter(Boolean)
+    .map(item => ({ ...item, id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()) }));
 }
 
 function undoLastBreakdown() {
@@ -1656,8 +1990,14 @@ function renderParserPreview(raw, result) {
   const learnedHtml = result.learnedApplied?.length
     ? `<div class="preview-learning"><strong>Zastosowano zapamiętane korekty:</strong><br>${result.learnedApplied.map(escapeHtml).join('<br>')}</div>`
     : '';
+  const missingHtml = result.missingData?.length
+    ? `<div class="preview-warning"><strong>Brakujące / do sprawdzenia:</strong><ul>${result.missingData.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></div>`
+    : '';
+  const surchargeHtml = result.surchargeSuggestions?.length
+    ? `<div class="preview-surcharge"><strong>Wykryto możliwe dopłaty za trudne warunki:</strong><p>Zaznacz tylko te, które mają wejść do wyceny. Program nie dolicza ich sam.</p><div class="surcharge-list">${result.surchargeSuggestions.map((suggestion, index) => `<label class="surcharge-item"><input type="checkbox" data-surcharge-index="${index}"><span><b>${escapeHtml(suggestion.item.name)}</b><small>${escapeHtml(suggestion.reason)}</small></span><strong>${number(suggestion.item.quantity, 1)} ${escapeHtml(suggestion.item.unit || 'usł')} × ${money(suggestion.item.priceNet)}</strong></label>`).join('')}</div></div>`
+    : '';
 
-  content.innerHTML = `${dataHtml}${itemsHtml}${learnedHtml}${unknownHtml}`;
+  content.innerHTML = `${dataHtml}${itemsHtml}${surchargeHtml}${learnedHtml}${missingHtml}${unknownHtml}`;
   box.hidden = false;
 }
 
@@ -1716,8 +2056,93 @@ function parseSmartCommand(rawText) {
   }
 
   const learnedApplied = applyLearnedCorrections(rawText, items);
+  const surchargeSuggestions = detectSurchargeSuggestions(rawText, itemText);
+  const missingData = detectMissingData(rawText, { client, items, detectedType, distanceKm, distanceRate, freeKm });
   for (const item of items) delete item._voiceKey;
-  return { client, items, detectedType, distanceKm, distanceRate, freeKm, unknown, learnedApplied };
+  return { client, items, detectedType, distanceKm, distanceRate, freeKm, unknown, learnedApplied, missingData, surchargeSuggestions };
+}
+
+
+function detectMissingData(rawText, result) {
+  const text = normalizeSpeechText(rawText);
+  const missing = [];
+  const name = result.client?.name || state.clientName || '';
+  const phone = result.client?.phone || state.clientPhone || '';
+  const address = result.client?.address || state.clientAddress || '';
+  const hasDateInText = /(jutro|dzisiaj|dziś|pojutrze|poniedzialek|poniedziałek|wtorek|sroda|środa|czwartek|piatek|piątek|sobota|niedziela|\d{1,2}[.\-/]\d{1,2}(?:[.\-/]\d{2,4})?\b)/i.test(rawText);
+  const hasCamera = /kamer\w*|monitoring|cctv/i.test(text) || result.items.some(item => /kamer|monitoring|cctv/i.test(item.name));
+  const cableCheckText = text.replace(/puszk\w*\s+prad\w*|prad\w*\s+puszk\w*/gi, ' ');
+  const hasCableWords = looksLikeCableClause(cableCheckText);
+  const hasCableItem = result.items.some(item => String(item.unit || '').toLowerCase() === 'mb' || /kabel|przewod|przewód|skretk|skrętk|rg6/i.test(item.name));
+
+  if (!name) missing.push('imię i nazwisko klienta');
+  if (!phone) missing.push('numer telefonu klienta');
+  if (!address) missing.push('adres / miejscowość montażu');
+  if (!hasDateInText) missing.push('data lub termin wizyty nie wynika z dyktowania — sprawdź datę w formularzu');
+  if (result.distanceKm === null && number(state.distanceKm, 0) <= 0) missing.push('dojazd w km albo informacja, że dojazd nie jest liczony');
+  if (!/netto|brutto/i.test(rawText)) missing.push('czy podane ceny są netto czy brutto — program domyślnie traktuje je jako netto');
+
+  if (hasCamera) {
+    if (!/poe|wi\s*-?\s*fi|wifi|bezprzewod/i.test(text)) missing.push('przy kamerach: czy są PoE / przewodowe czy Wi‑Fi');
+    if (!/zewnetrzn|zewnętrzn|wewnetrzn|wewnętrzn|elewacj|sufit|scian|ścian|komin|maszt|strych|wysoko|drabin|dach/i.test(text)) missing.push('przy kamerach: miejsce montażu i warunki dostępu');
+    if (!/rejestrator|nvr|dvr|switch|dysk|karta/i.test(text)) missing.push('przy kamerach: czy jest rejestrator / switch PoE / zapis nagrań');
+  }
+
+  if (hasCableWords) {
+    if (!hasCableItem) missing.push('przy przewodach: długość w metrach i typ przewodu');
+    if (!/latw|łatw|standard|trudn|peszl|listw|ziemi|grunt|elewacj|strych|dach|komin|przewiert|korytk/i.test(text)) missing.push('przy przewodach: sposób prowadzenia — łatwo, standardowo, trudno, w peszlu, w listwie albo w ziemi');
+  }
+
+  return [...new Set(missing)];
+}
+
+function detectSurchargeSuggestions(rawText, normalizedText) {
+  const text = normalizeSpeechText(`${rawText} ${normalizedText || ''}`);
+  const suggestions = [];
+  const add = (key, category, name, unit, quantity, fallbackPrice, reason) => {
+    if (suggestions.some(item => item.key === key)) return;
+    const catalog = findCatalogService(category, name);
+    suggestions.push({
+      key,
+      reason,
+      item: buildVoiceItem({
+        category,
+        name,
+        unit,
+        quantity,
+        priceNet: number(catalog?.price_net, fallbackPrice),
+        key
+      })
+    });
+  };
+
+  if (/\b(wysoko|wysokosc|wysokość|drabin\w*|dach|strych|poddasz\w*|trudny\s+dostep|trudny\s+dostęp|brak\s+dojscia|brak\s+dojścia)\b/i.test(text)) {
+    add('surcharge_height_access', 'Dopłaty / Trudne warunki', 'Dopłata za trudny dostęp / wysokość', 'usł', 1, 80, 'W tekście jest wysokość, drabina, dach, strych albo trudny dostęp.');
+  }
+  if (/\b(komin\w*|maszt\w*|obejm\w*\s+komin\w*)\b/i.test(text)) {
+    add('surcharge_chimney_mast', 'Dopłaty / Trudne warunki', 'Dopłata za montaż na kominie lub maszcie', 'usł', 1, 100, 'W tekście pojawia się komin, maszt albo obejma kominowa.');
+  }
+  if (/\b(przewiert\w*|wiercen\w*|przekuc\w*|przebic\w*|przebić|kucie|kuc\w*|gruba\s+sciana|gruba\s+ściana)\b/i.test(text)) {
+    const quantity = parseSurchargeQuantity(text, /przewiert\w*|przekuc\w*|wiercen\w*|otwor\w*|otwór\w*/i) || 1;
+    add('surcharge_drilling', 'Dopłaty / Trudne warunki', 'Dopłata za przewiert / przekucie', 'szt', quantity, 45, 'W tekście pojawia się przewiert, wiercenie, przekucie albo kucie.');
+  }
+  if (/\b(kopanie|kopac|kopać|wykop\w*|przekop\w*|ziemi\w*|grunt\w*|kostka\s+brukowa|bruk\w*)\b/i.test(text)) {
+    add('surcharge_groundwork', 'Dopłaty / Trudne warunki', 'Dopłata za kopanie / trudny grunt', 'usł', 1, 120, 'W tekście pojawia się kopanie, ziemia, grunt, wykop albo kostka brukowa.');
+  }
+  if (/\b(styropian|ocieplen\w*|elewacj\w*|pod\s+elewacj\w*)\b/i.test(text)) {
+    add('surcharge_facade', 'Dopłaty / Trudne warunki', 'Dopłata za pracę na elewacji / ociepleniu', 'usł', 1, 70, 'W tekście pojawia się elewacja, styropian albo ocieplenie.');
+  }
+
+  return suggestions;
+}
+
+function parseSurchargeQuantity(text, keywordRe) {
+  const words = String(text || '');
+  const matchBefore = words.match(new RegExp('(\\d+(?:[.]\\d+)?)\\s*(?:szt\\.?\\s*)?(?:' + keywordRe.source + ')', 'i'));
+  if (matchBefore) return number(matchBefore[1], 1);
+  const matchAfter = words.match(new RegExp('(?:' + keywordRe.source + ')\\D{0,30}(\\d+(?:[.]\\d+)?)\\s*(?:szt)?', 'i'));
+  if (matchAfter) return number(matchAfter[1], 1);
+  return 0;
 }
 
 function buildVoiceItem({ category, name, unit, quantity, priceNet, key }) {

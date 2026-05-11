@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pomocnik-instalatora-pwa-v1-9-0';
+const CACHE_NAME = 'pomocnik-instalatora-pwa-2-0-1105262245';
 const FILES = [
   './',
   './index.html',

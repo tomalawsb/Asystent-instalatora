@@ -1,6 +1,7 @@
-Pomocnik Instalatora PWA v11 / aplikacja 1.9.0
+Pomocnik Instalatora PWA
+Wersja programu: 2.0 - 1105262245
 
-Dodane w tej wersji:
+Ostatnio dodane:
 - osobna kategoria cennika: Przewody / Okablowanie,
 - materiały: RG6 CU, skrętka Cat 5e/Cat 6 zwykła i żelowana, przewody prądowe YDYp,
 - robocizna za prowadzenie przewodu: łatwe, standardowe, trudne, peszel, listwa, ziemia,
@@ -9,20 +10,24 @@ Dodane w tej wersji:
 - nowy cennik jest domyślnie scalany ze starym lokalnym cennikiem, żeby po aktualizacji nie trzeba było ręcznie resetować cennika.
 
 Po wrzuceniu na GitHub Pages kliknij w aplikacji „Odśwież cache”.
-bo lokalny serwer HTTP.
-
-Uwaga:
-Rozpoznawanie mowy zależy od przeglądarki. Jeżeli mikrofon nie działa, wpisz tekst ręcznie w pole dyktowania i kliknij „Rozbij tekst”.
-
-Wrzucenie na GitHub Pages:
-Wgraj wszystkie pliki z tej paczki do głównego katalogu repozytorium i włącz Pages dla branch main oraz /root.
 
 
-Zmiany v1.2.0:
-- dyktowanie rozpoznaje dane klienta: imię i nazwisko, telefon, adres/ulicę i miejscowość,
-- jedno pole dyktowania może zawierać dane klienta i pozycje wyceny naraz,
-- przykład: klient Jan Kowalski, ulica Szymanowskiego 48 Mielec, telefon 501 222 333, 5 kamer po 200 zł, kabel 10 m po 2 zł,
-- po rozbiciu tekstu aplikacja automatycznie wpisuje wykryte dane do formularza i dodaje pozycje do wyceny.
+Wersja v12 / aplikacja 2.0.0:
+- dodano wykrywanie brakujących danych po rozbiciu tekstu,
+- dodano wykrywanie trudnych warunków i proponowanie dopłat bez automatycznego doliczania,
+- dodano kategorię cennika: Dopłaty / Trudne warunki.
+
+Wersja v13 / aplikacja 2.1.0:
+- dodano gotowy SMS do klienta na podstawie aktualnej wyceny,
+- dodano dłuższy opis wyceny do skopiowania klientowi,
+- dodano panel „Wiadomość do klienta”,
+- dodano generowanie oferty w osobnym widoku gotowym do wydruku lub zapisania jako PDF,
+- dodano przyciski SMS/PDF przy zapisanych wycenach.
+
+
+Wersja 2.0 - 1105262245:
+- dodano etap 16 — lista materiałów do zabrania generowana z wyceny, notatek, przewodów i dopłat.
+i dodaje pozycje do wyceny.
 
 
 Zmiany v1.3.0:

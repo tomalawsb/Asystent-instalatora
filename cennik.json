@@ -664,5 +664,32 @@
       "unit": "szt",
       "price_net": 35.0
     }
+  ],
+  "Dopłaty / Trudne warunki": [
+    {
+      "name": "Dopłata za trudny dostęp / wysokość",
+      "unit": "usł",
+      "price_net": 80.0
+    },
+    {
+      "name": "Dopłata za montaż na kominie lub maszcie",
+      "unit": "usł",
+      "price_net": 100.0
+    },
+    {
+      "name": "Dopłata za przewiert / przekucie",
+      "unit": "szt",
+      "price_net": 45.0
+    },
+    {
+      "name": "Dopłata za kopanie / trudny grunt",
+      "unit": "usł",
+      "price_net": 120.0
+    },
+    {
+      "name": "Dopłata za pracę na elewacji / ociepleniu",
+      "unit": "usł",
+      "price_net": 70.0
+    }
   ]
 }
