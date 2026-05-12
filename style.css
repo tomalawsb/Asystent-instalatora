@@ -933,3 +933,48 @@ td input { min-height: 32px; padding: 5px 8px; }
   }
   .archive-learning-pill { font-size: 12px; }
 }
+
+/* v2.6 — panel aktualizacji cen materiałów */
+.price-update-box {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #cfe0f5;
+  border-radius: 14px;
+  background: #f8fbff;
+  margin-bottom: 12px;
+}
+.price-update-box p { margin: 4px 0 0; color: #526178; }
+.hint-box {
+  padding: 10px 12px;
+  border: 1px solid #f1d58a;
+  border-radius: 12px;
+  background: #fff8e3;
+  color: #5d4510;
+  margin-bottom: 12px;
+}
+.material-prices-view { display: grid; gap: 12px; }
+.material-price-group { margin: 0; }
+.material-price-item {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 70px 110px 160px auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #e6eef8;
+}
+.material-price-item small {
+  display: block;
+  color: #607086;
+  margin-top: 3px;
+  line-height: 1.35;
+}
+.material-price-item .muted { color: #607086; font-size: 12px; }
+#materialPriceStatus.error { color: #b3261e; font-weight: 700; }
+@media (max-width: 760px) {
+  .price-update-box { grid-template-columns: 1fr; }
+  .material-price-item { grid-template-columns: 1fr 65px 100px; }
+  .material-price-item .muted { grid-column: 1 / -1; }
+}

@@ -63,17 +63,17 @@
     {
       "name": "Switch PoE 4-port",
       "unit": "szt",
-      "price_net": 220.0
+      "price_net": 190.0
     },
     {
       "name": "Switch PoE 8-port",
       "unit": "szt",
-      "price_net": 320.0
+      "price_net": 290.0
     },
     {
       "name": "Zasilacz buforowy CCTV",
       "unit": "szt",
-      "price_net": 180.0
+      "price_net": 230.0
     },
     {
       "name": "Montaż dysku do rejestratora",
@@ -133,17 +133,77 @@
     {
       "name": "Puszka prądowa",
       "unit": "szt",
-      "price_net": 20.0
+      "price_net": 15.0
     },
     {
       "name": "Kamera tubowa IP — materiał",
       "unit": "szt",
-      "price_net": 0.0
+      "price_net": 240.0
+    },
+    {
+      "name": "Kamera kopułkowa IP — materiał",
+      "unit": "szt",
+      "price_net": 240.0
     },
     {
       "name": "Kamera obrotowa PTZ — materiał",
       "unit": "szt",
-      "price_net": 0.0
+      "price_net": 280.0
+    },
+    {
+      "name": "Kamera Wi‑Fi — materiał",
+      "unit": "szt",
+      "price_net": 190.0
+    },
+    {
+      "name": "Kamera 4G LTE — materiał",
+      "unit": "szt",
+      "price_net": 390.0
+    },
+    {
+      "name": "Rejestrator NVR 4 kanały — materiał",
+      "unit": "szt",
+      "price_net": 390.0
+    },
+    {
+      "name": "Rejestrator NVR 8 kanałów — materiał",
+      "unit": "szt",
+      "price_net": 560.0
+    },
+    {
+      "name": "Rejestrator DVR 4 kanały — materiał",
+      "unit": "szt",
+      "price_net": 320.0
+    },
+    {
+      "name": "Dysk do rejestratora 1 TB — materiał",
+      "unit": "szt",
+      "price_net": 260.0
+    },
+    {
+      "name": "Dysk do rejestratora 2 TB — materiał",
+      "unit": "szt",
+      "price_net": 500.0
+    },
+    {
+      "name": "Dysk do rejestratora 4 TB — materiał",
+      "unit": "szt",
+      "price_net": 760.0
+    },
+    {
+      "name": "Switch PoE 16-port — materiał",
+      "unit": "szt",
+      "price_net": 620.0
+    },
+    {
+      "name": "Zasilacz 12V CCTV — materiał",
+      "unit": "szt",
+      "price_net": 45.0
+    },
+    {
+      "name": "Uchwyt na słup do kamery — materiał",
+      "unit": "szt",
+      "price_net": 140.0
     }
   ],
   "Anteny / Sygnał": [
@@ -246,6 +306,41 @@
       "name": "Konfiguracja dekodera",
       "unit": "usł",
       "price_net": 90.0
+    },
+    {
+      "name": "Antena DVB-T — materiał",
+      "unit": "szt",
+      "price_net": 120.0
+    },
+    {
+      "name": "Antena satelitarna 80 cm — materiał",
+      "unit": "szt",
+      "price_net": 130.0
+    },
+    {
+      "name": "Konwerter TWIN — materiał",
+      "unit": "szt",
+      "price_net": 55.0
+    },
+    {
+      "name": "Konwerter QUAD — materiał",
+      "unit": "szt",
+      "price_net": 80.0
+    },
+    {
+      "name": "Antena Korab z konwerterem TWIN — materiał",
+      "unit": "kpl",
+      "price_net": 190.0
+    },
+    {
+      "name": "Maszt antenowy — materiał",
+      "unit": "szt",
+      "price_net": 85.0
+    },
+    {
+      "name": "Obejma kominowa — materiał",
+      "unit": "szt",
+      "price_net": 150.0
     }
   ],
   "Sieć / Wi‑Fi": [
@@ -348,6 +443,41 @@
       "name": "Konfiguracja VPN",
       "unit": "usł",
       "price_net": 220.0
+    },
+    {
+      "name": "Router Wi‑Fi 6 — materiał",
+      "unit": "szt",
+      "price_net": 170.0
+    },
+    {
+      "name": "Router LTE — materiał",
+      "unit": "szt",
+      "price_net": 330.0
+    },
+    {
+      "name": "Router 5G — materiał",
+      "unit": "szt",
+      "price_net": 650.0
+    },
+    {
+      "name": "Access point Wi‑Fi 6 — materiał",
+      "unit": "szt",
+      "price_net": 270.0
+    },
+    {
+      "name": "Repeater Wi‑Fi — materiał",
+      "unit": "szt",
+      "price_net": 120.0
+    },
+    {
+      "name": "Patch panel 24 porty — materiał",
+      "unit": "szt",
+      "price_net": 120.0
+    },
+    {
+      "name": "Szafa RACK 6U — materiał",
+      "unit": "szt",
+      "price_net": 360.0
     }
   ],
   "Przewody / Okablowanie": [
@@ -359,17 +489,17 @@
     {
       "name": "Skrętka UTP Cat 5e CU",
       "unit": "mb",
-      "price_net": 2.0
+      "price_net": 1.6
     },
     {
       "name": "Skrętka żelowana Cat 5e CU",
       "unit": "mb",
-      "price_net": 2.2
+      "price_net": 2.0
     },
     {
       "name": "Skrętka UTP Cat 6 CU",
       "unit": "mb",
-      "price_net": 2.0
+      "price_net": 2.4
     },
     {
       "name": "Skrętka żelowana Cat 6 CU",
@@ -425,6 +555,26 @@
       "name": "Przewiert przez ścianę pod przewód",
       "unit": "szt",
       "price_net": 35.0
+    },
+    {
+      "name": "Przewód YDYp 3x1,5",
+      "unit": "mb",
+      "price_net": 3.2
+    },
+    {
+      "name": "Przewód YDYp 3x2,5",
+      "unit": "mb",
+      "price_net": 5.4
+    },
+    {
+      "name": "Peszel 16/20",
+      "unit": "mb",
+      "price_net": 2.0
+    },
+    {
+      "name": "Listwa maskująca kablowa",
+      "unit": "mb",
+      "price_net": 4.5
     }
   ],
   "Złącza / Akcesoria": [
@@ -436,17 +586,17 @@
     {
       "name": "Złącze F kompresyjne RG6",
       "unit": "szt",
-      "price_net": 2.5
+      "price_net": 2.8
     },
     {
       "name": "Złącze F kątowe",
       "unit": "szt",
-      "price_net": 4.0
+      "price_net": 4.5
     },
     {
       "name": "Przejście F-F / beczka antenowa",
       "unit": "szt",
-      "price_net": 2.0
+      "price_net": 2.5
     },
     {
       "name": "Wtyk antenowy IEC męski",
@@ -571,7 +721,7 @@
     {
       "name": "Moduł keystone RJ45 Cat 6",
       "unit": "szt",
-      "price_net": 18.0
+      "price_net": 14.0
     },
     {
       "name": "Gniazdo LAN natynkowe 1xRJ45",
@@ -617,6 +767,56 @@
       "name": "Listwa maskująca / korytko",
       "unit": "mb",
       "price_net": 7.0
+    },
+    {
+      "name": "Wtyk RJ45 Cat 5e",
+      "unit": "szt",
+      "price_net": 1.2
+    },
+    {
+      "name": "Wtyk RJ45 Cat 6",
+      "unit": "szt",
+      "price_net": 1.8
+    },
+    {
+      "name": "Wtyk RJ45 ekranowany",
+      "unit": "szt",
+      "price_net": 2.5
+    },
+    {
+      "name": "Gniazdo LAN natynkowe",
+      "unit": "szt",
+      "price_net": 35.0
+    },
+    {
+      "name": "Beczka LAN RJ45",
+      "unit": "szt",
+      "price_net": 8.0
+    },
+    {
+      "name": "Rozgałęźnik antenowy 2-way",
+      "unit": "szt",
+      "price_net": 22.0
+    },
+    {
+      "name": "Rozgałęźnik antenowy 3-way",
+      "unit": "szt",
+      "price_net": 28.0
+    },
+    {
+      "name": "Wzmacniacz antenowy",
+      "unit": "szt",
+      "price_net": 55.0
+    },
+    {
+      "name": "Zasilacz antenowy",
+      "unit": "szt",
+      "price_net": 25.0
+    },
+    {
+      "name": "Separator antenowy",
+      "unit": "szt",
+      "price_net": 18.0
     }
   ],
   "Domofon": [
@@ -694,6 +894,31 @@
       "name": "Wymiana przycisku wyjścia",
       "unit": "szt",
       "price_net": 45.0
+    },
+    {
+      "name": "Wideodomofon 1-rodzinny — materiał",
+      "unit": "kpl",
+      "price_net": 700.0
+    },
+    {
+      "name": "Domofon audio — materiał",
+      "unit": "kpl",
+      "price_net": 320.0
+    },
+    {
+      "name": "Monitor wideodomofonu — materiał",
+      "unit": "szt",
+      "price_net": 320.0
+    },
+    {
+      "name": "Unifon — materiał",
+      "unit": "szt",
+      "price_net": 70.0
+    },
+    {
+      "name": "Elektrozaczep — materiał",
+      "unit": "szt",
+      "price_net": 90.0
     }
   ],
   "Alarm": [
@@ -771,6 +996,36 @@
       "name": "Przegląd konserwacyjny alarmu",
       "unit": "usł",
       "price_net": 180.0
+    },
+    {
+      "name": "Centrala alarmowa — materiał",
+      "unit": "szt",
+      "price_net": 420.0
+    },
+    {
+      "name": "Manipulator alarmowy — materiał",
+      "unit": "szt",
+      "price_net": 220.0
+    },
+    {
+      "name": "Czujka PIR — materiał",
+      "unit": "szt",
+      "price_net": 70.0
+    },
+    {
+      "name": "Czujka dualna — materiał",
+      "unit": "szt",
+      "price_net": 110.0
+    },
+    {
+      "name": "Sygnalizator zewnętrzny — materiał",
+      "unit": "szt",
+      "price_net": 130.0
+    },
+    {
+      "name": "Akumulator 12V 7Ah — materiał",
+      "unit": "szt",
+      "price_net": 75.0
     }
   ],
   "Automatyka bram": [
@@ -823,6 +1078,31 @@
       "name": "Montaż centrali sterującej bramy",
       "unit": "szt",
       "price_net": 180.0
+    },
+    {
+      "name": "Napęd bramy przesuwnej — materiał",
+      "unit": "kpl",
+      "price_net": 950.0
+    },
+    {
+      "name": "Napęd bramy skrzydłowej — materiał",
+      "unit": "kpl",
+      "price_net": 1450.0
+    },
+    {
+      "name": "Fotokomórki do bramy — materiał",
+      "unit": "kpl",
+      "price_net": 120.0
+    },
+    {
+      "name": "Lampa ostrzegawcza — materiał",
+      "unit": "szt",
+      "price_net": 90.0
+    },
+    {
+      "name": "Pilot do bramy — materiał",
+      "unit": "szt",
+      "price_net": 60.0
     }
   ],
   "Dopłaty / Trudne warunki": [
@@ -929,6 +1209,16 @@
       "name": "Porządkowanie przewodów RTV",
       "unit": "usł",
       "price_net": 80.0
+    },
+    {
+      "name": "Uchwyt TV — materiał",
+      "unit": "szt",
+      "price_net": 90.0
+    },
+    {
+      "name": "Kabel HDMI — materiał",
+      "unit": "szt",
+      "price_net": 25.0
     }
   ],
   "Komputery / Telefony": [

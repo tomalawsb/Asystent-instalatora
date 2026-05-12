@@ -1,31 +1,23 @@
 Pomocnik Instalatora PWA
-Wersja programu: 2.5 - 1205260850
+Wersja: 2.6 - 1205260925
 
-Zakres tej paczki:
-- dodany parser długich transkrypcji z wizyt u klienta,
-- czyszczenie nagłówków transkrypcji, znaczników czasu i linii technicznych,
-- rozpoznawanie adresu z nazwy pliku i pierwszego wpisu transkrypcji, np. „Sielska 37 przez 1” → „ul. Sielska 37/1”,
-- rozpoznawanie faktów z rozmowy: podgląd w telefonie, internet/router, zasilanie, strych, podbitka, puszki rolet, przewierty, korytka/listwy, rynna,
-- rozpoznawanie wariantów: kamery obrotowe, tubowe/statyczne, solarne, prowadzenie przewodów po listwie/korytku, przez strych/podbitkę,
-- kamery solarne wykrywane jako odrzucone, jeśli klient mówi „nie solarnych”, „nie chcę”, itp.,
-- program nie dolicza kamer automatycznie z transkrypcji, jeśli ilość nie jest jednoznaczna,
-- długie transkrypcje są zapisywane w notatkach jako krótka analiza, a nie cały ogromny tekst,
-- podgląd rozbicia jest bardziej zwarty: sekcje rozwijane, łatwiejsze poprawki, przyciski zatwierdzania przyklejone na dole panelu,
-- utrzymane samouczenie z poprawek w podglądzie i po zatwierdzeniu.
+Co dodano w 2.6:
+- dodano bazę sugerowanych cen materiałów: material-prices.json i material-prices.js,
+- dodano zakładkę „Ceny materiałów”,
+- dodano przycisk „Zastosuj ceny w cenniku”,
+- dodano przycisk „Aktualizuj z pliku online”, który pobiera aktualny material-prices.json z tej samej lokalizacji co aplikacja,
+- dodano import/eksport bazy cen materiałów,
+- parser przy braku ceny kamery dopisuje cenę sugerowaną z bazy zamiast 0 zł,
+- program nadal oznacza ceny materiałów jako sugestię do sprawdzenia przed zatwierdzeniem oferty,
+- uzupełniono cennik o sprzęt i materiały: kamery, rejestratory, dyski, switche PoE, zasilacze, puszki, przewody, złącza, anteny, routery, access pointy, domofony, alarmy, automatyka bram i uchwyty TV.
 
-Po wrzuceniu na GitHub Pages kliknij w aplikacji „Odśwież cache”.
+Jak działa aktualizacja cen:
+1. Ceny domyślne są w plikach material-prices.js i material-prices.json.
+2. Po wrzuceniu aplikacji na GitHub Pages przycisk „Aktualizuj z pliku online” pobiera material-prices.json z serwera z pominięciem cache.
+3. Jeżeli później podmienisz sam plik material-prices.json w repozytorium, aplikacja może pobrać nowszą bazę bez przepisywania całego programu.
+4. PWA nie skanuje sklepów automatycznie bezpośrednio z przeglądarki, bo strony sklepów często blokują takie pobieranie przez CORS. Dlatego moduł jest zrobiony jako bezpieczna baza cen + import/eksport + aktualizacja z pliku online.
 
-
-2.4 - 1205260816
-- Dodano wzorce z archiwum transkrypcji usług.
-- Dodano parser długich transkrypcji: czyszczenie nagłówków, wykrywanie typu zlecenia, wariantów i rzeczy do sprawdzenia.
-- Dodano kategorie: TV / Montaż, Komputery / Telefony, Prace drobne.
-- Dodano panel 'Wzorce z archiwum transkrypcji' w ustawieniach.
-
-
-2.5 - 1205260850
-- poprawiono wykrywanie klienta po frazie „klient … trzeba zamontować”
-- poprawiono rozbicie 4 kamer: tubowe + obrotowa, bez błędnego traktowania „2 kamerą” jako ilości PTZ
-- dodano pozycje materiałowe kamer z ceną 0 zł do uzupełnienia, żeby wycena nie ukrywała kosztu sprzętu
-- poprawiono puszki oryginalne 60 zł, puszkę prądową 15 zł, przewiert oraz przewód 10 m 2×0,5
-- dodano dane uczące do cache service workera
+Ważne:
+- Wszystkie ceny są netto.
+- Ceny sprzętu są sugestiami, nie gwarantowaną ceną zakupu.
+- Przy droższych elementach, np. PTZ, NVR, router 5G, dysk CCTV, zawsze sprawdź konkretny model przed wysłaniem oferty.

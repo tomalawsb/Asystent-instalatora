@@ -1,4 +1,4 @@
-const APP_VERSION = '2.5 - 1205260850';
+const APP_VERSION = '2.6 - 1205260925';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -4100,7 +4100,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 /* v2.4 — wzorce z archiwum transkrypcji usług, parser kontekstowy i łatwiejsze poprawki */
 const INSTALLER_ARCHIVE_TRAINING = {
-  version: '2.5 - 1205260850',
+  version: '2.6 - 1205260925',
   filesScanned: 417,
   categories: {
     'Kamery CCTV': 186,
@@ -4511,9 +4511,9 @@ try {
   }
 } catch {}
 
-const baseNormalizeSpeechText_v25_before = baseNormalizeSpeechText;
+const baseNormalizeSpeechText_v26_before = baseNormalizeSpeechText;
 baseNormalizeSpeechText = function(text) {
-  let out = baseNormalizeSpeechText_v25_before(text);
+  let out = baseNormalizeSpeechText_v26_before(text);
   out = out
     .replace(/\bdziesiecio\s*metrow\w*\b/g, '10 m')
     .replace(/\bdziesiec\s*metrow\w*\b/g, '10 m')
@@ -4660,9 +4660,9 @@ function parseDrillingVoiceItemV25(text) {
   return buildVoiceItem({ category: 'Przewody / Okablowanie', name: 'Przewiert przez ścianę pod przewód', unit: 'szt', quantity: qty, priceNet: number(catalog?.price_net, 35), key: 'drilling_wall' });
 }
 
-const extractSpecialVoiceItems_v25_before = extractSpecialVoiceItems;
+const extractSpecialVoiceItems_v26_before = extractSpecialVoiceItems;
 extractSpecialVoiceItems = function(text) {
-  const base = extractSpecialVoiceItems_v25_before(text);
+  const base = extractSpecialVoiceItems_v26_before(text);
   installerAddCameraHardwareItemsV25(text, base.items);
   const drilling = parseDrillingVoiceItemV25(text);
   if (drilling && !base.items.some(i => i._voiceKey === drilling._voiceKey || i.name === drilling.name)) base.items.push(drilling);
@@ -4670,9 +4670,9 @@ extractSpecialVoiceItems = function(text) {
   return base;
 };
 
-const detectMissingData_v25_before = detectMissingData;
+const detectMissingData_v26_before = detectMissingData;
 detectMissingData = function(rawText, result) {
-  const missing = detectMissingData_v25_before(rawText, result) || [];
+  const missing = detectMissingData_v26_before(rawText, result) || [];
   const items = result?.items || [];
   if (items.some(item => /kamera .*materiał|kamera .*material/i.test(item.name || '') && number(item.priceNet, 0) <= 0)) {
     const msg = 'uzupełnić cenę zakupu kamer — program dodał sprzęt jako pozycję materiałową z ceną 0 zł';
@@ -4681,9 +4681,9 @@ detectMissingData = function(rawText, result) {
   return missing;
 };
 
-const parseSmartCommand_v25_before = parseSmartCommand;
+const parseSmartCommand_v26_before = parseSmartCommand;
 parseSmartCommand = function(rawText) {
-  const result = parseSmartCommand_v25_before(rawText);
+  const result = parseSmartCommand_v26_before(rawText);
   const normalized = normalizeSpeechText(buildFocusedTranscriptText(rawText));
   const itemText = stripClientFragmentsForItems(normalized);
   const extra = extractSpecialVoiceItems(itemText);
@@ -4698,13 +4698,13 @@ parseSmartCommand = function(rawText) {
 };
 
 /* v2.5.1 — bez podwajania pozycji dodanych przez parser specjalny + rozpoznanie przewodu 2×0,5 */
-const looksLikeCableClause_v251_before = looksLikeCableClause;
+const looksLikeCableClause_v261_before = looksLikeCableClause;
 looksLikeCableClause = function(text) {
-  return looksLikeCableClause_v251_before(text) || /\b2\s*(?:x|×)\s*0[.]?5\b|\b2x0[.]?5\b/i.test(String(text || ''));
+  return looksLikeCableClause_v261_before(text) || /\b2\s*(?:x|×)\s*0[.]?5\b|\b2x0[.]?5\b/i.test(String(text || ''));
 };
 
 parseSmartCommand = function(rawText) {
-  const result = parseSmartCommand_v25_before(rawText);
+  const result = parseSmartCommand_v26_before(rawText);
   result.missingData = detectMissingData(rawText, { client: result.client, items: result.items, detectedType: result.detectedType, distanceKm: result.distanceKm, distanceRate: result.distanceRate, freeKm: result.freeKm, transcriptInfo: result.transcriptInfo });
   for (const f of result.transcriptInfo?.followUps || []) if (!result.missingData.includes(f)) result.missingData.push(f);
   return result;
@@ -4731,3 +4731,296 @@ parseDrillingVoiceItemV25 = function(text) {
   const catalog = findCatalogService('Przewody / Okablowanie', 'Przewiert przez ścianę pod przewód') || findCatalogService('Kamery CCTV', 'Wiercenie przejścia pod przewód');
   return buildVoiceItem({ category: 'Przewody / Okablowanie', name: 'Przewiert przez ścianę pod przewód', unit: 'szt', quantity: qty, priceNet: number(catalog?.price_net, 35), key: 'drilling_wall' });
 };
+
+/* v2.6 — baza cen materiałów + aktualizacja cen */
+const MATERIAL_PRICES_KEY = 'pomocnik-instalatora-pwa-v1-material-prices';
+const MATERIAL_PRICES_LAST_CHECK_KEY = 'pomocnik-instalatora-pwa-v1-material-prices-last-check';
+
+function normalizeMaterialName(value) {
+  return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/ł/g, 'l')
+    .replace(/\bmaterial\b|\bmaterial\b|\bmaterialowa\b|\bmaterialowy\b/g, '')
+    .replace(/—|-/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function defaultMaterialPriceDb() {
+  const fallback = { version: APP_VERSION, updated_at: '2026-05-12', currency: 'PLN', tax_basis: 'netto', items: [] };
+  return structuredCloneSafe(window.MATERIAL_PRICE_DB || fallback);
+}
+
+function validateMaterialPriceDb(db) {
+  if (!db || typeof db !== 'object') return defaultMaterialPriceDb();
+  const out = {
+    version: String(db.version || APP_VERSION),
+    updated_at: String(db.updated_at || new Date().toISOString().slice(0, 10)),
+    currency: String(db.currency || 'PLN'),
+    tax_basis: String(db.tax_basis || 'netto'),
+    source_summary: db.source_summary || {},
+    items: []
+  };
+  for (const raw of Array.isArray(db.items) ? db.items : []) {
+    const name = String(raw.name || '').trim();
+    const category = String(raw.category || '').trim();
+    const unit = String(raw.unit || 'szt').trim() || 'szt';
+    const price = parseCatalogPrice(raw.price_net ?? raw.priceNet ?? raw.price);
+    if (!name || !category || price < 0) continue;
+    out.items.push({
+      key: String(raw.key || normalizeMaterialName(name).replace(/\s+/g, '_')),
+      category,
+      name,
+      unit,
+      price_net: round2(price),
+      min_net: round2(parseCatalogPrice(raw.min_net ?? price * 0.75)),
+      max_net: round2(parseCatalogPrice(raw.max_net ?? price * 1.45)),
+      confidence: String(raw.confidence || 'średnia'),
+      note: String(raw.note || ''),
+      updated_at: String(raw.updated_at || out.updated_at)
+    });
+  }
+  return out.items.length ? out : defaultMaterialPriceDb();
+}
+
+function mergeMaterialPriceDb(defaultDb, customDb) {
+  const base = validateMaterialPriceDb(defaultDb);
+  const custom = customDb ? validateMaterialPriceDb(customDb) : null;
+  if (!custom) return base;
+  const map = new Map(base.items.map(item => [item.key, item]));
+  for (const item of custom.items) map.set(item.key, item);
+  return { ...base, ...custom, items: [...map.values()] };
+}
+
+function loadMaterialPriceDb() {
+  try {
+    const stored = localStorage.getItem(MATERIAL_PRICES_KEY);
+    if (stored) return mergeMaterialPriceDb(defaultMaterialPriceDb(), JSON.parse(stored));
+  } catch {}
+  return defaultMaterialPriceDb();
+}
+
+function saveMaterialPriceDb(db) {
+  const clean = validateMaterialPriceDb(db);
+  localStorage.setItem(MATERIAL_PRICES_KEY, JSON.stringify(clean));
+  return clean;
+}
+
+function findMaterialPriceEntry(name, category = '') {
+  const db = loadMaterialPriceDb();
+  const wanted = normalizeMaterialName(name);
+  const wantedCompact = wanted.replace(/\s+/g, '');
+  let best = null;
+  for (const item of db.items || []) {
+    if (category && item.category !== category) continue;
+    const itemName = normalizeMaterialName(item.name);
+    const itemCompact = itemName.replace(/\s+/g, '');
+    if (itemName === wanted || itemCompact === wantedCompact) return item;
+    if (!best && (itemName.includes(wanted) || wanted.includes(itemName))) best = item;
+  }
+  if (!best && category) return findMaterialPriceEntry(name, '');
+  return best;
+}
+
+function getSuggestedMaterialPrice(name, category = '') {
+  const entry = findMaterialPriceEntry(name, category);
+  return entry ? number(entry.price_net, 0) : null;
+}
+
+function syncCatalogWithMaterialPrices(options = {}) {
+  const overrideExisting = !!options.overrideExisting;
+  const db = loadMaterialPriceDb();
+  const catalog = structuredCloneSafe(CATALOG);
+  let added = 0;
+  let updated = 0;
+  for (const entry of db.items || []) {
+    if (!catalog[entry.category]) catalog[entry.category] = [];
+    const list = catalog[entry.category];
+    const idx = list.findIndex(item => normalizeMaterialName(item.name) === normalizeMaterialName(entry.name));
+    const cleanItem = { name: entry.name, unit: entry.unit, price_net: round2(entry.price_net) };
+    if (idx >= 0) {
+      const oldPrice = number(list[idx].price_net, -1);
+      if (overrideExisting || oldPrice <= 0) {
+        list[idx] = cleanItem;
+        updated += 1;
+      }
+    } else {
+      list.push(cleanItem);
+      added += 1;
+    }
+  }
+  saveCatalog(catalog);
+  refreshCatalogControls(state.jobType);
+  renderCatalog();
+  updateServiceSelect();
+  return { added, updated, total: (db.items || []).length, version: db.version, updated_at: db.updated_at };
+}
+
+function renderMaterialPrices() {
+  const view = $('materialPricesView');
+  if (!view) return;
+  const db = loadMaterialPriceDb();
+  const query = ($('materialPriceSearch')?.value || '').toLowerCase().trim();
+  $('materialPriceVersion').textContent = `Baza cen: ${db.version || APP_VERSION}, aktualizacja: ${db.updated_at || '-'}`;
+  view.innerHTML = '';
+  const groups = new Map();
+  for (const item of db.items || []) {
+    const hay = `${item.category} ${item.name} ${item.note}`.toLowerCase();
+    if (query && !hay.includes(query)) continue;
+    if (!groups.has(item.category)) groups.set(item.category, []);
+    groups.get(item.category).push(item);
+  }
+  if (!groups.size) {
+    view.innerHTML = '<div class="empty-state">Brak pasujących produktów.</div>';
+    return;
+  }
+  for (const [category, items] of groups.entries()) {
+    const group = document.createElement('section');
+    group.className = 'catalog-group material-price-group';
+    group.innerHTML = `<h3>${escapeHtml(category)}</h3>`;
+    for (const item of items) {
+      const row = document.createElement('div');
+      row.className = 'material-price-item';
+      row.innerHTML = `
+        <div>
+          <strong>${escapeHtml(item.name)}</strong>
+          <small>${escapeHtml(item.note || '')}</small>
+        </div>
+        <div>${escapeHtml(item.unit)}</div>
+        <div class="price">${money(item.price_net)}</div>
+        <div class="muted">${money(item.min_net)}–${money(item.max_net)}</div>
+        <button class="btn btn-soft" data-action="search">Sprawdź</button>`;
+      row.querySelector('[data-action="search"]').addEventListener('click', () => {
+        const q = encodeURIComponent(`${item.name.replace(/—\s*materiał/i, '').trim()} cena Polska`);
+        window.open(`https://www.google.com/search?q=${q}`, '_blank', 'noopener');
+      });
+      group.appendChild(row);
+    }
+    view.appendChild(group);
+  }
+}
+
+function showMaterialPriceStatus(text, isError = false) {
+  const box = $('materialPriceStatus');
+  if (!box) return;
+  box.textContent = text;
+  box.classList.toggle('error', !!isError);
+}
+
+async function refreshMaterialPricesFromFile() {
+  try {
+    const response = await fetch(`material-prices.json?ts=${Date.now()}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const remote = validateMaterialPriceDb(await response.json());
+    saveMaterialPriceDb(remote);
+    localStorage.setItem(MATERIAL_PRICES_LAST_CHECK_KEY, new Date().toISOString());
+    const result = syncCatalogWithMaterialPrices({ overrideExisting: false });
+    renderMaterialPrices();
+    showMaterialPriceStatus(`Pobrano bazę ${remote.version}. Dodano: ${result.added}, uzupełniono zerowe ceny: ${result.updated}.`);
+  } catch (error) {
+    showMaterialPriceStatus(`Nie udało się pobrać material-prices.json. Używam lokalnej bazy. Szczegóły: ${error.message || error}`, true);
+  }
+}
+
+function applyMaterialPricesToCatalogManually() {
+  const result = syncCatalogWithMaterialPrices({ overrideExisting: true });
+  renderAll();
+  renderMaterialPrices();
+  showMaterialPriceStatus(`Zastosowano ceny materiałów w cenniku. Dodano: ${result.added}, zaktualizowano: ${result.updated}.`);
+}
+
+function exportMaterialPrices() {
+  const db = loadMaterialPriceDb();
+  downloadFile(`baza_cen_materialow_${sanitizeFileName(db.updated_at || 'data')}.json`, JSON.stringify(db, null, 2), 'application/json;charset=utf-8');
+}
+
+function importMaterialPricesFromFile(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const db = validateMaterialPriceDb(JSON.parse(reader.result));
+      saveMaterialPriceDb(db);
+      syncCatalogWithMaterialPrices({ overrideExisting: false });
+      renderMaterialPrices();
+      renderCatalog();
+      showMaterialPriceStatus(`Zaimportowano bazę cen: ${db.version || '-'}.`);
+    } catch (error) {
+      showMaterialPriceStatus('Nie udało się zaimportować bazy cen. Plik JSON jest niepoprawny.', true);
+    } finally {
+      event.target.value = '';
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function autoApplyMaterialPricesOnStart() {
+  const result = syncCatalogWithMaterialPrices({ overrideExisting: false });
+  const last = Date.parse(localStorage.getItem(MATERIAL_PRICES_LAST_CHECK_KEY) || '') || 0;
+  const sevenDays = 7 * 24 * 60 * 60 * 1000;
+  if (Date.now() - last > sevenDays && location.protocol !== 'file:') {
+    refreshMaterialPricesFromFile();
+  } else if (result.added || result.updated) {
+    showMaterialPriceStatus(`Uzupełniono lokalny cennik z bazy materiałów. Dodano: ${result.added}, poprawiono zerowe ceny: ${result.updated}.`);
+  }
+}
+
+if (typeof installerAddCameraHardwareItemsV25 === 'function') {
+  installerAddCameraHardwareItemsV25 = function(text, items) {
+    const breakdown = installerParseCameraBreakdownV25(text);
+    const add = (qty, name, key) => {
+      if (!qty || qty <= 0) return;
+      if (items.some(i => i._voiceKey === key || normalizeMaterialName(i.name) === normalizeMaterialName(name))) return;
+      const catalog = findCatalogService('Kamery CCTV', name);
+      const price = getSuggestedMaterialPrice(name, 'Kamery CCTV');
+      items.push(buildVoiceItem({ category: 'Kamery CCTV', name, unit: 'szt', quantity: qty, priceNet: number(price ?? catalog?.price_net, 0), key }));
+    };
+    add(breakdown.tubeQty, 'Kamera tubowa IP — materiał', 'camera_tube_hardware');
+    add(breakdown.ptzQty, 'Kamera obrotowa PTZ — materiał', 'camera_ptz_hardware');
+  };
+}
+
+const detectMissingData_v260_before = detectMissingData;
+detectMissingData = function(rawText, result) {
+  let missing = detectMissingData_v260_before(rawText, result) || [];
+  const items = result?.items || [];
+  const cameraMaterialItems = items.filter(item => /kamera .*materiał|kamera .*material/i.test(item.name || ''));
+  if (cameraMaterialItems.length && cameraMaterialItems.every(item => number(item.priceNet, 0) > 0)) {
+    missing = missing.filter(text => !/uzupełnić cenę zakupu kamer|uzupelnic cene zakupu kamer/i.test(text));
+    const msg = 'cena kamer została zasugerowana z bazy materiałów — sprawdzić model i cenę przed zatwierdzeniem';
+    if (!missing.includes(msg)) missing.push(msg);
+  }
+  return missing;
+};
+
+/* v2.6.1 — przywrócenie specjalnych pozycji materiałowych po poprawce 2.5.1 */
+parseSmartCommand = function(rawText) {
+  const result = parseSmartCommand_v26_before(rawText);
+  const normalized = normalizeSpeechText(buildFocusedTranscriptText(rawText));
+  const itemText = stripClientFragmentsForItems(normalized);
+  const extra = extractSpecialVoiceItems(itemText);
+  const additions = [];
+  for (const item of extra.items || []) {
+    if (!/kamera .*materiał|kamera .*material|Puszka prądowa|Puszka montażowa pod kamerę|Przewiert przez ścianę/i.test(item.name || '')) continue;
+    const alreadyExists = (result.items || []).some(existing =>
+      normalizeMaterialName(existing.name) === normalizeMaterialName(item.name)
+      || (existing.parserKey && item._voiceKey && existing.parserKey === item._voiceKey)
+    );
+    if (!alreadyExists) additions.push(item);
+  }
+  if (additions.length) result.items = mergeParserItems([...(result.items || []), ...additions]);
+  result.missingData = detectMissingData(rawText, { client: result.client, items: result.items, detectedType: result.detectedType, distanceKm: result.distanceKm, distanceRate: result.distanceRate, freeKm: result.freeKm, transcriptInfo: result.transcriptInfo });
+  for (const f of result.transcriptInfo?.followUps || []) if (!result.missingData.includes(f)) result.missingData.push(f);
+  return result;
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  if ($('materialPriceSearch')) $('materialPriceSearch').addEventListener('input', renderMaterialPrices);
+  if ($('applyMaterialPricesBtn')) $('applyMaterialPricesBtn').addEventListener('click', applyMaterialPricesToCatalogManually);
+  if ($('refreshMaterialPricesBtn')) $('refreshMaterialPricesBtn').addEventListener('click', refreshMaterialPricesFromFile);
+  if ($('exportMaterialPricesBtn')) $('exportMaterialPricesBtn').addEventListener('click', exportMaterialPrices);
+  if ($('importMaterialPricesBtn')) $('importMaterialPricesBtn').addEventListener('click', () => $('importMaterialPricesFile').click());
+  if ($('importMaterialPricesFile')) $('importMaterialPricesFile').addEventListener('change', importMaterialPricesFromFile);
+  autoApplyMaterialPricesOnStart();
+  renderMaterialPrices();
+});
