@@ -340,6 +340,260 @@
       "price_net": 220.0
     }
   ],
+  "Przewody / Okablowanie": [
+    {
+      "name": "Kabel antenowy RG6 CU",
+      "unit": "mb",
+      "price_net": 2.5
+    },
+    {
+      "name": "Skrętka UTP Cat 5e CU",
+      "unit": "mb",
+      "price_net": 2.0
+    },
+    {
+      "name": "Skrętka żelowana Cat 5e CU",
+      "unit": "mb",
+      "price_net": 2.2
+    },
+    {
+      "name": "Skrętka UTP Cat 6 CU",
+      "unit": "mb",
+      "price_net": 2.0
+    },
+    {
+      "name": "Skrętka żelowana Cat 6 CU",
+      "unit": "mb",
+      "price_net": 3.5
+    },
+    {
+      "name": "Przewód niskoprądowy 2×0,5",
+      "unit": "mb",
+      "price_net": 1.5
+    },
+    {
+      "name": "Przewód prądowy YDYp 3×1,5",
+      "unit": "mb",
+      "price_net": 3.5
+    },
+    {
+      "name": "Przewód prądowy YDYp 3×2,5",
+      "unit": "mb",
+      "price_net": 5.5
+    },
+    {
+      "name": "Prowadzenie przewodu — łatwe",
+      "unit": "mb",
+      "price_net": 5.0
+    },
+    {
+      "name": "Prowadzenie przewodu — standardowe",
+      "unit": "mb",
+      "price_net": 8.0
+    },
+    {
+      "name": "Prowadzenie przewodu — trudne",
+      "unit": "mb",
+      "price_net": 14.0
+    },
+    {
+      "name": "Prowadzenie przewodu w peszlu",
+      "unit": "mb",
+      "price_net": 12.0
+    },
+    {
+      "name": "Prowadzenie przewodu w listwie",
+      "unit": "mb",
+      "price_net": 10.0
+    },
+    {
+      "name": "Prowadzenie przewodu w ziemi",
+      "unit": "mb",
+      "price_net": 20.0
+    },
+    {
+      "name": "Przewiert przez ścianę pod przewód",
+      "unit": "szt",
+      "price_net": 35.0
+    }
+  ],
+  "Złącza / Akcesoria": [
+    {
+      "name": "Złącze F nakręcane RG6",
+      "unit": "szt",
+      "price_net": 1.5
+    },
+    {
+      "name": "Złącze F kompresyjne RG6",
+      "unit": "szt",
+      "price_net": 2.5
+    },
+    {
+      "name": "Złącze F kątowe",
+      "unit": "szt",
+      "price_net": 4.0
+    },
+    {
+      "name": "Przejście F-F / beczka antenowa",
+      "unit": "szt",
+      "price_net": 2.0
+    },
+    {
+      "name": "Wtyk antenowy IEC męski",
+      "unit": "szt",
+      "price_net": 5.0
+    },
+    {
+      "name": "Wtyk antenowy IEC żeński",
+      "unit": "szt",
+      "price_net": 5.0
+    },
+    {
+      "name": "Wtyk antenowy kątowy",
+      "unit": "szt",
+      "price_net": 6.0
+    },
+    {
+      "name": "Rozgałęźnik antenowy 2-drożny",
+      "unit": "szt",
+      "price_net": 20.0
+    },
+    {
+      "name": "Rozgałęźnik antenowy 3-drożny",
+      "unit": "szt",
+      "price_net": 25.0
+    },
+    {
+      "name": "Rozgałęźnik antenowy 4-drożny",
+      "unit": "szt",
+      "price_net": 35.0
+    },
+    {
+      "name": "Odgałęźnik antenowy TAP",
+      "unit": "szt",
+      "price_net": 30.0
+    },
+    {
+      "name": "Gniazdo RTV/SAT końcowe",
+      "unit": "szt",
+      "price_net": 35.0
+    },
+    {
+      "name": "Gniazdo RTV/SAT przelotowe",
+      "unit": "szt",
+      "price_net": 40.0
+    },
+    {
+      "name": "Separator zasilania antenowego",
+      "unit": "szt",
+      "price_net": 12.0
+    },
+    {
+      "name": "Zasilacz antenowy 12V z separatorem",
+      "unit": "szt",
+      "price_net": 35.0
+    },
+    {
+      "name": "Zasilacz 12V CCTV",
+      "unit": "szt",
+      "price_net": 35.0
+    },
+    {
+      "name": "Zasilacz 12V 2A",
+      "unit": "szt",
+      "price_net": 30.0
+    },
+    {
+      "name": "Zasilacz 12V 5A",
+      "unit": "szt",
+      "price_net": 55.0
+    },
+    {
+      "name": "Wzmacniacz antenowy masztowy",
+      "unit": "szt",
+      "price_net": 80.0
+    },
+    {
+      "name": "Wzmacniacz antenowy wewnętrzny",
+      "unit": "szt",
+      "price_net": 120.0
+    },
+    {
+      "name": "Wzmacniacz antenowy z zasilaczem",
+      "unit": "szt",
+      "price_net": 155.0
+    },
+    {
+      "name": "Wtyk RJ45 Cat 5e UTP",
+      "unit": "szt",
+      "price_net": 0.6
+    },
+    {
+      "name": "Wtyk RJ45 Cat 6 UTP",
+      "unit": "szt",
+      "price_net": 0.9
+    },
+    {
+      "name": "Wtyk RJ45 Cat 6 ekranowany FTP/STP",
+      "unit": "szt",
+      "price_net": 1.8
+    },
+    {
+      "name": "Wtyk RJ45 przelotowy Cat 6",
+      "unit": "szt",
+      "price_net": 0.9
+    },
+    {
+      "name": "Osłonka RJ45",
+      "unit": "szt",
+      "price_net": 0.5
+    },
+    {
+      "name": "Łącznik RJ45 / beczka LAN",
+      "unit": "szt",
+      "price_net": 8.0
+    },
+    {
+      "name": "Moduł keystone RJ45 Cat 5e",
+      "unit": "szt",
+      "price_net": 12.0
+    },
+    {
+      "name": "Moduł keystone RJ45 Cat 6",
+      "unit": "szt",
+      "price_net": 18.0
+    },
+    {
+      "name": "Gniazdo LAN natynkowe 1xRJ45",
+      "unit": "szt",
+      "price_net": 25.0
+    },
+    {
+      "name": "Gniazdo LAN natynkowe 2xRJ45",
+      "unit": "szt",
+      "price_net": 35.0
+    },
+    {
+      "name": "Patch panel 12-port",
+      "unit": "szt",
+      "price_net": 80.0
+    },
+    {
+      "name": "Patch panel 24-port",
+      "unit": "szt",
+      "price_net": 140.0
+    },
+    {
+      "name": "Zarabianie złącza F",
+      "unit": "szt",
+      "price_net": 6.0
+    },
+    {
+      "name": "Zaciskanie wtyku RJ45",
+      "unit": "szt",
+      "price_net": 12.0
+    }
+  ],
   "Domofon": [
     {
       "name": "Montaż wideodomofonu 1-rodzinnego",
@@ -546,6 +800,33 @@
       "price_net": 180.0
     }
   ],
+  "Dopłaty / Trudne warunki": [
+    {
+      "name": "Dopłata za trudny dostęp / wysokość",
+      "unit": "usł",
+      "price_net": 80.0
+    },
+    {
+      "name": "Dopłata za montaż na kominie lub maszcie",
+      "unit": "usł",
+      "price_net": 100.0
+    },
+    {
+      "name": "Dopłata za przewiert / przekucie",
+      "unit": "szt",
+      "price_net": 45.0
+    },
+    {
+      "name": "Dopłata za kopanie / trudny grunt",
+      "unit": "usł",
+      "price_net": 120.0
+    },
+    {
+      "name": "Dopłata za pracę na elewacji / ociepleniu",
+      "unit": "usł",
+      "price_net": 70.0
+    }
+  ],
   "Serwis": [
     {
       "name": "Diagnostyka / serwis",
@@ -591,105 +872,6 @@
       "name": "Nauka obsługi i instalacja aplikacji",
       "unit": "usł",
       "price_net": 50.0
-    }
-  ],
-  "Przewody / Okablowanie": [
-    {
-      "name": "Kabel antenowy RG6 CU",
-      "unit": "mb",
-      "price_net": 2.5
-    },
-    {
-      "name": "Skrętka UTP Cat 5e CU",
-      "unit": "mb",
-      "price_net": 2.0
-    },
-    {
-      "name": "Skrętka żelowana Cat 5e CU",
-      "unit": "mb",
-      "price_net": 2.2
-    },
-    {
-      "name": "Skrętka UTP Cat 6 CU",
-      "unit": "mb",
-      "price_net": 2.0
-    },
-    {
-      "name": "Skrętka żelowana Cat 6 CU",
-      "unit": "mb",
-      "price_net": 3.5
-    },
-    {
-      "name": "Przewód prądowy YDYp 3×1,5",
-      "unit": "mb",
-      "price_net": 3.5
-    },
-    {
-      "name": "Przewód prądowy YDYp 3×2,5",
-      "unit": "mb",
-      "price_net": 5.5
-    },
-    {
-      "name": "Prowadzenie przewodu — łatwe",
-      "unit": "mb",
-      "price_net": 5.0
-    },
-    {
-      "name": "Prowadzenie przewodu — standardowe",
-      "unit": "mb",
-      "price_net": 8.0
-    },
-    {
-      "name": "Prowadzenie przewodu — trudne",
-      "unit": "mb",
-      "price_net": 14.0
-    },
-    {
-      "name": "Prowadzenie przewodu w peszlu",
-      "unit": "mb",
-      "price_net": 12.0
-    },
-    {
-      "name": "Prowadzenie przewodu w listwie",
-      "unit": "mb",
-      "price_net": 10.0
-    },
-    {
-      "name": "Prowadzenie przewodu w ziemi",
-      "unit": "mb",
-      "price_net": 20.0
-    },
-    {
-      "name": "Przewiert przez ścianę pod przewód",
-      "unit": "szt",
-      "price_net": 35.0
-    }
-  ],
-  "Dopłaty / Trudne warunki": [
-    {
-      "name": "Dopłata za trudny dostęp / wysokość",
-      "unit": "usł",
-      "price_net": 80.0
-    },
-    {
-      "name": "Dopłata za montaż na kominie lub maszcie",
-      "unit": "usł",
-      "price_net": 100.0
-    },
-    {
-      "name": "Dopłata za przewiert / przekucie",
-      "unit": "szt",
-      "price_net": 45.0
-    },
-    {
-      "name": "Dopłata za kopanie / trudny grunt",
-      "unit": "usł",
-      "price_net": 120.0
-    },
-    {
-      "name": "Dopłata za pracę na elewacji / ociepleniu",
-      "unit": "usł",
-      "price_net": 70.0
     }
   ]
 }

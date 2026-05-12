@@ -1,5 +1,5 @@
 Pomocnik Instalatora PWA
-Wersja programu: 2.0 - 1105262245
+Wersja programu: 2.1 - 1205260653
 
 Ostatnio dodane:
 - osobna kategoria cennika: Przewody / Okablowanie,
@@ -25,14 +25,12 @@ Wersja v13 / aplikacja 2.1.0:
 - dodano przyciski SMS/PDF przy zapisanych wycenach.
 
 
-Wersja 2.0 - 1105262245:
+Wersja 2.1 - 1205260653:
 - dodano etap 16 — lista materiałów do zabrania generowana z wyceny, notatek, przewodów i dopłat.
-i dodaje pozycje do wyceny.
 
 
-Zmiany v1.3.0:
-- poprawiony parser dyktowania dla tekstu bez słowa „klient”, np. „Bogusław Biernacki ul. Szymanowskiego 48 montaż 4 kamer IP, 4 puszki montażowe pod kamery”,
-- aplikacja rozpoznaje imię i nazwisko z początku zdania,
-- adres nie gubi już numeru domu przed słowem „montaż”,
-- poprawione rozpoznawanie odmian typu „kamer”, „kamery”, „puszki”,
-- poprawiona kolejność dodawanych pozycji z dyktowania.
+Wersja 2.1 - 1205260653:
+- Dodano kategorię Złącza / Akcesoria.
+- Dodano złącza F, RJ45, wtyki antenowe, rozgałęźniki, zasilacze, wzmacniacze, keystone, gniazda LAN/RTV/SAT i patch panele.
+- Rozszerzono parser dyktowania o osprzęt antenowy i LAN.
+- Rozszerzono listę materiałów do zabrania o osprzęt i narzędzia do złączy.

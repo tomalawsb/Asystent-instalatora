@@ -16,6 +16,7 @@
 }
 
 * { box-sizing: border-box; }
+html, body { width: 100%; max-width: 100%; overflow-x: hidden; }
 html { min-height: 100%; background: var(--bg); }
 body {
   margin: 0;
@@ -662,4 +663,46 @@ td input { min-height: 32px; padding: 5px 8px; }
 }
 @media print {
   .app-footer { display: none; }
+}
+
+
+/* Poprawka mobilna: po długim wyniku parsera aplikacja nie może robić poziomego przewijania ani zostawiać pustej kolumny. */
+.preview-block,
+.parser-preview,
+.client-message-card textarea,
+.materials-preview,
+.card,
+.topbar {
+  min-width: 0;
+  max-width: 100%;
+}
+.preview-block dd,
+.preview-table td,
+.preview-table th,
+.materials-preview,
+.client-message-card textarea,
+.info-box,
+.note {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.preview-table-wrap,
+.table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.preview-table { min-width: 560px; }
+
+@media (hover: none) and (pointer: coarse), (max-width: 1024px) {
+  .app-shell { width: min(100% - 14px, 1240px); }
+  .grid-main { grid-template-columns: 1fr !important; }
+  .sticky-card { position: static; }
+}
+
+@media (max-width: 640px) {
+  .preview-table { min-width: 0; font-size: 13px; }
+  .preview-table th,
+  .preview-table td { padding: 6px 5px; }
+  .parser-preview .action-row .btn { width: 100%; }
 }
