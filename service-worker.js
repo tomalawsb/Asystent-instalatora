@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pomocnik-instalatora-pwa-2-1-1205260653-zlacza-akcesoria';
+const CACHE_NAME = 'pomocnik-instalatora-pwa-2-2-1205260739-parser-uczenie-ui';
 const FILES = [
   './',
   './index.html',
