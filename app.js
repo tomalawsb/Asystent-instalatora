@@ -1,4 +1,4 @@
-const APP_VERSION = '2.2 - 1205260739';
+const APP_VERSION = '2.3 - 1205260748';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -2083,6 +2083,10 @@ function parseSmartCommand(rawText) {
 
   const special = extractSpecialVoiceItems(itemText);
   items.push(...special.items);
+  if (/podglad.{0,30}(telefon|aplikacj)|podgląd.{0,30}(telefon|aplikacj)/i.test(text) && !items.some(i => /podgląd zdalny|podglad zdalny/i.test(i.name))) {
+    const catalog = findCatalogService('Kamery CCTV', 'Uruchomienie podglądu zdalnego');
+    items.push(buildVoiceItem({ category: 'Kamery CCTV', name: 'Uruchomienie podglądu zdalnego', unit: 'usł', quantity: 1, priceNet: number(catalog?.price_net, 150), key: 'remote_preview' }));
+  }
   const suppressedKeys = new Set(special.suppressedKeys || []);
 
   const found = findVoiceMatches(itemText).filter(match => !suppressedKeys.has(match.rule.key));
@@ -3136,6 +3140,10 @@ function parseSmartCommand(rawText) {
 
   const special = extractSpecialVoiceItems(itemText);
   items.push(...special.items);
+  if (/podglad.{0,30}(telefon|aplikacj)|podgląd.{0,30}(telefon|aplikacj)/i.test(text) && !items.some(i => /podgląd zdalny|podglad zdalny/i.test(i.name))) {
+    const catalog = findCatalogService('Kamery CCTV', 'Uruchomienie podglądu zdalnego');
+    items.push(buildVoiceItem({ category: 'Kamery CCTV', name: 'Uruchomienie podglądu zdalnego', unit: 'usł', quantity: 1, priceNet: number(catalog?.price_net, 150), key: 'remote_preview' }));
+  }
   const suppressedKeys = new Set(special.suppressedKeys || []);
 
   const found = findVoiceMatches(itemText).filter(match => !suppressedKeys.has(match.rule.key));
@@ -3695,6 +3703,396 @@ function parseBoxMaterialLoose(text, kind) {
     if (qty > 0) return buildVoiceItem({ category: 'Kamery CCTV', name, unit: 'szt', quantity: qty, priceNet: price, key });
   }
   return null;
+}
+
+
+
+/* =========================================================
+   v2.3 — parser długich transkrypcji wizyt, notatki uniwersalne,
+   poprawione samouczenie i bardziej zwarty podgląd korekt
+   ========================================================= */
+
+function isVisitTranscript(rawText) {
+  const source = String(rawText || '');
+  return /TRANSKRYPCJA:|\[INFO\]|\[\d{2}:\d{2}:\d{2}\]|RUN:\s*\d{4}-\d{2}-\d{2}|beam_size|Wczytano plik audio/i.test(source)
+    || (source.length > 2500 && /\b(kamera|kamery|kabel|przew[oó]d|ofert[aeę]|wycen[aeę])\b/i.test(source));
+}
+
+function stripTranscriptionNoise(rawText) {
+  const raw = String(rawText || '').replace(/\r/g, '\n');
+  return raw
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line && !/^=+$/.test(line) && !/^-+$/.test(line))
+    .filter(line => !/^RUN:|^large\s*\||^temperature=|^\[INFO\]|^\[Wykryty język|^\[INFO\] Zakończono/i.test(line))
+    .filter(line => !/^(FP16|MONO|Parametry audio|Użyta precyzja)/i.test(line))
+    .map(line => line.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/g, ''))
+    .join('. ')
+    .replace(/\s+/g, ' ')
+    .replace(/\bprzez\s+(\d+)\b/gi, '/$1')
+    .replace(/\bobrotówki\b/gi, 'kamery obrotowe')
+    .replace(/\bobrotowki\b/gi, 'kamery obrotowe')
+    .replace(/\bkomorny\b/gi, 'komin')
+    .replace(/\bpaszle\b/gi, 'peszle')
+    .trim();
+}
+
+function buildFocusedTranscriptText(rawText) {
+  if (!isVisitTranscript(rawText)) return cleanDictationSpaces(rawText);
+  const raw = String(rawText || '').replace(/\r/g, '\n');
+  const important = [];
+  const keepRe = /Sielska|wycena|kamera|kamery|monitoring|podgl[aą]d|telefon|router|internet|serwer|nagrywa|kabel|kable|przew[oó]d|pr[aą]d|zasil|gniazdk|puszk|klimatyzac|korytk|korytarz|listw|maskuj|rynnie|rynn|strych|poddasz|podbitk|przewier|wierc|przekuc|rolety|rolet|solar|panel|obrot|tubow|kopuł|wizualizator|ofert|mail|sms|sąsiad|sasiad|ci[eę][żz]ko\s+dost[eę]p|trudn|dach|komin|maszt|elewacj|peszl|przej[sś]cie|okno|drzwi/i;
+  for (let line of raw.split('\n')) {
+    line = line.trim();
+    if (!line || /^=+$/.test(line) || /^-+$/.test(line)) continue;
+    if (/^RUN:|^large\s*\||^temperature=|^\[INFO\]|^\[Wykryty język/i.test(line)) continue;
+    line = line.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/g, '').trim();
+    if (!line) continue;
+    if (keepRe.test(line)) important.push(line);
+  }
+  const headerAddress = parseTranscriptAddress(rawText);
+  const prefix = headerAddress ? `adres ${headerAddress}. ` : '';
+  return cleanDictationSpaces((prefix + important.join('. ')).replace(/\bprzez\s+(\d+)\b/gi, '/$1'));
+}
+
+function parseTranscriptAddress(rawText) {
+  const raw = String(rawText || '').replace(/\\/g, ' / ').replace(/_/g, ' ');
+  const candidates = [];
+  const add = (street, numberPart, flat, index) => {
+    let st = cleanAddressFragment(String(street || '').replace(/\bul\.?\s*/i, ''), true);
+    st = st.replace(/^ul\.?\s+/i, '');
+    st = st.replace(/\b(wycena|kamera|kamery|m4a|mp3|wav|start|godzina).*$/i, '').trim();
+    if (!st || /^(m[oó]j dysk|dysk|urecorder|run|transkrypcja)$/i.test(st)) return;
+    if (!/^[A-ZĄĆĘŁŃÓŚŹŻ]/.test(st)) st = titleCase(st);
+    const nr = String(numberPart || '').trim() + (flat ? `/${String(flat).trim()}` : '');
+    if (!nr || /\d{2}:\d{2}/.test(nr)) return;
+    candidates.push({ value: `ul. ${st} ${nr}`, index: number(index, 0) });
+  };
+
+  const addressLike = /(?:^|[\s\/])(?:ul\.?\s*)?([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\-]{2,}(?:\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\-]{2,}){0,2})\s+(\d+[a-zA-Z]?)(?:\s*(?:\/|przez)\s*(\d+[a-zA-Z]?))?(?=(?:\s|,|\.|-)+(?:wycena|kamer|start|m4a|mp3|wav|$))/gi;
+  for (const m of raw.matchAll(addressLike)) add(m[1], m[2], m[3], m.index);
+
+  const timedStart = raw.match(/\[00:00:0?1\]\s*([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\- ]+?)\s+(\d+[a-zA-Z]?)(?:\s*(?:\/|przez)\s*(\d+[a-zA-Z]?))?,?\s*start/i);
+  if (timedStart) add(timedStart[1], timedStart[2], timedStart[3], 0);
+
+  if (!candidates.length) return '';
+  candidates.sort((a, b) => a.index - b.index);
+  return candidates[0].value;
+}
+
+function analyzeVisitTranscript(rawText, focusedText) {
+  const isTranscript = isVisitTranscript(rawText);
+  if (!isTranscript) return { isTranscript: false, findings: [], options: [], rejected: [], followUps: [] };
+  const text = normalizeSpeechText(focusedText || rawText);
+  const findings = [];
+  const options = [];
+  const rejected = [];
+  const followUps = [];
+  const add = (arr, value) => { if (value && !arr.includes(value)) arr.push(value); };
+
+  const addr = parseTranscriptAddress(rawText);
+  if (addr) add(findings, `adres z transkrypcji / nazwy pliku: ${addr}`);
+  const start = String(rawText || '').match(/start\s+godzina\s+(\d{1,2}[.:]\d{2})/i);
+  if (start) add(findings, `początek wizyty: ${start[1].replace('.', ':')}`);
+  if (/podglad\s+na\s+telefon|podgl[aą]d\s+na\s+telefon|aplikacj/i.test(text)) add(findings, 'klient oczekuje podglądu w telefonie / aplikacji');
+  if (/router|internet|serwer/i.test(text)) add(findings, 'kamera musi mieć dostęp do internetu / routera');
+  if (/nagrywa|utraci\s+polaczenie|utraci\s+połączenie/i.test(text)) add(findings, 'omówiono zapis nagrań mimo utraty połączenia z internetem');
+  if (/obrotow|ptz|sterowac|sterować/i.test(text)) add(options, 'rozważane kamery obrotowe PTZ');
+  if (/tubow|statyczn|zwykla\s+kamera|zwykła\s+kamera/i.test(text)) add(options, 'rozważane kamery tubowe / statyczne');
+  if (/solarn/i.test(text)) {
+    if (/nie\s+solarn|solarnych\s+nie|anty-solarn|nie\s+chce/i.test(text)) add(rejected, 'kamery solarne odrzucone przez klienta');
+    else add(options, 'rozważane kamery solarne');
+  }
+  if (/korytk|listw|maskuj|mastuj|ukryc\s+kabel|ukryć\s+kabel/i.test(text)) add(options, 'prowadzenie przewodu w korytku / listwie maskującej');
+  if (/rynnie|rynn/i.test(text)) add(options, 'wariant prowadzenia kabla przy rynnie');
+  if (/strych|poddasz|podbitk/i.test(text)) add(options, 'wariant przejścia przez strych / poddasze / podbitkę');
+  if (/puszk.*rolet|rolety|rolet/i.test(text)) add(options, 'możliwe wykorzystanie puszek / przewodów od rolet');
+  if (/klimatyzac|skroplin|wymiennik/i.test(text)) add(options, 'możliwe wykorzystanie miejsca przy klimatyzacji');
+  if (/przewier|wierc|przekuc|przejscie|przejście/i.test(text)) add(options, 'możliwy przewiert / przekucie pod przewód');
+  if (/sasiad|sąsiad|ciezko\s+dostep|ciężko\s+dostęp/i.test(text)) add(followUps, 'sprawdzić dostęp do sąsiada / strychu, bo może być problem z wejściem');
+  if (/prad|prąd|gniazdk|zasil/i.test(text)) add(followUps, 'sprawdzić realne źródło zasilania kamer');
+  if (/wizualizator|wizualizac/i.test(text)) add(followUps, 'przygotować wizualizację rozmieszczenia kamer');
+  if (/wy[sś]l[eę]\s+ofert|ofert[eę]|mail|sms/i.test(text)) add(followUps, 'wysłać klientowi ofertę po analizie wariantów');
+  if (!/\b\d+\s+kamer/i.test(text)) add(followUps, 'liczba kamer nie jest jednoznaczna — nie doliczono kamer automatycznie bez ilości');
+  if (/kabel|przewod|przewód|listw|korytk/i.test(text) && !/\b\d+(?:[.]\d+)?\s*(?:m|mb)\b/i.test(text)) add(followUps, 'brak długości przewodów / listew — trzeba wpisać metry przed zatwierdzeniem');
+  return { isTranscript: true, findings, options, rejected, followUps };
+}
+
+function parseClientAddress(rawText, normalizedText) {
+  const transcriptAddress = parseTranscriptAddress(rawText);
+  if (transcriptAddress) return transcriptAddress;
+
+  const compact = cleanDictationSpaces(rawText);
+  const cityAlternation = KNOWN_CITIES.map(escapeRegExp).join('|');
+  const candidates = [];
+  const addCandidate = (street, nr, city, index) => {
+    if (!street || !nr) return;
+    const address = cleanAddressFragment(`${street} ${nr}`, true);
+    candidates.push({ address: joinAddressAndCity(address, titleCase(city || parseCity(compact) || '')), index: number(index, 0) });
+  };
+
+  for (const match of compact.matchAll(new RegExp(String.raw`(?:^|\s)(?:ul\.?|ulica)\s+([a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\- ]{2,50}?)\s+(\d+[a-zA-Z]?(?:/\d+)?)\s+(${cityAlternation})\b`, 'ig'))) addCandidate(match[1], match[2], match[3], match.index);
+  for (const match of compact.matchAll(new RegExp(String.raw`(?:^|\s)(${cityAlternation})\s+(?:ul\.?|ulica)\s+([a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\- ]{2,50}?)\s+(\d+[a-zA-Z]?(?:/\d+)?)\b`, 'ig'))) addCandidate(match[2], match[3], match[1], match.index);
+  for (const match of compact.matchAll(new RegExp(String.raw`(?:^|\s)(?:ul\.?|ulica)\s+([a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\- ]{2,50}?)\s+(\d+[a-zA-Z]?(?:/\d+)?)\b`, 'ig'))) {
+    const tail = compact.slice(match.index, Math.min(compact.length, match.index + 95));
+    const city = findKnownCityInText(tail) || parseCity(compact);
+    addCandidate(match[1], match[2], city, match.index);
+  }
+
+  if (candidates.length) {
+    const withCity = candidates.filter(c => /,\s*\S+/.test(c.address));
+    return (withCity.length ? withCity : candidates).sort((a, b) => b.index - a.index)[0].address;
+  }
+
+  const explicitStreet = compact.match(/(?:adres|ulica|ul\.?|przy\s+ulicy)\s+(.{3,140})/i);
+  if (explicitStreet) {
+    const rawAddress = cutAtAddressStop(explicitStreet[1]);
+    const cityFromAddress = findKnownCityInText(rawAddress);
+    const address = cleanAddressFragment(removeKnownCityFromAddress(rawAddress), true);
+    return joinAddressAndCity(address, parseCity(compact) || cityFromAddress);
+  }
+  return '';
+}
+
+function parseSmartCommand(rawText) {
+  const isTranscript = isVisitTranscript(rawText);
+  const focusedText = buildFocusedTranscriptText(rawText);
+  const text = normalizeSpeechText(focusedText);
+  const client = parseClientData(rawText, text);
+  const itemText = stripClientFragmentsForItems(text);
+  const transcriptInfo = analyzeVisitTranscript(rawText, focusedText);
+  const items = [];
+  const unknown = [];
+  let distanceKm = null;
+  let distanceRate = null;
+  let freeKm = null;
+
+  const distance = parseDistance(itemText);
+  if (distance) {
+    distanceKm = distance.km;
+    if (distance.rate !== null) distanceRate = distance.rate;
+  }
+  const parsedFreeKm = parseFreeKm(itemText);
+  if (parsedFreeKm !== null) freeKm = parsedFreeKm;
+
+  const special = extractSpecialVoiceItems(itemText);
+  items.push(...special.items);
+  if (/podglad.{0,30}(telefon|aplikacj)|podgląd.{0,30}(telefon|aplikacj)/i.test(text) && !items.some(i => /podgląd zdalny|podglad zdalny/i.test(i.name))) {
+    const catalog = findCatalogService('Kamery CCTV', 'Uruchomienie podglądu zdalnego');
+    items.push(buildVoiceItem({ category: 'Kamery CCTV', name: 'Uruchomienie podglądu zdalnego', unit: 'usł', quantity: 1, priceNet: number(catalog?.price_net, 150), key: 'remote_preview' }));
+  }
+  const suppressedKeys = new Set(special.suppressedKeys || []);
+
+  const found = findVoiceMatches(itemText).filter(match => !suppressedKeys.has(match.rule.key));
+  for (const match of found) {
+    if (items.some(item => item._voiceKey === match.rule.key)) continue;
+    const context = getItemContext(itemText, match.index);
+    if (isTranscript && ['camera', 'ptz', 'box_holder', 'electrical_box'].includes(match.rule.key) && !hasExplicitQuantityForTranscript(context, match.rule.key)) continue;
+    const quantityInfo = match.rule.key === 'camera'
+      ? { quantity: extractCameraQuantity(itemText) || parseQuantityForRule(context, match.rule).quantity, unit: match.rule.unit }
+      : parseQuantityForRule(context, match.rule);
+    const price = parsePriceNear(context, quantityInfo.unit || match.rule.unit);
+    const catalog = findCatalogService(match.rule.category, match.rule.name);
+    items.push(buildVoiceItem({
+      category: match.rule.category,
+      name: match.rule.name,
+      unit: quantityInfo.unit || match.rule.unit,
+      quantity: quantityInfo.quantity,
+      priceNet: price !== null ? price : number(catalog?.price_net, 0),
+      key: match.rule.key
+    }));
+  }
+
+  const mergedItems = mergeParserItems(items);
+  const detectedTypes = detectTypes(itemText);
+  const detectedType = detectedTypes.includes('Kamery CCTV') || /wycena\s+kamer|kamera|kamery|monitoring/i.test(focusedText)
+    ? 'Kamery CCTV'
+    : (mergedItems.find(i => i.category !== 'Przewody / Okablowanie' && i.category !== 'Złącza / Akcesoria')?.category || detectedTypes[0] || mergedItems[0]?.category || '');
+
+  const clauses = itemText.split(/[.;,\n]+|\s+oraz\s+/).map(x => x.trim()).filter(Boolean);
+  for (const clause of clauses) {
+    const hasKnown = found.some(match => clause.includes(match.keyword)) || special.usedFragments.some(fragment => clause.includes(fragment));
+    const looksLikePrice = /\d+[,.]?\d*\s*(zł|zl|pln|m|mb|km|szt|godz)/i.test(clause);
+    if (!hasKnown && looksLikePrice && !/dojazd/.test(clause) && !looksLikeCableClause(clause) && !looksLikeAccessoryClause(clause) && !/listw/i.test(clause)) unknown.push(clause);
+  }
+
+  const learnedApplied = applyLearnedCorrections(rawText, mergedItems);
+  const surchargeSuggestions = detectSurchargeSuggestions(rawText, itemText);
+  const missingData = detectMissingData(rawText, { client, items: mergedItems, detectedType, distanceKm, distanceRate, freeKm, transcriptInfo });
+  for (const f of transcriptInfo.followUps || []) if (!missingData.includes(f)) missingData.push(f);
+  for (const item of mergedItems) delete item._voiceKey;
+  return { client, items: mergedItems, detectedType, distanceKm, distanceRate, freeKm, unknown, learnedApplied, missingData, surchargeSuggestions, transcriptInfo };
+}
+
+function parseCameraTypeBreakdown(text) {
+  const source = String(text || '');
+  const out = [];
+  const add = (qty, name, fallback, key) => {
+    const catalog = findCatalogService('Kamery CCTV', name);
+    out.push(buildVoiceItem({ category: 'Kamery CCTV', name, unit: 'szt', quantity: qty, priceNet: number(catalog?.price_net, fallback), key }));
+  };
+  const tube = source.match(/(\d+(?:[.]\d+)?)\s+kamer\w*\s+(?:tubow\w*|zewnetrzn\w*|zewnętrzn\w*)/i);
+  const ptz = source.match(/(\d+(?:[.]\d+)?)\s+kamer\w*\s+(?:obrotow\w*|ptz)/i);
+  const total = extractCameraQuantity(source) || 0;
+  if (tube) add(number(tube[1], 1), 'Montaż kamery IP zewnętrznej', 260, 'camera_tube');
+  if (ptz) add(number(ptz[1], 1), 'Montaż kamery obrotowej PTZ', 420, 'camera_ptz');
+  if (!tube && !ptz && total > 0 && /obrotow\w*|ptz/i.test(source)) add(total, 'Montaż kamery obrotowej PTZ', 420, 'camera_ptz');
+  return out;
+}
+
+function parseListwaVoiceItems(text) {
+  const items = [];
+  const usedFragments = [];
+  const source = String(text || '');
+  const patterns = [
+    /(\d+(?:[.]\d+)?)\s*(?:m|mb)\s+[^,.!?;]{0,60}?listw\w*/gi,
+    /listw\w*[^,.!?;]{0,40}?(\d+(?:[.]\d+)?)\s*(?:m|mb)/gi,
+    /korytk\w*[^,.!?;]{0,40}?(\d+(?:[.]\d+)?)\s*(?:m|mb)/gi
+  ];
+  for (const re of patterns) {
+    for (const m of source.matchAll(re)) {
+      const qty = number(m[1], 0);
+      if (qty <= 0) continue;
+      const exists = items.some(x => number(x.quantity, 0) === qty && x.name === 'Maskowanie przewodu listwą');
+      if (exists) continue;
+      const catalog = findCatalogService('Kamery CCTV', 'Maskowanie przewodu listwą') || findCatalogService('Przewody / Okablowanie', 'Prowadzenie przewodu w listwie');
+      items.push(buildVoiceItem({ category: 'Kamery CCTV', name: 'Maskowanie przewodu listwą', unit: 'mb', quantity: qty, priceNet: number(catalog?.price_net, 10), key: 'masking_strip' }));
+      usedFragments.push(m[0]);
+    }
+  }
+  return { items, usedFragments };
+}
+
+function detectMissingData(rawText, result) {
+  const text = normalizeSpeechText(rawText);
+  const missing = [];
+  const name = result.client?.name || state.clientName || '';
+  const phone = result.client?.phone || state.clientPhone || '';
+  const address = result.client?.address || state.clientAddress || '';
+  const isTranscript = result.transcriptInfo?.isTranscript || isVisitTranscript(rawText);
+  const hasDateInText = /\b(jutro|dzisiaj|dziś|pojutrze|poniedzial\w*|poniedział\w*|wtork\w*|srod\w*|środ\w*|czwart\w*|piatk\w*|piątk\w*|sobot\w*|niedziel\w*|\d{1,2}[.\-/]\d{1,2}(?:[.\-/]\d{2,4})?)\b/i.test(rawText);
+  const hasCamera = /kamer\w*|monitoring|cctv/i.test(text) || result.items.some(item => /kamer|monitoring|cctv/i.test(item.name));
+  const hasCableWords = /\b(kabel|kabla|przewod|przewodu|przewód|przewody|skretk\w*|skrętk\w*|ydyp|ydy|listw\w*|korytk\w*)\b/i.test(text);
+  const hasCableItem = result.items.some(item => String(item.unit || '').toLowerCase() === 'mb' || /kabel|przewod|przewód|skretk|skrętk|rg6|listw/i.test(item.name));
+
+  if (!name) missing.push(isTranscript ? 'imię i nazwisko klienta — w transkrypcji nie ma jednoznacznej deklaracji klienta' : 'imię i nazwisko klienta');
+  if (!phone) missing.push('numer telefonu klienta');
+  if (!address) missing.push('adres / miejscowość montażu');
+  if (!hasDateInText) missing.push('data lub termin wizyty nie wynika z dyktowania — sprawdź datę w formularzu');
+  if (result.distanceKm === null && number(state.distanceKm, 0) <= 0) missing.push('dojazd w km albo informacja, że dojazd nie jest liczony');
+  if (!/netto|brutto/i.test(rawText)) missing.push('czy podane ceny są netto czy brutto — program domyślnie traktuje je jako netto');
+  if (/kabel\s+zasilaj\w*|przewod\w*\s+zasilaj\w*/i.test(text) && !/(kabel\s+zasilaj\w*|przewod\w*\s+zasilaj\w*)\D{0,35}\d+(?:[.]\d+)?\s*(?:m|mb)/i.test(text)) missing.push('kabel zasilający: brak długości — nie doliczono go automatycznie');
+
+  if (hasCamera) {
+    if (!/poe|wi\s*-?\s*fi|wifi|bezprzewod|gniazdko|zasilaj|prad|prąd/i.test(text)) missing.push('przy kamerach: czy są PoE / przewodowe czy Wi‑Fi');
+    if (!/zewnetrzn|zewnętrzn|wewnetrzn|wewnętrzn|elewacj|sufit|scian|ścian|komin|maszt|strych|wysoko|drabin|dach|klatce|schodowej|podbitk|rynnie|rynn/i.test(text)) missing.push('przy kamerach: miejsce montażu i warunki dostępu');
+    if (!/rejestrator|nvr|dvr|switch|dysk|karta|nagrywa|zapis/i.test(text)) missing.push('przy kamerach: czy jest rejestrator / switch PoE / zapis nagrań');
+    if (isTranscript && !/\b\d+\s+kamer/i.test(text)) missing.push('liczba kamer do wyceny jest niepewna — transkrypcja opisuje warianty, ale nie podaje jasnej ilości');
+  }
+  if (hasCableWords && !hasCableItem) missing.push('przy przewodach: długość w metrach i typ przewodu');
+  if (isTranscript && /strych|poddasz|podbitk|sąsiad|sasiad/i.test(text)) missing.push('sprawdzić dostęp do strychu / podbitki / sąsiada przed ostateczną ofertą');
+  if (looksLikeAccessoryClause(text) && !result.items.some(item => item.category === 'Złącza / Akcesoria')) missing.push('przy złączach / osprzęcie: typ i ilość, np. F kompresyjne, F nakręcane, RJ45 Cat 6, rozgałęźnik 2-drożny');
+  return [...new Set(missing)];
+}
+
+function renderTranscriptInfoHtml(info) {
+  if (!info?.isTranscript) return '';
+  const block = (title, arr, cls='') => arr?.length ? `<div class="transcript-mini ${cls}"><strong>${escapeHtml(title)}</strong><ul>${arr.map(x => `<li>${escapeHtml(x)}</li>`).join('')}</ul></div>` : '';
+  return `<details class="preview-block transcript-analysis" open><summary>Wnioski z transkrypcji wizyty</summary>${block('Rozpoznane fakty', info.findings)}${block('Rozważane warianty / opcje', info.options)}${block('Odrzucone albo niezalecane', info.rejected, 'rejected')}${block('Do sprawdzenia przed ofertą', info.followUps, 'todo')}</details>`;
+}
+
+function renderParserPreview(raw, result) {
+  const box = $('parserPreview');
+  const content = $('parserPreviewContent');
+  const categoryOptions = CATEGORIES.map(cat => `<option value="${escapeAttr(cat)}">${escapeHtml(cat)}</option>`).join('');
+  const rows = [
+    ['name', 'Klient', result.client.name || ''],
+    ['phone', 'Telefon', result.client.phone || ''],
+    ['address', 'Adres', result.client.address || ''],
+    ['detectedType', 'Typ zlecenia', result.detectedType || state.jobType || 'Kamery CCTV'],
+    ['distanceKm', 'Dojazd km', result.distanceKm ?? ''],
+    ['distanceRate', 'Stawka/km', result.distanceRate ?? ''],
+    ['freeKm', 'Darmowe km', result.freeKm ?? '']
+  ];
+  const dataHtml = `<details class="preview-block" open><summary>Dane do wpisania / poprawienia</summary><div class="parser-data-editor">${rows.map(([field,label,value]) => field === 'detectedType'
+    ? `<label class="parser-data-row"><span>${escapeHtml(label)}</span><select data-parser-field="${field}">${CATEGORIES.map(cat => `<option value="${escapeAttr(cat)}" ${cat === value ? 'selected' : ''}>${escapeHtml(cat)}</option>`).join('')}</select></label>`
+    : `<label class="parser-data-row"><span>${escapeHtml(label)}</span><input data-parser-field="${field}" value="${escapeAttr(value)}"></label>`
+  ).join('')}</div><div class="preview-learning-note">Poprawki zrobione w tym podglądzie program zapamięta po zatwierdzeniu.</div></details>`;
+
+  const itemsHtml = result.items.length
+    ? `<details class="preview-block" open><summary>Pozycje do dodania / poprawienia (${result.items.length})</summary><div class="preview-items-editor">${result.items.map((item, index) => previewItemEditorHtml(item, index, categoryOptions)).join('')}</div><div class="preview-actions-row"><button type="button" class="btn btn-soft" id="addPreviewItemBtn">Dodaj pustą pozycję</button></div></details>`
+    : `<div class="preview-muted">Nie wykryto pewnych pozycji do wyceny. W transkrypcji program pokaże raczej fakty i braki, zamiast zgadywać ceny.</div><div class="preview-actions-row"><button type="button" class="btn btn-soft" id="addPreviewItemBtn">Dodaj pustą pozycję</button></div>`;
+
+  const surchargeHtml = result.surchargeSuggestions?.length
+    ? `<details class="preview-surcharge" open><summary>Możliwe dopłaty za trudne warunki (${result.surchargeSuggestions.length})</summary><p>Zaznacz tylko te, które mają wejść do wyceny. Program nie dolicza ich sam.</p><div class="surcharge-list">${result.surchargeSuggestions.map((suggestion, index) => `<label class="surcharge-item"><input type="checkbox" data-surcharge-index="${index}"><span><b>${escapeHtml(suggestion.item.name)}</b><small>${escapeHtml(suggestion.reason)}</small></span><strong>${number(suggestion.item.quantity, 1)} ${escapeHtml(suggestion.item.unit || 'usł')} × ${money(suggestion.item.priceNet)}</strong></label>`).join('')}</div></details>`
+    : '';
+  const transcriptHtml = renderTranscriptInfoHtml(result.transcriptInfo);
+  const learnedHtml = result.learnedApplied?.length ? `<div class="preview-learning"><strong>Zastosowano zapamiętane korekty:</strong><br>${result.learnedApplied.map(escapeHtml).join('<br>')}</div>` : '';
+  const missingHtml = result.missingData?.length ? `<details class="preview-warning" open><summary>Brakujące / do sprawdzenia (${result.missingData.length})</summary><ul>${result.missingData.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul></details>` : '';
+  const unknownHtml = result.unknown.length ? `<details class="preview-warning"><summary>Fragmenty niepewne (${result.unknown.length})</summary>${result.unknown.map(escapeHtml).join('<br>')}</details>` : '';
+  content.innerHTML = `${transcriptHtml}${dataHtml}${itemsHtml}${surchargeHtml}${learnedHtml}${missingHtml}${unknownHtml}`;
+  bindParserPreviewEditors();
+  box.hidden = false;
+}
+
+function applyParsedResult(raw, result) {
+  if (result.client.name) state.clientName = result.client.name;
+  if (result.client.phone) state.clientPhone = result.client.phone;
+  if (result.client.address) state.clientAddress = result.client.address;
+  if (result.distanceKm !== null) state.distanceKm = result.distanceKm;
+  if (result.distanceRate !== null) state.distanceRate = result.distanceRate;
+  if (result.freeKm !== null) state.freeKm = result.freeKm;
+  if (result.detectedType) state.jobType = result.detectedType;
+  const note = result.transcriptInfo?.isTranscript ? buildTranscriptNoteForQuote(result.transcriptInfo, raw) : raw;
+  state.notes = appendUniqueNote(state.notes, note);
+  state.services.push(...result.items.map(item => ({ ...item, id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()) })));
+}
+
+function buildTranscriptNoteForQuote(info, raw) {
+  const lines = ['Analiza transkrypcji wizyty:'];
+  if (info.findings?.length) lines.push('Fakty: ' + info.findings.join('; '));
+  if (info.options?.length) lines.push('Warianty/opcje: ' + info.options.join('; '));
+  if (info.rejected?.length) lines.push('Odrzucone: ' + info.rejected.join('; '));
+  if (info.followUps?.length) lines.push('Do sprawdzenia: ' + info.followUps.join('; '));
+  const rawAddress = parseTranscriptAddress(raw);
+  if (rawAddress) lines.push('Adres źródłowy: ' + rawAddress);
+  return lines.join('\n');
+}
+
+function createQuoteFromParsedResult(raw, result) {
+  const quote = createEmptyQuote();
+  quote.clientName = result.client.name || '';
+  quote.clientPhone = result.client.phone || '';
+  quote.clientAddress = result.client.address || '';
+  quote.jobType = result.detectedType || 'Kamery CCTV';
+  quote.notes = result.transcriptInfo?.isTranscript ? buildTranscriptNoteForQuote(result.transcriptInfo, raw) : (raw || '');
+  quote.distanceKm = result.distanceKm !== null ? result.distanceKm : 0;
+  quote.distanceRate = result.distanceRate !== null ? result.distanceRate : 2;
+  quote.freeKm = result.freeKm !== null ? result.freeKm : 20;
+  quote.services = result.items.map(item => ({ ...item, id: item.id || (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random())) }));
+  return quote;
+}
+
+
+
+function seedBuiltInLearningForInstaller() {
+  const remote = VOICE_ITEM_RULES.find(rule => rule.key === 'remote_preview');
+  if (remote) {
+    ['podgląd na telefon', 'podglad na telefon', 'podgląd w aplikacji', 'podglad w aplikacji'].forEach(k => { if (!remote.keywords.includes(k)) remote.keywords.push(k); });
+  }
+  const cable = VOICE_ITEM_RULES.find(rule => rule.key === 'cable_lan');
+  if (cable) {
+    ['korytko', 'listwa maskująca', 'listwy maskujące', 'listwy mastujące'].forEach(k => { if (!cable.keywords.includes(k)) cable.keywords.push(k); });
+  }
+}
+seedBuiltInLearningForInstaller();
+
+function hasExplicitQuantityForTranscript(context, key) {
+  const text = normalizeSpeechText(context || '');
+  const qtyWord = '(?:\\d+(?:[.]\\d+)?|jeden|jedna|jedno|dwa|dwie|trzy|cztery|piec|pięć|szesc|sześć|siedem|osiem|dziewiec|dziewięć|dziesiec|dziesięć)';
+  if (key === 'camera' || key === 'ptz') return new RegExp('\\b' + qtyWord + '\\s+kamer\\w*', 'i').test(text);
+  if (key === 'box_holder' || key === 'electrical_box') return new RegExp('\\b' + qtyWord + '\\s+puszk\\w*', 'i').test(text);
+  return false;
 }
 
 document.addEventListener('DOMContentLoaded', init);

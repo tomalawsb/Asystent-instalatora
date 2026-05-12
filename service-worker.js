@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pomocnik-instalatora-pwa-2-2-1205260739-parser-uczenie-ui';
+const CACHE_NAME = 'pomocnik-instalatora-pwa-2-3-1205260748-transkrypcje';
 const FILES = [
   './',
   './index.html',
