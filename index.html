@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6f8fb">
   <meta name="description" content="Pomocnik Instalatora — szybkie wyceny, klienci, cennik i notatki z wizyt.">
-  <title>Pomocnik Instalatora PWA 2.7 - 1205260907</title>
+  <title>Pomocnik Instalatora PWA 2.8 - 1205260928</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +13,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow">Wersja 2.7 - 1205260907</div>
+        <div class="eyebrow">Wersja 2.8 - 1205260928</div>
         <h1>Pomocnik Instalatora</h1>
       </div>
       <div class="top-actions">
@@ -332,6 +332,15 @@
             <label>VAT %
               <input id="vatRate" type="number" min="0" max="100" step="1" value="23">
             </label>
+            <label>Motyw interfejsu
+              <select id="uiTheme">
+                <option value="light">Jasny klasyczny</option>
+                <option value="blue">Błękitny techniczny</option>
+                <option value="green">Zielony serwisowy</option>
+                <option value="amber">Ciepły kontrast</option>
+                <option value="dark">Ciemny grafitowy</option>
+              </select>
+            </label>
           </div>
           <div class="action-row">
             <button id="saveSettingsBtn" class="btn btn-primary">Zapisz ustawienia</button>
@@ -418,7 +427,7 @@
         </section>
       </section>
     </main>
-    <footer class="app-footer">Wersja programu: 2.7 - 1205260907</footer>
+    <footer class="app-footer">Wersja programu: 2.8 - 1205260928</footer>
   </div>
 
   <template id="savedQuoteTemplate">

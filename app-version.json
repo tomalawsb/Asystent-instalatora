@@ -1,7 +1,7 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "2.7 - 1205260907",
-  "build": "1205260907",
+  "version": "2.8 - 1205260928",
+  "build": "1205260928",
   "date": "2026-05-12",
-  "notes": "Przebudowano przepływ dyktowania, dodano wczytywanie TXT, zaznaczanie/kopiowanie/czyszczenie tekstu oraz czytelne oznaczenia materiałów i cen sugerowanych."
+  "notes": "Sprawdzono główny przepływ i przyciski, poprawiono wyrazistość interfejsu oraz dodano motywy jasne i ciemny z jasnymi czcionkami. Wielkości przycisków bez zmian."
 }

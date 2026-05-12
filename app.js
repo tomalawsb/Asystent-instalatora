@@ -1,4 +1,4 @@
-const APP_VERSION = '2.7 - 1205260907';
+const APP_VERSION = '2.8 - 1205260928';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -265,7 +265,8 @@ function defaultSettings() {
     dropboxAccessToken: '',
     dropboxPath: '/pomocnik_instalatora_data.json',
     dropboxAutoSync: false,
-    lastDropboxSyncAt: ''
+    lastDropboxSyncAt: '',
+    uiTheme: 'light'
   };
 }
 
@@ -276,6 +277,28 @@ function loadSettings() {
 
 function saveSettings(settings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+
+function normalizeTheme(theme) {
+  const allowed = new Set(['light', 'blue', 'green', 'amber', 'dark']);
+  return allowed.has(String(theme || '')) ? String(theme) : 'light';
+}
+
+function applyTheme(theme) {
+  const selected = normalizeTheme(theme);
+  document.body.dataset.theme = selected;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    const colors = {
+      light: '#f6f8fb',
+      blue: '#edf5ff',
+      green: '#eef8f1',
+      amber: '#fff8e5',
+      dark: '#0f172a'
+    };
+    meta.setAttribute('content', colors[selected] || colors.light);
+  }
 }
 
 
@@ -528,8 +551,10 @@ function initPwa() {
 
 function initForm() {
   const settings = loadSettings();
+  applyTheme(settings.uiTheme || 'light');
   $('companyName').value = settings.companyName;
   $('vatRate').value = settings.vatRate;
+  if ($('uiTheme')) $('uiTheme').value = normalizeTheme(settings.uiTheme);
   if ($('storageMode')) $('storageMode').value = settings.storageMode || 'local';
   if ($('dropboxToken')) $('dropboxToken').value = settings.dropboxAccessToken || '';
   if ($('dropboxPath')) $('dropboxPath').value = settings.dropboxPath || '/pomocnik_instalatora_data.json';
@@ -577,6 +602,12 @@ function initEvents() {
   $('importCatalogFile').addEventListener('change', importCatalogFromFile);
   $('resetCatalogBtn').addEventListener('click', resetCatalogToDefault);
   $('saveSettingsBtn').addEventListener('click', saveSettingsFromForm);
+  if ($('uiTheme')) $('uiTheme').addEventListener('change', () => {
+    const settings = readSettingsFromForm();
+    saveSettings(settings);
+    applyTheme(settings.uiTheme);
+    showInfo('Zmieniono motyw interfejsu.');
+  });
   $('clearDataBtn').addEventListener('click', clearLocalData);
   $('exportBackupBtn').addEventListener('click', exportBackup);
   $('refreshAppBtn').addEventListener('click', refreshAppCache);
@@ -1503,12 +1534,15 @@ function readSettingsFromForm() {
     storageMode: $('storageMode')?.value || 'local',
     dropboxAccessToken: $('dropboxToken')?.value.trim() || '',
     dropboxPath: normalizeDropboxPath($('dropboxPath')?.value || '/pomocnik_instalatora_data.json'),
-    dropboxAutoSync: !!$('dropboxAutoSync')?.checked
+    dropboxAutoSync: !!$('dropboxAutoSync')?.checked,
+    uiTheme: normalizeTheme($('uiTheme')?.value || current.uiTheme || 'light')
   };
 }
 
 function saveSettingsFromForm() {
-  saveSettings(readSettingsFromForm());
+  const settings = readSettingsFromForm();
+  saveSettings(settings);
+  applyTheme(settings.uiTheme);
   renderSummary();
   renderDropboxStatus();
   showInfo('Ustawienia zapisane.');
@@ -1923,6 +1957,8 @@ function clearLocalData() {
   CATALOG = loadCatalog();
   CATEGORIES = Object.keys(CATALOG);
   state = createEmptyQuote();
+  applyTheme(defaultSettings().uiTheme);
+  if ($('uiTheme')) $('uiTheme').value = defaultSettings().uiTheme;
   syncToForm();
   renderAll();
 }
