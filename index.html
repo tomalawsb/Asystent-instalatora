@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6f8fb">
   <meta name="description" content="Pomocnik Instalatora — szybkie wyceny, klienci, cennik i notatki z wizyt.">
-  <title>Pomocnik Instalatora PWA 2.9 - 1205260945</title>
+  <title>Pomocnik Instalatora PWA 3.0 - 1205261005</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,20 +13,20 @@
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow">Wersja 2.9 - 1205260945</div>
+        <div class="eyebrow">Wersja 3.0 - 1205261005</div>
         <h1>Pomocnik Instalatora</h1>
       </div>
       <div class="top-actions">
         <button id="installBtn" class="btn btn-soft" hidden>Zainstaluj</button>
-        <button id="refreshAppBtn" class="btn btn-soft">Aktualizuj aplikację</button>
       </div>
     </header>
 
     <nav class="tabs" aria-label="Nawigacja">
       <button class="tab active" data-tab="quoteTab">Nowa wycena</button>
       <button class="tab" data-tab="savedTab">Zapisane</button>
-      <button class="tab" data-tab="catalogTab">Cennik i ceny materiałów</button>
+      <button class="tab" data-tab="catalogTab">Cennik</button>
       <button class="tab" data-tab="settingsTab">Ustawienia</button>
+      <button class="tab" data-tab="helpTab">Pomoc</button>
     </nav>
 
     <nav class="quick-jumps" aria-label="Szybki przeskok w wycenie">
@@ -45,7 +45,6 @@
             <div id="dictationCard" class="section-head">
               <div>
                 <h2>Dyktowanie i rozbicie wizyty</h2>
-                <p>Najpierw wklej, podyktuj albo wczytaj transkrypcję TXT. Program przygotuje dane klienta, pozycje, materiały i ostrzeżenia do zatwierdzenia.</p>
               </div>
               <button id="newQuoteBtn" class="btn btn-ghost">Nowa wycena</button>
             </div>
@@ -54,7 +53,6 @@
               <div class="voice-head">
                 <div>
                   <h3>Opis wizyty / transkrypcja</h3>
-                  <p>Powiedz np.: klient Jan Kowalski, ulica Szymanowskiego 48 Mielec, telefon 501 222 333, 5 kamer po 200 zł, kabel 10 m po 2 zł.</p>
                 </div>
               </div>
               <textarea id="voiceCommand" rows="6" placeholder="Tu pojawi się tekst z mikrofonu. Możesz też wkleić albo wczytać plik TXT z transkrypcją wizyty..."></textarea>
@@ -76,8 +74,7 @@
             <div id="parserPreview" class="parser-preview" hidden>
               <div class="preview-head">
                 <div>
-                  <h3>Rozpoznane dane do sprawdzenia i zatwierdzenia</h3>
-                  <p>Program niczego nie dopisze do wyceny, dopóki nie klikniesz „Zatwierdź rozbicie”. Dopłaty za trudne warunki trzeba zaznaczyć ręcznie.</p>
+                  <h3>Rozpoznane dane do zatwierdzenia</h3>
                 </div>
               </div>
               <div id="parserPreviewContent"></div>
@@ -89,7 +86,7 @@
 
             <details id="clientDetails" class="client-details-card">
               <summary>Dane klienta / popraw ręcznie</summary>
-              <p>Podstawowe informacje do wyceny i raportu. Po rozbiciu tekstu program uzupełnia je automatycznie, ale możesz je poprawić ręcznie.</p>
+
               <div class="form-grid">
                 <label>Klient
                   <input id="clientName" type="text" placeholder="np. Jan Kowalski">
@@ -159,7 +156,7 @@
           <div class="section-head">
             <div>
               <h2>Usługi i materiały w wycenie</h2>
-              <p>Pozycje są oznaczane jako robocizna, materiał, dopłata albo dojazd. Ceny materiałów z bazy są opisane jako sugerowane.</p>
+
             </div>
           </div>
 
@@ -202,7 +199,7 @@
           <div class="section-head">
             <div>
               <h2>Wiadomość do klienta</h2>
-              <p>Gotowy SMS, dłuższy opis wyceny oraz oferta do zapisania jako PDF.</p>
+
             </div>
             <button id="refreshClientMessageBtn" class="btn btn-ghost">Odśwież</button>
           </div>
@@ -218,7 +215,7 @@
           <div class="section-head">
             <div>
               <h2>Lista materiałów do zabrania</h2>
-              <p>Program generuje ją z pozycji wyceny, przewodów, dopłat i notatek. To lista robocza do sprawdzenia przed wyjazdem.</p>
+
             </div>
             <button id="refreshMaterialsBtn" class="btn btn-ghost">Odśwież</button>
           </div>
@@ -239,7 +236,7 @@
           <div class="section-head">
             <div>
               <h2>Zapisane wyceny</h2>
-              <p>Dane są zapisane lokalnie albo synchronizowane z Dropboxem, jeśli włączysz ten tryb w ustawieniach.</p>
+
             </div>
             <button id="exportBackupBtn" class="btn btn-soft">Kopia JSON</button>
           </div>
@@ -253,14 +250,14 @@
           <div class="section-head">
             <div>
               <h2>Cennik</h2>
-              <p>Możesz dodawać, poprawiać, usuwać, importować i eksportować pozycje cennika.</p>
+
             </div>
             <input id="catalogSearch" class="search" type="search" placeholder="Szukaj usługi...">
           </div>
 
           <div class="catalog-editor">
             <h3>Edycja cennika</h3>
-            <p>Zmiany zapisują się lokalnie w przeglądarce. Eksport JSON pozwala przenieść cennik na inne urządzenie.</p>
+
             <div class="form-grid">
               <label>Kategoria
                 <input id="catalogEditCategory" list="catalogCategoryList" type="text" placeholder="np. Kamery CCTV">
@@ -295,7 +292,7 @@
           <div class="section-head">
             <div>
               <h2>Ceny materiałów</h2>
-              <p>Tu aktualizujesz sugerowane ceny sprzętu i materiałów. Program używa ich, gdy w dyktowaniu nie podasz ceny zakupu.</p>
+
             </div>
             <input id="materialPriceSearch" class="search" type="search" placeholder="Szukaj produktu...">
           </div>
@@ -303,7 +300,7 @@
           <div class="price-update-box">
             <div>
               <strong id="materialPriceVersion">Baza cen: —</strong>
-              <p id="materialPriceStatus">Ceny są sugestią do zatwierdzenia przed wysłaniem oferty.</p>
+
             </div>
             <div class="action-row">
               <button id="applyMaterialPricesBtn" class="btn btn-primary">Uzupełnij cennik cenami materiałów</button>
@@ -314,9 +311,7 @@
             </div>
           </div>
 
-          <div class="hint-box">
-            Moduł nie zgaduje bez kontroli: jeżeli produkt ma cenę z bazy, wpisze ją jako sugerowaną cenę netto. Jeżeli cena pochodzi z importu lub aktualizacji, nadal trzeba ją sprawdzić przed zatwierdzeniem wyceny.
-          </div>
+
 
           <div id="materialPricesView" class="material-prices-view"></div>
         </section>
@@ -344,12 +339,13 @@
           </div>
           <div class="action-row">
             <button id="saveSettingsBtn" class="btn btn-primary">Zapisz ustawienia</button>
+            <button id="refreshAppBtn" class="btn btn-soft">Aktualizuj aplikację</button>
             <button id="clearDataBtn" class="btn btn-danger">Usuń dane lokalne</button>
           </div>
 
           <div class="dictionary-panel">
             <h3>Słownik własnych zwrotów</h3>
-            <p>Jedna zasada w jednej linii. Format: błędny lub skrócony zwrot = poprawny zwrot.</p>
+
             <textarea id="phraseDictionary" rows="8" spellcheck="false"></textarea>
             <div class="action-row">
               <button id="savePhraseDictionaryBtn" class="btn btn-primary">Zapisz słownik</button>
@@ -361,7 +357,7 @@
 
           <div class="learning-panel">
             <h3>Uczenie parsera z ręcznych poprawek</h3>
-            <p>Jeżeli po zatwierdzeniu rozbicia zmienisz ilość, cenę albo nazwę pozycji dodanej przez parser, program zapamięta korektę dla podobnego tekstu.</p>
+
             <div id="learnedRulesView"></div>
             <div class="action-row">
               <button id="clearLearnedRulesBtn" class="btn btn-danger">Usuń zapamiętane korekty</button>
@@ -371,13 +367,13 @@
 
           <div class="archive-learning-panel">
             <h3>Wzorce z archiwum transkrypcji</h3>
-            <p>Wbudowane reguły powstałe z Twoich historycznych transkrypcji. Nie zawierają pełnych rozmów, tylko słowniki i wzorce rozpoznawania.</p>
+
             <div id="archiveLearningView" class="archive-learning-view"></div>
           </div>
 
           <div class="parser-test-panel">
             <h3>Test parsera</h3>
-            <p>Tu sprawdzisz, czy parser dalej dobrze liczy konkretny tekst po kolejnych poprawkach programu.</p>
+
             <textarea id="parserTestInput" rows="6" spellcheck="false" placeholder="Wklej tekst do rozbicia..."></textarea>
             <div class="mini-grid">
               <label>Oczekiwane netto
@@ -396,7 +392,7 @@
 
           <div class="dropbox-panel">
             <h3>Dropbox — synchronizacja telefonu i komputera</h3>
-            <p>Synchronizacja używa jednego pliku JSON w Dropboxie. Usunięte wyceny dostają znacznik usunięcia, więc nie powinny wracać po scaleniu danych z drugiego urządzenia.</p>
+
             <div class="form-grid">
               <label>Tryb zapisu
                 <select id="storageMode">
@@ -426,8 +422,39 @@
           </div>
         </section>
       </section>
+
+      <section id="helpTab" class="tab-panel">
+        <section class="card help-card">
+          <h2>Pomoc</h2>
+          <div class="help-grid">
+            <article>
+              <h3>Szybka wycena</h3>
+              <ol>
+                <li>Wklej, podyktuj albo wczytaj plik TXT.</li>
+                <li>Kliknij <strong>Rozbij tekst</strong>.</li>
+                <li>Sprawdź klienta, adres, pozycje i ostrzeżenia.</li>
+                <li>Kliknij <strong>Zatwierdź rozbicie</strong>.</li>
+                <li>Zapisz wycenę albo skopiuj SMS.</li>
+              </ol>
+            </article>
+            <article>
+              <h3>Ceny materiałów</h3>
+              <p>Jeżeli w dyktowaniu nie podasz ceny sprzętu, program używa ceny sugerowanej z bazy. Taką cenę trzeba sprawdzić przed wysłaniem oferty.</p>
+            </article>
+            <article>
+              <h3>Pliki TXT</h3>
+              <p>Przycisk <strong>Wczytaj TXT</strong> pozwala wgrać gotową transkrypcję z telefonu lub komputera.</p>
+            </article>
+            <article>
+              <h3>Dropbox</h3>
+              <p>Tryb Dropbox zapisuje wspólny plik JSON dla telefonu i komputera. Ustawienia znajdziesz w zakładce <strong>Ustawienia</strong>.</p>
+            </article>
+          </div>
+        </section>
+      </section>
+
     </main>
-    <footer class="app-footer">Wersja programu: 2.9 - 1205260945</footer>
+    <footer class="app-footer">Wersja programu: 3.0 - 1205261005</footer>
   </div>
 
   <template id="savedQuoteTemplate">

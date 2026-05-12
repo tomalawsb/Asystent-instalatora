@@ -1,7 +1,7 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "2.9 - 1205260945",
-  "build": "1205260945",
+  "version": "3.0 - 1205261005",
+  "build": "1205261005",
   "date": "2026-05-12",
-  "notes": "Sprawdzono główny przepływ i przyciski, poprawiono wyrazistość interfejsu oraz dodano motywy jasne i ciemny z jasnymi czcionkami. Wielkości przycisków bez zmian."
+  "notes": "Przebudowano widok mobilny: usunięto opisy z głównych ekranów, dodano zakładkę Pomoc, uproszczono nagłówek i układ bez zmiany wielkości przycisków."
 }

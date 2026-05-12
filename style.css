@@ -1374,3 +1374,100 @@ body[data-theme="dark"] textarea:focus {
     color: #111;
   }
 }
+
+/* v3.0 — porządek na telefonie bez zmiany wielkości przycisków */
+.help-card ol {
+  margin: 8px 0 0 20px;
+  padding: 0;
+}
+.help-card li {
+  margin: 6px 0;
+}
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.help-grid article {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-2);
+  padding: 12px;
+}
+.help-grid article p {
+  margin-top: 8px;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    width: 100%;
+    padding: 8px 6px 22px;
+  }
+  .topbar {
+    padding: 10px 12px;
+    border-radius: 15px;
+    align-items: center;
+  }
+  .topbar h1 {
+    font-size: 22px;
+  }
+  .eyebrow {
+    font-size: 11px;
+  }
+  .tabs {
+    position: sticky;
+    top: 0;
+    z-index: 35;
+    background: rgba(246, 248, 251, .96);
+    border-bottom: 1px solid var(--line);
+    margin: 0 -6px 8px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .quick-jumps {
+    display: none;
+  }
+  .card {
+    margin-bottom: 10px;
+  }
+  .section-head {
+    margin-bottom: 10px;
+  }
+  .section-head h2 {
+    padding-left: 8px;
+  }
+  .voice-panel-main textarea {
+    min-height: 190px;
+  }
+  .voice-selection-actions {
+    margin-top: 8px;
+  }
+  .client-details-card {
+    margin-top: 8px;
+  }
+  .client-message-card textarea {
+    min-height: 120px;
+  }
+  .materials-preview {
+    padding: 10px;
+  }
+  .help-grid {
+    grid-template-columns: 1fr;
+  }
+  .catalog-editor,
+  .dictionary-panel,
+  .learning-panel,
+  .archive-learning-panel,
+  .parser-test-panel,
+  .dropbox-panel,
+  .price-update-box {
+    margin-top: 10px;
+  }
+}
+
+body[data-theme="dark"] .help-grid article {
+  background: var(--panel);
+  border-color: var(--line);
+  color: var(--text);
+}

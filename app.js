@@ -1,4 +1,4 @@
-const APP_VERSION = '2.9 - 1205260945';
+const APP_VERSION = '3.0 - 1205261005';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
