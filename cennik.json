@@ -134,6 +134,16 @@
       "name": "Puszka prądowa",
       "unit": "szt",
       "price_net": 20.0
+    },
+    {
+      "name": "Kamera tubowa IP — materiał",
+      "unit": "szt",
+      "price_net": 0.0
+    },
+    {
+      "name": "Kamera obrotowa PTZ — materiał",
+      "unit": "szt",
+      "price_net": 0.0
     }
   ],
   "Anteny / Sygnał": [

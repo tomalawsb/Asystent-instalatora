@@ -1,4 +1,4 @@
-const APP_VERSION = '2.4 - 1205260816';
+const APP_VERSION = '2.5 - 1205260850';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -4100,7 +4100,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 /* v2.4 — wzorce z archiwum transkrypcji usług, parser kontekstowy i łatwiejsze poprawki */
 const INSTALLER_ARCHIVE_TRAINING = {
-  version: '2.4 - 1205260816',
+  version: '2.5 - 1205260850',
   filesScanned: 417,
   categories: {
     'Kamery CCTV': 186,
@@ -4500,4 +4500,234 @@ parseClientAddress = function(rawText, normalizedText) {
   const addr = installerAddressFromPhrase(raw, false);
   if (addr) return installerJoinAddressCity(addr, city);
   return city || '';
+};
+
+
+/* v2.5 — poprawka rozbijania tekstu: klient po słowie „klient”, liczby kamer tubowych/obrotowych,
+   materiały kamer, puszki, przewiert i przewód 10-metrowy 2×0,5 */
+try {
+  for (const word of ['trzeba', 'zrobic', 'zrobić', 'zamontowac', 'zamontować', 'przedluzyc', 'przedłużyć']) {
+    if (!CLIENT_FIELD_STOP_WORDS.includes(word)) CLIENT_FIELD_STOP_WORDS.push(word);
+  }
+} catch {}
+
+const baseNormalizeSpeechText_v25_before = baseNormalizeSpeechText;
+baseNormalizeSpeechText = function(text) {
+  let out = baseNormalizeSpeechText_v25_before(text);
+  out = out
+    .replace(/\bdziesiecio\s*metrow\w*\b/g, '10 m')
+    .replace(/\bdziesiec\s*metrow\w*\b/g, '10 m')
+    .replace(/\bpiecio\s*metrow\w*\b/g, '5 m')
+    .replace(/\bpietnasto\s*metrow\w*\b/g, '15 m')
+    .replace(/\bdwudziesto\s*metrow\w*\b/g, '20 m')
+    .replace(/\btrzydziesto\s*metrow\w*\b/g, '30 m')
+    .replace(/\b2\s*x\s*0\s*5\b/g, '2x0.5')
+    .replace(/\b2\s*×\s*0\s*5\b/g, '2x0.5');
+  return out.replace(/\s+/g, ' ').trim();
+};
+
+parseClientName = function(rawText) {
+  const raw = cleanDictationSpaces(rawText);
+  const nameWord = '[a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźżA-ZĄĆĘŁŃÓŚŹŻ\\\'-]*';
+  const stop = '(?=\\s+(?:trzeba|zrobic|zrobić|zamontowac|zamontować|bede|będę|montaz|montaż|kamera|kamery|kamer|kabel|przewod|przewód|dojazd|telefon|tel|adres|ulica|ul\\.?)(?:\\s|$)|$)';
+  const explicit = raw.match(new RegExp('\\b(?:klient|klientka|pan|pani)\\s+(' + nameWord + '\\s+' + nameWord + ')' + stop, 'i'));
+  if (explicit) {
+    const name = cleanNameFragment(explicit[1]);
+    if (isLikelyPersonName(name) || isLikelyHumanName(name)) return titleCase(name);
+  }
+  const rawCityStreet = raw.match(new RegExp('^\\s*(?:' + KNOWN_CITIES.map(escapeRegExp).join('|') + ')\\s+(?:ul\\.?|ulica)\\s+[^,.;]{3,80}?\\s+\\d+[a-zA-Z]?(?:/\\d+)?\\s+(?:klient|klientka|pan|pani)\\s+(' + nameWord + '\\s+' + nameWord + ')' + stop, 'i'));
+  if (rawCityStreet) {
+    const name = cleanNameFragment(rawCityStreet[1]);
+    if (isLikelyPersonName(name) || isLikelyHumanName(name)) return titleCase(name);
+  }
+  const beforeAddress = raw.match(new RegExp('^\\s*(' + nameWord + '\\s+' + nameWord + ')\\s+(?:ul\\.?|ulica|adres)\\b', 'i'));
+  if (beforeAddress) {
+    const name = cleanNameFragment(beforeAddress[1]);
+    if (isLikelyPersonName(name) || isLikelyHumanName(name)) return titleCase(name);
+  }
+  const title = installerCleanTitleFromTranscript(rawText);
+  const titleName = title.match(new RegExp('\\b(' + nameWord + '\\s+' + nameWord + ')\\b', 'i'));
+  if (titleName) {
+    const name = cleanNameFragment(titleName[1]);
+    if ((isLikelyPersonName(name) || isLikelyHumanName(name)) && !/Wadowice|Ogrodowa|Limanowskiego|Sielska|Kossaka|Bajana|Cyranowska|Poniatowskiego|Lwowska|Wolno|Działkowców|Dzialkowcow|Top Gaz|FitCake/i.test(name)) return titleCase(name);
+  }
+  return '';
+};
+
+stripClientFragmentsForItems = function(text) {
+  let out = ` ${String(text || '')} `;
+  const serviceStartWords = '(?:trzeba|zrobic|zrobić|zamontowac|zamontować|przedluzyc|przedłużyć|montaż|montaz|instalacja|instalacje|instalację|kamera|kamery|kamer|kabel|przewód|przewod|dojazd|robocizna|rejestrator|router|domofon|wideodomofon|alarm|czujka|pilot|antena|anteny|switch|poe|dysk|puszka|puszki|uchwyt|uchwyty|rj45|rj-45|rjki|zlacze|złącze|zlacza|złacza|złącza|wtyk|wtyki|koncowka|końcówka|beczka|rozgaleznik|rozgałeznik|rozgałęźnik|zasilacz|wzmacniacz|keystone|gniazdo|separator|nauka)';
+  out = out.replace(/(?:^|\s)(?:telefon|tel|numer telefonu|komórka|komorka)\s*(?:to\s+|jest\s+)?(?:\+?48\s*)?\d{3}[\s.-]?\d{3}[\s.-]?\d{3}(?=\s|$)/gi, ' ');
+  out = out.replace(/^\s*.*?(?=\s+(?:ul\.?|ulica|adres|przy ulicy|na adres|pod adresem)\s+)/i, ' ');
+  out = out.replace(new RegExp('(?:^|\\s)(?:miejscowość|miejscowosc)\\s+\\S+(?=\\s+(?:' + serviceStartWords + '|telefon|tel|adres|ulica|ul\\.?)(?=\\s|$)|$)', 'gi'), ' ');
+  out = out.replace(new RegExp('(?:^|\\s)(?:adres|ulica|ul\\.?|przy ulicy|na adres|pod adresem)\\s+.*?(?=\\s+(?:miejscowość|miejscowosc|telefon|tel|klient|klientka|imię|imie|nazwisko|' + serviceStartWords + ')(?=\\s|$)|$)', 'gi'), ' ');
+  out = out.replace(new RegExp('(?:^|\\s)(?:imię i nazwisko|imie i nazwisko|imię nazwisko|imie nazwisko|miej nazwisko|klientka|klient|u klienta|u klientki|pan|pani|nazwisko|imię|imie)\\s+.*?(?=\\s+(?:adres|ulica|ul\\.?|telefon|tel|' + serviceStartWords + ')(?=\\s|$)|$)', 'gi'), ' ');
+  return out.replace(/\s+/g, ' ').trim();
+};
+
+function installerParseCameraBreakdownV25(text) {
+  const source = String(text || '');
+  const total = extractCameraQuantity(source) || 0;
+  let tubeQty = 0;
+  let ptzQty = 0;
+
+  const explicitTube = source.match(/(\d+(?:[.]\d+)?)\s+kamer\w*\s+(?:tubow\w*|zewnetrzn\w*|zewnętrzn\w*)/i);
+  if (explicitTube) tubeQty = number(explicitTube[1], 0);
+  if (!tubeQty && /\bczy\s+kamer\w*\s+tubow\w*\b/i.test(source)) tubeQty = 3;
+
+  const explicitPtzBefore = source.match(/(\d+(?:[.]\d+)?)\s+kamer\w*\s+(?:obrotow\w*|ptz)/i);
+  if (explicitPtzBefore && !/zasilani\w*\s+\d+(?:[.]\d+)?\s+kamer/i.test(source.slice(Math.max(0, explicitPtzBefore.index - 25), explicitPtzBefore.index + explicitPtzBefore[0].length))) {
+    ptzQty = number(explicitPtzBefore[1], 0);
+  }
+  if (/\b(?:1|jedna)\s+(?:kamera\s+)?(?:obrotow\w*|ptz)\b/i.test(source) || /\btubow\w*\s+(?:1|jedna)\s+(?:kamera\s+)?obrotow\w*/i.test(source)) ptzQty = 1;
+  if (!ptzQty && total > 0 && tubeQty > 0 && /obrotow\w*|ptz/i.test(source)) ptzQty = Math.max(0, total - tubeQty);
+  if (!tubeQty && total > 0 && ptzQty > 0 && /tubow\w*/i.test(source)) tubeQty = Math.max(0, total - ptzQty);
+  if (total > 0 && tubeQty + ptzQty > total) {
+    if (ptzQty > 1 && /zasilani\w*\s+\d+(?:[.]\d+)?\s+kamer/i.test(source)) ptzQty = 1;
+    if (tubeQty + ptzQty > total && tubeQty > 0) tubeQty = Math.max(0, total - ptzQty);
+  }
+  return { total, tubeQty, ptzQty };
+}
+
+parseCameraTypeBreakdown = function(text) {
+  const breakdown = installerParseCameraBreakdownV25(text);
+  const out = [];
+  const add = (qty, name, fallback, key) => {
+    if (!qty || qty <= 0) return;
+    const catalog = findCatalogService('Kamery CCTV', name);
+    out.push(buildVoiceItem({ category: 'Kamery CCTV', name, unit: 'szt', quantity: qty, priceNet: number(catalog?.price_net, fallback), key }));
+  };
+  add(breakdown.tubeQty, 'Montaż kamery tubowej', 250, 'camera_tube_mount');
+  add(breakdown.ptzQty, 'Montaż kamery obrotowej PTZ', 420, 'camera_ptz_mount');
+  if (!out.length && breakdown.total > 0 && /obrotow\w*|ptz/i.test(String(text || ''))) add(breakdown.total, 'Montaż kamery obrotowej PTZ', 420, 'camera_ptz_mount');
+  return out;
+};
+
+function installerAddCameraHardwareItemsV25(text, items) {
+  const breakdown = installerParseCameraBreakdownV25(text);
+  const add = (qty, name, key) => {
+    if (!qty || qty <= 0) return;
+    if (items.some(i => i._voiceKey === key || i.name === name)) return;
+    const catalog = findCatalogService('Kamery CCTV', name);
+    items.push(buildVoiceItem({ category: 'Kamery CCTV', name, unit: 'szt', quantity: qty, priceNet: number(catalog?.price_net, 0), key }));
+  };
+  add(breakdown.tubeQty, 'Kamera tubowa IP — materiał', 'camera_tube_hardware');
+  add(breakdown.ptzQty, 'Kamera obrotowa PTZ — materiał', 'camera_ptz_hardware');
+}
+
+parseBoxMaterialLoose = function(text, kind) {
+  const source = String(text || '');
+  const isElectrical = kind === 'electrical';
+  const breakdown = installerParseCameraBreakdownV25(source);
+
+  if (isElectrical) {
+    const pricedOne = source.match(/(?:na\s+)?(?:1|jedn\w+)\s+(?:wspoln\w+\s+)?puszc\w*\s+prad\w*[^,.;!?]{0,60}?(?:za|po|taki\s+za)\s*(\d+(?:[.]\d+)?)\s*zł/i)
+      || source.match(/puszc\w*\s+prad\w*[^,.;!?]{0,60}?(?:za|po|taki\s+za)\s*(\d+(?:[.]\d+)?)\s*zł/i);
+    if (pricedOne) return buildVoiceItem({ category: 'Kamery CCTV', name: 'Puszka prądowa', unit: 'szt', quantity: 1, priceNet: number(pricedOne[1], 0), key: 'electrical_box' });
+  } else {
+    const tubeBoxes = source.match(/kamer\w*\s+tubow\w*[^,.;!?]{0,90}?puszk\w*[^,.;!?]{0,50}?(?:za|po)\s*(\d+(?:[.]\d+)?)\s*zł/i)
+      || source.match(/puszk\w*\s+oryginaln\w*[^,.;!?]{0,50}?(?:za|po)\s*(\d+(?:[.]\d+)?)\s*zł/i);
+    if (tubeBoxes) {
+      const qty = breakdown.tubeQty || 1;
+      return buildVoiceItem({ category: 'Kamery CCTV', name: 'Puszka montażowa pod kamerę', unit: 'szt', quantity: qty, priceNet: number(tubeBoxes[1], 0), key: 'mounting_box_material' });
+    }
+  }
+
+  const priced = parseBoxMaterial(source, isElectrical ? 'prad' : 'montaz', isElectrical ? 'Puszka prądowa' : 'Puszka montażowa pod kamerę', isElectrical ? 'electrical_box' : 'mounting_box_material');
+  if (priced) return priced;
+
+  const name = isElectrical ? 'Puszka prądowa' : 'Montaż puszki / uchwytu kamery';
+  const key = isElectrical ? 'electrical_box' : 'box_holder';
+  const catalog = findCatalogService('Kamery CCTV', name) || findCatalogService('Kamery CCTV', isElectrical ? 'Puszka prądowa' : 'Puszka montażowa pod kamerę');
+  const price = number(catalog?.price_net, isElectrical ? 20 : 45);
+  const patterns = isElectrical
+    ? [/(\d+(?:[.]\d+)?)\s+puszk\w*\s+prad\w*/i, /(jedna|dwie|dwa|trzy|cztery)\s+puszk\w*\s+prad\w*/i]
+    : [/(\d+(?:[.]\d+)?)\s+puszk\w*(?:\s+(?:oryginaln\w*|montaz\w*|pod\s+kamer\w*))?/i, /(dwie|dwa|trzy|cztery|jedna)\s+puszk\w*(?:\s+(?:oryginaln\w*|montaz\w*|pod\s+kamer\w*))?/i];
+  for (const re of patterns) {
+    const m = source.match(re);
+    if (!m) continue;
+    const qty = number(baseNormalizeSpeechText(m[1]), number(m[1], 1));
+    if (qty > 0) return buildVoiceItem({ category: 'Kamery CCTV', name, unit: 'szt', quantity: qty, priceNet: price, key });
+  }
+  return null;
+};
+
+function parseDrillingVoiceItemV25(text) {
+  const source = String(text || '');
+  if (!/przewiert|przewierc|wiercen|otwor|otwór|przekuc|przebic|przebić/i.test(source)) return null;
+  const qty = parseSurchargeQuantity(source, /przewiert\w*|przewierc\w*|wiercen\w*|otwor\w*|otwór\w*|przekuc\w*/i) || 1;
+  const catalog = findCatalogService('Przewody / Okablowanie', 'Przewiert przez ścianę pod przewód') || findCatalogService('Kamery CCTV', 'Wiercenie przejścia pod przewód');
+  return buildVoiceItem({ category: 'Przewody / Okablowanie', name: 'Przewiert przez ścianę pod przewód', unit: 'szt', quantity: qty, priceNet: number(catalog?.price_net, 35), key: 'drilling_wall' });
+}
+
+const extractSpecialVoiceItems_v25_before = extractSpecialVoiceItems;
+extractSpecialVoiceItems = function(text) {
+  const base = extractSpecialVoiceItems_v25_before(text);
+  installerAddCameraHardwareItemsV25(text, base.items);
+  const drilling = parseDrillingVoiceItemV25(text);
+  if (drilling && !base.items.some(i => i._voiceKey === drilling._voiceKey || i.name === drilling.name)) base.items.push(drilling);
+  if (drilling) base.usedFragments.push('przewiert');
+  return base;
+};
+
+const detectMissingData_v25_before = detectMissingData;
+detectMissingData = function(rawText, result) {
+  const missing = detectMissingData_v25_before(rawText, result) || [];
+  const items = result?.items || [];
+  if (items.some(item => /kamera .*materiał|kamera .*material/i.test(item.name || '') && number(item.priceNet, 0) <= 0)) {
+    const msg = 'uzupełnić cenę zakupu kamer — program dodał sprzęt jako pozycję materiałową z ceną 0 zł';
+    if (!missing.includes(msg)) missing.push(msg);
+  }
+  return missing;
+};
+
+const parseSmartCommand_v25_before = parseSmartCommand;
+parseSmartCommand = function(rawText) {
+  const result = parseSmartCommand_v25_before(rawText);
+  const normalized = normalizeSpeechText(buildFocusedTranscriptText(rawText));
+  const itemText = stripClientFragmentsForItems(normalized);
+  const extra = extractSpecialVoiceItems(itemText);
+  const additions = [];
+  for (const item of extra.items || []) {
+    if (/kamera .*materiał|kamera .*material|Puszka prądowa|Puszka montażowa pod kamerę|Przewiert przez ścianę/i.test(item.name || '')) additions.push(item);
+  }
+  if (additions.length) result.items = mergeParserItems([...(result.items || []), ...additions]);
+  result.missingData = detectMissingData(rawText, { client: result.client, items: result.items, detectedType: result.detectedType, distanceKm: result.distanceKm, distanceRate: result.distanceRate, freeKm: result.freeKm, transcriptInfo: result.transcriptInfo });
+  for (const f of result.transcriptInfo?.followUps || []) if (!result.missingData.includes(f)) result.missingData.push(f);
+  return result;
+};
+
+/* v2.5.1 — bez podwajania pozycji dodanych przez parser specjalny + rozpoznanie przewodu 2×0,5 */
+const looksLikeCableClause_v251_before = looksLikeCableClause;
+looksLikeCableClause = function(text) {
+  return looksLikeCableClause_v251_before(text) || /\b2\s*(?:x|×)\s*0[.]?5\b|\b2x0[.]?5\b/i.test(String(text || ''));
+};
+
+parseSmartCommand = function(rawText) {
+  const result = parseSmartCommand_v25_before(rawText);
+  result.missingData = detectMissingData(rawText, { client: result.client, items: result.items, detectedType: result.detectedType, distanceKm: result.distanceKm, distanceRate: result.distanceRate, freeKm: result.freeKm, transcriptInfo: result.transcriptInfo });
+  for (const f of result.transcriptInfo?.followUps || []) if (!result.missingData.includes(f)) result.missingData.push(f);
+  return result;
+};
+
+/* v2.5.2 — „odwiert przez ścianę” traktowany jak przewiert */
+parseDrillingVoiceItemV25 = function(text) {
+  const source = String(text || '');
+  if (!/odwiert|przewiert|przewierc|wiercen|otwor|otwór|przekuc|przebic|przebić/i.test(source)) return null;
+  const qty = parseSurchargeQuantity(source, /odwiert\w*|przewiert\w*|przewierc\w*|wiercen\w*|otwor\w*|otwór\w*|przekuc\w*/i) || 1;
+  const catalog = findCatalogService('Przewody / Okablowanie', 'Przewiert przez ścianę pod przewód') || findCatalogService('Kamery CCTV', 'Wiercenie przejścia pod przewód');
+  return buildVoiceItem({ category: 'Przewody / Okablowanie', name: 'Przewiert przez ścianę pod przewód', unit: 'szt', quantity: qty, priceNet: number(catalog?.price_net, 35), key: 'drilling_wall' });
+};
+
+/* v2.5.3 — ilość przewiertów nie może brać liczby z dalszej frazy „2 kamera” */
+parseDrillingVoiceItemV25 = function(text) {
+  const source = String(text || '');
+  if (!/odwiert|przewiert|przewierc|wiercen|otwor|otwór|przekuc|przebic|przebić/i.test(source)) return null;
+  let qty = 1;
+  const before = source.match(/(\d+(?:[.]\d+)?)\s*(?:szt\.?\s*)?(?:odwiert\w*|przewiert\w*|przewierc\w*|wiercen\w*|otwor\w*|otwór\w*|przekuc\w*)/i);
+  const after = source.match(/(?:odwiert\w*|przewiert\w*|przewierc\w*|wiercen\w*|otwor\w*|otwór\w*|przekuc\w*)\D{0,12}(\d+(?:[.]\d+)?)\s*szt\b/i);
+  if (before) qty = number(before[1], 1);
+  else if (after) qty = number(after[1], 1);
+  const catalog = findCatalogService('Przewody / Okablowanie', 'Przewiert przez ścianę pod przewód') || findCatalogService('Kamery CCTV', 'Wiercenie przejścia pod przewód');
+  return buildVoiceItem({ category: 'Przewody / Okablowanie', name: 'Przewiert przez ścianę pod przewód', unit: 'szt', quantity: qty, priceNet: number(catalog?.price_net, 35), key: 'drilling_wall' });
 };

@@ -1,5 +1,5 @@
 Pomocnik Instalatora PWA
-Wersja programu: 2.3 - 1205260748
+Wersja programu: 2.5 - 1205260850
 
 Zakres tej paczki:
 - dodany parser długich transkrypcji z wizyt u klienta,
@@ -21,3 +21,11 @@ Po wrzuceniu na GitHub Pages kliknij w aplikacji „Odśwież cache”.
 - Dodano parser długich transkrypcji: czyszczenie nagłówków, wykrywanie typu zlecenia, wariantów i rzeczy do sprawdzenia.
 - Dodano kategorie: TV / Montaż, Komputery / Telefony, Prace drobne.
 - Dodano panel 'Wzorce z archiwum transkrypcji' w ustawieniach.
+
+
+2.5 - 1205260850
+- poprawiono wykrywanie klienta po frazie „klient … trzeba zamontować”
+- poprawiono rozbicie 4 kamer: tubowe + obrotowa, bez błędnego traktowania „2 kamerą” jako ilości PTZ
+- dodano pozycje materiałowe kamer z ceną 0 zł do uzupełnienia, żeby wycena nie ukrywała kosztu sprzętu
+- poprawiono puszki oryginalne 60 zł, puszkę prądową 15 zł, przewiert oraz przewód 10 m 2×0,5
+- dodano dane uczące do cache service workera
