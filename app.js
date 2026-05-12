@@ -1,4 +1,4 @@
-const APP_VERSION = '2.8 - 1205260928';
+const APP_VERSION = '2.9 - 1205260945';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -5170,6 +5170,268 @@ parseSmartCommand = function(rawText) {
   result.missingData = detectMissingData(rawText, { client: result.client, items: result.items, detectedType: result.detectedType, distanceKm: result.distanceKm, distanceRate: result.distanceRate, freeKm: result.freeKm, transcriptInfo: result.transcriptInfo });
   for (const f of result.transcriptInfo?.followUps || []) if (!result.missingData.includes(f)) result.missingData.push(f);
   return result;
+};
+
+
+/* v2.9 - poprawka rozpoznawania przewodów z dyktowania */
+function installerCableNumberV29(value, fallback = 0) {
+  return number(String(value || '').replace(',', '.'), fallback);
+}
+
+function installerFindCatalogPriceV29(category, name, fallback) {
+  const catalog = findCatalogService(category, name);
+  return number(catalog?.price_net, fallback);
+}
+
+function installerDetectInternetCableLengthV29(text) {
+  const source = String(text || '').replace(/\s+/g, ' ').trim();
+  const patterns = [
+    /(?:przew[oó]d\w*|kabel\w*|skr[eę]tk\w*)\s+(?:internetow\w*|sieciow\w*|lan|utp)(?:[^.?!;]{0,220}?)(\d+(?:[.,]\d+)?)\s*(?:m|mb|metr\w*)\b/i,
+    /(?:internetow\w*|sieciow\w*|lan|utp|skr[eę]tk\w*|cat\s*5e?|kat\s*5e?|kategori\w*\s*5e?)(?:[^.?!;]{0,220}?)(\d+(?:[.,]\d+)?)\s*(?:m|mb|metr\w*)\b/i,
+    /(\d+(?:[.,]\d+)?)\s*(?:m|mb|metr\w*)\b(?:[^.?!;]{0,120}?)(?:przew[oó]d\w*|kabel\w*|skr[eę]tk\w*)(?:[^.?!;]{0,80}?)(?:internetow\w*|sieciow\w*|lan|utp|cat\s*5e?|kat\s*5e?|kategori\w*\s*5e?)/i
+  ];
+  for (const pattern of patterns) {
+    const match = source.match(pattern);
+    const length = installerCableNumberV29(match?.[1], 0);
+    if (length > 0) return length;
+  }
+  return 0;
+}
+
+function installerDetectInternetCableNameV29(text) {
+  const source = String(text || '');
+  if (/cat\s*6|kat\s*6|kategori\w*\s*6/i.test(source)) return 'Skrętka UTP Cat 6 CU';
+  return 'Skrętka UTP Cat 5e CU';
+}
+
+function installerDetectElectricCableRunsV29(text) {
+  const source = String(text || '').replace(/\s+/g, ' ').trim();
+  const runs = [];
+  const patterns = [
+    /(\d+(?:[.,]\d+)?)\s*(?:m|mb|metr\w*)\b(?:[^.?!;]{0,100}?)(?:przew[oó]d\w*|kabel\w*)(?:[^.?!;]{0,100}?)(?:elektryczn\w*|pr[aą]dow\w*|zasilaj\w*|ydyp|ydy)(?:[^.?!;]{0,80}?)(\d\s*(?:x|×|razy)\s*\d(?:[.,]\d)?|\d\s*(?:x|×|razy)\s*\d\s+\d)?/gi,
+    /(?:przew[oó]d\w*|kabel\w*)(?:[^.?!;]{0,80}?)(?:elektryczn\w*|pr[aą]dow\w*|zasilaj\w*|ydyp|ydy)(?:[^.?!;]{0,120}?)(\d+(?:[.,]\d+)?)\s*(?:m|mb|metr\w*)\b(?:[^.?!;]{0,80}?)(\d\s*(?:x|×|razy)\s*\d(?:[.,]\d)?|\d\s*(?:x|×|razy)\s*\d\s+\d)?/gi
+  ];
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      const length = installerCableNumberV29(match[1], 0);
+      if (length <= 0) continue;
+      const typeRaw = String(match[2] || source.slice(match.index || 0, (match.index || 0) + 140) || '').replace(/\s+/g, '').replace(',', '.').toLowerCase();
+      let name = 'Przewód prądowy YDYp 3×1,5';
+      let fallback = 3.5;
+      let key = 'cable_power_ydyp_3x15';
+      if (/3(?:x|×|razy)2\.5/.test(typeRaw)) {
+        name = 'Przewód prądowy YDYp 3×2,5';
+        fallback = 5.5;
+        key = 'cable_power_ydyp_3x25';
+      } else if (/2(?:x|×|razy)2\.5/.test(typeRaw) || /2(?:x|×|razy)25/.test(typeRaw)) {
+        name = 'Przewód prądowy 2×2,5 — sprawdź typ';
+        fallback = 4.5;
+        key = 'cable_power_2x25_check';
+      } else if (/2(?:x|×|razy)0\.5/.test(typeRaw)) {
+        name = 'Przewód niskoprądowy 2×0,5';
+        fallback = 1.5;
+        key = 'cable_low_voltage_2x05';
+      }
+      runs.push({ length, name, fallback, key });
+    }
+  }
+  const seen = new Set();
+  return runs.filter(run => {
+    const k = `${run.name}|${run.length}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+function installerPatchCableItemsV29(rawText, result) {
+  if (!result || !Array.isArray(result.items)) return result;
+  const focused = buildFocusedTranscriptText(rawText);
+  const normalized = normalizeSpeechText(focused);
+  const additions = [];
+  const internetLength = installerDetectInternetCableLengthV29(normalized);
+  const hasInternetCableWords = /przew[oó]d\w*\s+(?:internetow\w*|sieciow\w*)|kabel\w*\s+(?:internetow\w*|sieciow\w*)|skr[eę]tk\w*|lan|utp|cat\s*5|kat\s*5|kategori\w*\s*5/i.test(normalized);
+
+  if (internetLength > 0 && hasInternetCableWords) {
+    const cableName = installerDetectInternetCableNameV29(normalized);
+    result.items = result.items.filter(item => {
+      const name = String(item.name || '');
+      const category = String(item.category || '');
+      const qty = number(item.quantity, 0);
+      if (/Prowadzenie skr[eę]tki zewn[eę]trznej/i.test(name) && /Kamery CCTV/i.test(category) && qty === internetLength) return false;
+      return true;
+    });
+    additions.push(buildVoiceItem({
+      category: 'Przewody / Okablowanie',
+      name: cableName,
+      unit: 'mb',
+      quantity: internetLength,
+      priceNet: installerFindCatalogPriceV29('Przewody / Okablowanie', cableName, cableName.includes('Cat 6') ? 2 : 2),
+      key: cableName.includes('Cat 6') ? 'cable_cat6_cu_v29' : 'cable_cat5e_cu_v29'
+    }));
+    additions.push(buildVoiceItem({
+      category: 'Przewody / Okablowanie',
+      name: 'Prowadzenie przewodu — standardowe',
+      unit: 'mb',
+      quantity: internetLength,
+      priceNet: installerFindCatalogPriceV29('Przewody / Okablowanie', 'Prowadzenie przewodu — standardowe', 8),
+      key: 'cable_labor_standard_internet_v29'
+    }));
+  }
+
+  const electricRuns = installerDetectElectricCableRunsV29(normalized);
+  if (electricRuns.length) {
+    const has2x25 = electricRuns.some(run => /2×2,5/.test(run.name));
+    if (has2x25 && !/2\s*(?:x|×|razy)\s*0[,.]?5/i.test(normalized)) {
+      result.items = result.items.filter(item => !/2×0,5|2x0,5/i.test(String(item.name || '')));
+    }
+    for (const run of electricRuns) {
+      additions.push(buildVoiceItem({
+        category: 'Przewody / Okablowanie',
+        name: run.name,
+        unit: 'mb',
+        quantity: run.length,
+        priceNet: installerFindCatalogPriceV29('Przewody / Okablowanie', run.name, run.fallback),
+        key: run.key
+      }));
+      additions.push(buildVoiceItem({
+        category: 'Przewody / Okablowanie',
+        name: 'Prowadzenie przewodu — standardowe',
+        unit: 'mb',
+        quantity: run.length,
+        priceNet: installerFindCatalogPriceV29('Przewody / Okablowanie', 'Prowadzenie przewodu — standardowe', 8),
+        key: `${run.key}_labor`
+      }));
+    }
+  }
+
+  if (additions.length) result.items = mergeParserItems([...(result.items || []), ...additions]);
+  return result;
+}
+
+function installerPatchRouterMaterialV29(rawText, result) {
+  if (!result || !Array.isArray(result.items)) return result;
+  const normalized = normalizeSpeechText(buildFocusedTranscriptText(rawText));
+  const modelMention = normalized.match(/router\s+(?:d\s*-?\s*link|tp\s*-?\s*link|mercusys|asus|tenda|netgear)?\s*([a-z]*\s*\d{3,5}[a-z0-9-]*)?/i);
+  if (!modelMention) return result;
+  const onlyMentionedAsHardware = !/(konfiguracj\w*|ustawien\w*|ustawi[ćc]|skonfigurowa[ćc]|podl[aą]czy[ćc]|uruchomi[ćc]).{0,35}router/i.test(normalized);
+  if (!onlyMentionedAsHardware) return result;
+  const routerName = /ax\s*1500|x\s*1500/i.test(normalized) ? 'Router Wi‑Fi 6 — materiał' : 'Router Wi‑Fi 6 — materiał';
+  result.items = result.items.filter(item => !/^Konfiguracja routera$/i.test(String(item.name || '')));
+  const exists = result.items.some(item => normalizeMaterialName(item.name) === normalizeMaterialName(routerName));
+  if (!exists) {
+    const price = getSuggestedMaterialPrice(routerName, 'Sieć / Wi‑Fi');
+    result.items.push(buildVoiceItem({
+      category: 'Sieć / Wi‑Fi',
+      name: routerName,
+      unit: 'szt',
+      quantity: 1,
+      priceNet: number(price, installerFindCatalogPriceV29('Sieć / Wi‑Fi', routerName, 220)),
+      key: 'router_wifi6_material_v29'
+    }));
+  }
+  return result;
+}
+
+function installerPatchAddressV29(result) {
+  if (result?.client?.address) {
+    result.client.address = String(result.client.address).replace(/^ul\.\s*Adres\s+/i, 'ul. ');
+  }
+  return result;
+}
+
+const parseSmartCommand_v29_before = parseSmartCommand;
+parseSmartCommand = function(rawText) {
+  const result = parseSmartCommand_v29_before(rawText);
+  installerPatchAddressV29(result);
+  installerPatchCableItemsV29(rawText, result);
+  installerPatchRouterMaterialV29(rawText, result);
+  result.items = mergeParserItems(result.items || []);
+  result.missingData = detectMissingData(rawText, {
+    client: result.client,
+    items: result.items,
+    detectedType: result.detectedType,
+    distanceKm: result.distanceKm,
+    distanceRate: result.distanceRate,
+    freeKm: result.freeKm,
+    transcriptInfo: result.transcriptInfo
+  });
+  if (/2\s*(?:x|×|razy)\s*2[,.]?5/i.test(normalizeSpeechText(rawText))) {
+    const msg = 'przewód elektryczny 2×2,5 został dodany jako typ do sprawdzenia — przy gniazdku zweryfikuj faktyczny przewód przed wyceną';
+    if (!result.missingData.includes(msg)) result.missingData.push(msg);
+  }
+  for (const f of result.transcriptInfo?.followUps || []) if (!result.missingData.includes(f)) result.missingData.push(f);
+  return result;
+};
+
+
+/* v2.9.1 - doprecyzowanie: nie mylić przewodu internetowego z przewodem elektrycznym */
+installerDetectInternetCableLengthV29 = function(text) {
+  const source = String(text || '').replace(/\s+/g, ' ').trim();
+  const hasInternetDescriptor = /\b(przew[oó]d\w*|kabel\w*|skr[eę]tk\w*)\s+(?:internetow\w*|sieciow\w*|lan|utp|cat\s*5e?|kat\s*5e?|kategori\w*\s*5e?|cat\s*6|kat\s*6|kategori\w*\s*6)\b/i.test(source)
+    || /\b(skr[eę]tk\w*|utp|lan|cat\s*5e?|kat\s*5e?|kategori\w*\s*5e?|cat\s*6|kat\s*6|kategori\w*\s*6)\b/i.test(source);
+  if (!hasInternetDescriptor) return 0;
+  const patterns = [
+    /(?:przew[oó]d\w*|kabel\w*|skr[eę]tk\w*)\s+(?:internetow\w*|sieciow\w*|lan|utp|cat\s*5e?|kat\s*5e?|kategori\w*\s*5e?|cat\s*6|kat\s*6|kategori\w*\s*6)(?:[^.?!;]{0,240}?)(\d+(?:[.,]\d+)?)\s*(?:m|mb|metr\w*)\b/i,
+    /(?:skr[eę]tk\w*|utp|lan|cat\s*5e?|kat\s*5e?|kategori\w*\s*5e?|cat\s*6|kat\s*6|kategori\w*\s*6)(?:[^.?!;]{0,240}?)(\d+(?:[.,]\d+)?)\s*(?:m|mb|metr\w*)\b/i,
+    /(\d+(?:[.,]\d+)?)\s*(?:m|mb|metr\w*)\b(?:[^.?!;]{0,120}?)(?:przew[oó]d\w*|kabel\w*|skr[eę]tk\w*)(?:[^.?!;]{0,80}?)(?:internetow\w*|sieciow\w*|lan|utp|cat\s*5e?|kat\s*5e?|kategori\w*\s*5e?|cat\s*6|kat\s*6|kategori\w*\s*6)/i
+  ];
+  for (const pattern of patterns) {
+    const match = source.match(pattern);
+    const length = installerCableNumberV29(match?.[1], 0);
+    if (length > 0) return length;
+  }
+  return 0;
+};
+
+installerDetectElectricCableRunsV29 = function(text) {
+  const source = String(text || '').replace(/\s+/g, ' ').trim();
+  const runs = [];
+  const patterns = [
+    /(\d+(?:[.,]\d+)?)\s*(?:m|mb|metr\w*)\b\s+(?:przew[oó]d\w*|kabel\w*)\s+(?:elektryczn\w*|pr[aą]dow\w*|zasilaj\w*|ydyp|ydy)(?:[^.?!;]{0,80}?)(\d\s*(?:x|×|razy)\s*\d(?:[.,]\d)?|\d\s*(?:x|×|razy)\s*\d\s+\d)?/gi,
+    /(?:przew[oó]d\w*|kabel\w*)\s+(?:elektryczn\w*|pr[aą]dow\w*|zasilaj\w*|ydyp|ydy)(?:[^.?!;]{0,120}?)(\d+(?:[.,]\d+)?)\s*(?:m|mb|metr\w*)\b(?:[^.?!;]{0,80}?)(\d\s*(?:x|×|razy)\s*\d(?:[.,]\d)?|\d\s*(?:x|×|razy)\s*\d\s+\d)?/gi
+  ];
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      const length = installerCableNumberV29(match[1], 0);
+      if (length <= 0) continue;
+      const typeRaw = String(match[2] || source.slice(match.index || 0, (match.index || 0) + 140) || '').replace(/\s+/g, '').replace(',', '.').toLowerCase();
+      let name = 'Przewód prądowy YDYp 3×1,5';
+      let fallback = 3.5;
+      let key = 'cable_power_ydyp_3x15';
+      if (/3(?:x|×|razy)2\.5/.test(typeRaw) || /3(?:x|×|razy)25/.test(typeRaw)) {
+        name = 'Przewód prądowy YDYp 3×2,5';
+        fallback = 5.5;
+        key = 'cable_power_ydyp_3x25';
+      } else if (/2(?:x|×|razy)2\.5/.test(typeRaw) || /2(?:x|×|razy)25/.test(typeRaw)) {
+        name = 'Przewód prądowy 2×2,5 — sprawdź typ';
+        fallback = 4.5;
+        key = 'cable_power_2x25_check';
+      } else if (/2(?:x|×|razy)0\.5/.test(typeRaw) || /2(?:x|×|razy)05/.test(typeRaw)) {
+        name = 'Przewód niskoprądowy 2×0,5';
+        fallback = 1.5;
+        key = 'cable_low_voltage_2x05';
+      }
+      runs.push({ length, name, fallback, key });
+    }
+  }
+  const seen = new Set();
+  return runs.filter(run => {
+    const k = `${run.name}|${run.length}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+};
+
+
+/* v2.9.2 - poprawka fallbacków cen dla pozycji spoza cennika */
+installerFindCatalogPriceV29 = function(category, name, fallback) {
+  const catalog = findCatalogService(category, name);
+  if (catalog && catalog.price_net !== undefined && catalog.price_net !== null && String(catalog.price_net).trim() !== '') {
+    return number(catalog.price_net, fallback);
+  }
+  return fallback;
 };
 
 document.addEventListener('DOMContentLoaded', () => {

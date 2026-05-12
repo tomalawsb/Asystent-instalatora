@@ -1,5 +1,5 @@
 Pomocnik Instalatora PWA
-Wersja: 2.8 - 1205260928
+Wersja: 2.9 - 1205260945
 
 Zmiany w tej wersji:
 - sprawdzono główny przepływ: dyktowanie/wklejanie, rozbicie tekstu, zatwierdzanie, cofanie, zapisywanie, eksport, kopiowanie, podsumowanie i materiały,
