@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6f8fb">
   <meta name="description" content="Pomocnik Instalatora — szybkie wyceny, klienci, cennik i notatki z wizyt.">
-  <title>Pomocnik Instalatora PWA 2.6 - 1205260925</title>
+  <title>Pomocnik Instalatora PWA 2.7 - 1205260907</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,24 +13,24 @@
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow">Wersja 2.6 - 1205260925</div>
+        <div class="eyebrow">Wersja 2.7 - 1205260907</div>
         <h1>Pomocnik Instalatora</h1>
       </div>
       <div class="top-actions">
         <button id="installBtn" class="btn btn-soft" hidden>Zainstaluj</button>
-        <button id="refreshAppBtn" class="btn btn-soft">Odśwież cache</button>
+        <button id="refreshAppBtn" class="btn btn-soft">Aktualizuj aplikację</button>
       </div>
     </header>
 
     <nav class="tabs" aria-label="Nawigacja">
       <button class="tab active" data-tab="quoteTab">Nowa wycena</button>
       <button class="tab" data-tab="savedTab">Zapisane</button>
-      <button class="tab" data-tab="catalogTab">Cennik</button>
-      <button class="tab" data-tab="pricesTab">Ceny materiałów</button>
+      <button class="tab" data-tab="catalogTab">Cennik i ceny materiałów</button>
       <button class="tab" data-tab="settingsTab">Ustawienia</button>
     </nav>
 
     <nav class="quick-jumps" aria-label="Szybki przeskok w wycenie">
+      <a href="#dictationCard">Dyktowanie</a>
       <a href="#clientDataCard">Dane</a>
       <a href="#parserPreview">Rozbicie</a>
       <a href="#summaryCard">Podsumowanie</a>
@@ -42,55 +42,41 @@
       <section id="quoteTab" class="tab-panel active">
         <div class="grid grid-main">
           <section id="clientDataCard" class="card">
-            <div class="section-head">
+            <div id="dictationCard" class="section-head">
               <div>
-                <h2>Dane klienta</h2>
-                <p>Podstawowe informacje do wyceny i raportu.</p>
+                <h2>Dyktowanie i rozbicie wizyty</h2>
+                <p>Najpierw wklej, podyktuj albo wczytaj transkrypcję TXT. Program przygotuje dane klienta, pozycje, materiały i ostrzeżenia do zatwierdzenia.</p>
               </div>
-              <button id="newQuoteBtn" class="btn btn-ghost">Nowa</button>
+              <button id="newQuoteBtn" class="btn btn-ghost">Nowa wycena</button>
             </div>
 
-            <div class="form-grid">
-              <label>Klient
-                <input id="clientName" type="text" placeholder="np. Jan Kowalski">
-              </label>
-              <label>Telefon
-                <input id="clientPhone" type="tel" placeholder="np. 600 000 000">
-              </label>
-              <label class="span-2">Adres / miejscowość
-                <input id="clientAddress" type="text" placeholder="np. Mielec, ul. ...">
-              </label>
-              <label>Data wizyty
-                <input id="visitDate" type="date">
-              </label>
-              <label>Typ zlecenia
-                <select id="jobType"></select>
-              </label>
-            </div>
-
-            <label class="block-label">Notatki z wizyty
-              <textarea id="notes" rows="5" placeholder="np. klient chce 4 kamery zewnętrzne, rejestrator NVR, prowadzenie skrętki, podgląd w telefonie..."></textarea>
-            </label>
-
-            <div class="voice-panel">
+            <div class="voice-panel voice-panel-main">
               <div class="voice-head">
                 <div>
-                  <h3>Dyktowanie wizyty i wyceny</h3>
+                  <h3>Opis wizyty / transkrypcja</h3>
                   <p>Powiedz np.: klient Jan Kowalski, ulica Szymanowskiego 48 Mielec, telefon 501 222 333, 5 kamer po 200 zł, kabel 10 m po 2 zł.</p>
                 </div>
               </div>
-              <textarea id="voiceCommand" rows="3" placeholder="Tu pojawi się tekst z mikrofonu. Możesz też wpisać: klient, adres, telefon, usługi, ilości i ceny..."></textarea>
-              <div class="action-row">
+              <textarea id="voiceCommand" rows="6" placeholder="Tu pojawi się tekst z mikrofonu. Możesz też wkleić albo wczytać plik TXT z transkrypcją wizyty..."></textarea>
+              <div class="action-row voice-main-actions">
                 <button id="voiceBtn" class="btn btn-primary">Dyktuj wizytę</button>
                 <button id="analyzeVoiceBtn" class="btn btn-soft">Rozbij tekst</button>
+                <button id="loadTextFileBtn" class="btn btn-soft">Wczytaj TXT</button>
+                <button id="selectVoiceBtn" class="btn btn-ghost">Zaznacz wszystko</button>
                 <button id="clearVoiceBtn" class="btn btn-ghost">Wyczyść pole</button>
+                <input id="voiceTextFile" type="file" accept="text/plain,.txt,.log,.md" hidden>
+              </div>
+              <div id="voiceSelectionActions" class="voice-selection-actions" hidden>
+                <span>Zaznaczono tekst:</span>
+                <button id="copyVoiceSelectionBtn" class="btn btn-soft">Kopiuj</button>
+                <button id="clearVoiceSelectionBtn" class="btn btn-danger">Wyczyść zaznaczone</button>
               </div>
             </div>
 
             <div id="parserPreview" class="parser-preview" hidden>
               <div class="preview-head">
                 <div>
-                  <h3>Rozpoznane dane do zatwierdzenia</h3>
+                  <h3>Rozpoznane dane do sprawdzenia i zatwierdzenia</h3>
                   <p>Program niczego nie dopisze do wyceny, dopóki nie klikniesz „Zatwierdź rozbicie”. Dopłaty za trudne warunki trzeba zaznaczyć ręcznie.</p>
                 </div>
               </div>
@@ -100,6 +86,32 @@
                 <button id="rejectParserBtn" class="btn btn-ghost">Odrzuć</button>
               </div>
             </div>
+
+            <details id="clientDetails" class="client-details-card">
+              <summary>Dane klienta / popraw ręcznie</summary>
+              <p>Podstawowe informacje do wyceny i raportu. Po rozbiciu tekstu program uzupełnia je automatycznie, ale możesz je poprawić ręcznie.</p>
+              <div class="form-grid">
+                <label>Klient
+                  <input id="clientName" type="text" placeholder="np. Jan Kowalski">
+                </label>
+                <label>Telefon
+                  <input id="clientPhone" type="tel" placeholder="np. 600 000 000">
+                </label>
+                <label class="span-2">Adres / miejscowość
+                  <input id="clientAddress" type="text" placeholder="np. Mielec, ul. ...">
+                </label>
+                <label>Data wizyty
+                  <input id="visitDate" type="date">
+                </label>
+                <label>Typ zlecenia
+                  <select id="jobType"></select>
+                </label>
+              </div>
+
+              <label class="block-label">Notatki z wizyty
+                <textarea id="notes" rows="5" placeholder="np. klient chce 4 kamery zewnętrzne, rejestrator NVR, prowadzenie skrętki, podgląd w telefonie..."></textarea>
+              </label>
+            </details>
 
             <div class="action-row">
               <button id="suggestBtn" class="btn btn-soft">Podpowiedz z notatek</button>
@@ -146,8 +158,8 @@
         <section id="servicesCard" class="card">
           <div class="section-head">
             <div>
-              <h2>Usługi w wycenie</h2>
-              <p>Dodawaj pozycje z cennika albo wpisuj własne kwoty.</p>
+              <h2>Usługi i materiały w wycenie</h2>
+              <p>Pozycje są oznaczane jako robocizna, materiał, dopłata albo dojazd. Ceny materiałów z bazy są opisane jako sugerowane.</p>
             </div>
           </div>
 
@@ -171,7 +183,7 @@
             <table>
               <thead>
                 <tr>
-                  <th>Usługa</th>
+                  <th>Usługa / typ</th>
                   <th>Jm.</th>
                   <th>Ilość</th>
                   <th>Cena netto</th>
@@ -277,11 +289,9 @@
 
           <div id="catalogView" class="catalog-view"></div>
         </section>
-      </section>
 
 
-      <section id="pricesTab" class="tab-panel">
-        <section class="card">
+        <section class="card material-prices-card">
           <div class="section-head">
             <div>
               <h2>Ceny materiałów</h2>
@@ -296,8 +306,8 @@
               <p id="materialPriceStatus">Ceny są sugestią do zatwierdzenia przed wysłaniem oferty.</p>
             </div>
             <div class="action-row">
-              <button id="applyMaterialPricesBtn" class="btn btn-primary">Zastosuj ceny w cenniku</button>
-              <button id="refreshMaterialPricesBtn" class="btn btn-soft">Aktualizuj z pliku online</button>
+              <button id="applyMaterialPricesBtn" class="btn btn-primary">Uzupełnij cennik cenami materiałów</button>
+              <button id="refreshMaterialPricesBtn" class="btn btn-soft">Pobierz najnowszą bazę cen</button>
               <button id="exportMaterialPricesBtn" class="btn btn-soft">Eksport bazy</button>
               <button id="importMaterialPricesBtn" class="btn btn-soft">Import bazy</button>
               <input id="importMaterialPricesFile" type="file" accept="application/json,.json" hidden>
@@ -348,7 +358,6 @@
               <button id="clearLearnedRulesBtn" class="btn btn-danger">Usuń zapamiętane korekty</button>
             </div>
           </div>
-
 
 
           <div class="archive-learning-panel">
@@ -409,7 +418,7 @@
         </section>
       </section>
     </main>
-    <footer class="app-footer">Wersja programu: 2.6 - 1205260925</footer>
+    <footer class="app-footer">Wersja programu: 2.7 - 1205260907</footer>
   </div>
 
   <template id="savedQuoteTemplate">

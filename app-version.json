@@ -1,7 +1,7 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "2.6 - 1205260925",
-  "build": "1205260925",
+  "version": "2.7 - 1205260907",
+  "build": "1205260907",
   "date": "2026-05-12",
-  "notes": "Dodano bazę cen materiałów i moduł aktualizacji cen."
+  "notes": "Przebudowano przepływ dyktowania, dodano wczytywanie TXT, zaznaczanie/kopiowanie/czyszczenie tekstu oraz czytelne oznaczenia materiałów i cen sugerowanych."
 }

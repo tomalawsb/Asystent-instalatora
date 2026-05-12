@@ -1,4 +1,4 @@
-const APP_VERSION = '2.6 - 1205260925';
+const APP_VERSION = '2.7 - 1205260907';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -593,10 +593,17 @@ function initEvents() {
   $('installBtn').addEventListener('click', installPwa);
   $('voiceBtn').addEventListener('click', startDictation);
   $('analyzeVoiceBtn').addEventListener('click', analyzeVoiceCommandFromField);
+  $('loadTextFileBtn').addEventListener('click', () => $('voiceTextFile').click());
+  $('voiceTextFile').addEventListener('change', importVoiceTextFile);
+  $('selectVoiceBtn').addEventListener('click', selectAllVoiceText);
+  $('copyVoiceSelectionBtn').addEventListener('click', copySelectedVoiceText);
+  $('clearVoiceSelectionBtn').addEventListener('click', clearSelectedVoiceText);
+  $('voiceCommand').addEventListener('select', updateVoiceSelectionActions);
+  $('voiceCommand').addEventListener('input', updateVoiceSelectionActions);
   $('acceptParserBtn').addEventListener('click', acceptParserPreview);
   $('rejectParserBtn').addEventListener('click', rejectParserPreview);
   $('undoParseBtn').addEventListener('click', undoLastBreakdown);
-  $('clearVoiceBtn').addEventListener('click', () => { $('voiceCommand').value = ''; rejectParserPreview(false); });
+  $('clearVoiceBtn').addEventListener('click', () => { $('voiceCommand').value = ''; rejectParserPreview(false); updateVoiceSelectionActions(); });
 }
 
 function syncFromForm() {
@@ -765,6 +772,31 @@ function renderAll() {
   renderDropboxStatus();
 }
 
+
+function classifyQuoteItem(item) {
+  const name = String(item?.name || '').toLowerCase();
+  const category = String(item?.category || '').toLowerCase();
+  if (/dojazd/.test(name) || /dojazd/.test(category)) return { key: 'drive', label: 'dojazd' };
+  if (/dopłat|doplat|trudn|wysoko|komin|maszt|przewiert|odwiert|kucie|kopanie/.test(name) || /dopłat|doplat|trudne/.test(category)) return { key: 'surcharge', label: 'dopłata' };
+  if (/materiał|material/.test(name)) return { key: 'material', label: 'materiał' };
+  if (/^(montaż|montaz|konfiguracja|uruchomienie|ustawienie|prowadzenie|zarabianie|diagnostyka|serwis|podłączenie|podlaczenie|pomiar|test)\b/.test(name)) return { key: 'labor', label: 'robocizna' };
+  if (/kamera .*ip|rejestrator|nvr|dvr|switch|poe|dysk|puszk|przew[oó]d|kabel|skr[eę]tk|rg6|peszel|listwa|zasilacz|wtyk|rj45|złącze|zlacze|gniazdo|keystone|obejma|maszt|uchwyt|router|access point|czujka|sygnalizator|pilot|elektrozaczep/.test(name)) return { key: 'material', label: 'materiał' };
+  return { key: 'labor', label: 'robocizna' };
+}
+
+function isSuggestedMaterialItem(item) {
+  const type = classifyQuoteItem(item);
+  if (type.key !== 'material') return false;
+  if (number(item?.priceNet, 0) <= 0) return false;
+  return /materiał|material|kamera .*ip|rejestrator|switch|poe|dysk|puszk|przew[oó]d|kabel|skr[eę]tk|zasilacz|router|access point/.test(String(item?.name || '').toLowerCase());
+}
+
+function quoteItemBadgesHtml(item) {
+  const type = classifyQuoteItem(item);
+  const suggested = isSuggestedMaterialItem(item);
+  return `<div class="item-badges"><span class="item-badge ${escapeAttr(type.key)}">${escapeHtml(type.label)}</span>${suggested ? '<span class="item-badge suggested">cena sugerowana — sprawdź</span>' : ''}</div>`;
+}
+
 function renderServices(full = true) {
   const body = $('servicesBody');
   const cards = $('serviceCards');
@@ -786,7 +818,7 @@ function renderServices(full = true) {
     const tr = document.createElement('tr');
     tr.dataset.id = item.id;
     tr.innerHTML = `
-      <td><input value="${escapeAttr(item.name)}" data-field="name"></td>
+      <td><input value="${escapeAttr(item.name)}" data-field="name">${quoteItemBadgesHtml(item)}</td>
       <td>${escapeHtml(item.unit || 'usł')}</td>
       <td><input type="number" min="0" step="0.5" value="${number(item.quantity, 1)}" data-field="quantity"></td>
       <td><input type="number" min="0" step="0.01" value="${number(item.priceNet)}" data-field="priceNet"></td>
@@ -802,6 +834,7 @@ function renderServices(full = true) {
         <label>Usługa
           <input value="${escapeAttr(item.name)}" data-field="name">
         </label>
+        ${quoteItemBadgesHtml(item)}
       </div>
       <div class="service-card-grid">
         <div><span>Jm.</span><strong>${escapeHtml(item.unit || 'usł')}</strong></div>
@@ -863,12 +896,25 @@ function saveCurrentQuote() {
   scheduleAutoDropboxSync();
 }
 
+function hasQuoteDraftContent() {
+  return Boolean(
+    String($('voiceCommand')?.value || '').trim() ||
+    state.clientName || state.clientPhone || state.clientAddress || state.notes ||
+    number(state.distanceKm, 0) > 0 ||
+    (state.services || []).length
+  );
+}
+
 function newQuote() {
+  syncFromForm();
+  if (hasQuoteDraftContent() && !confirm('Masz dane w aktualnej wycenie. Wyczyścić formularz i pole dyktowania?')) return;
   state = createEmptyQuote();
   pendingParse = null;
   lastBreakdownSnapshot = null;
   hideParserPreview();
   $('undoParseBtn').hidden = true;
+  $('voiceCommand').value = '';
+  updateVoiceSelectionActions();
   syncToForm();
   renderAll();
   showInfo('Utworzono pustą wycenę.');
@@ -1924,6 +1970,82 @@ function startDictation() {
     $('voiceBtn').disabled = false;
   };
   recognition.start();
+}
+
+
+function updateVoiceSelectionActions() {
+  const area = $('voiceCommand');
+  const actions = $('voiceSelectionActions');
+  if (!area || !actions) return;
+  const hasSelection = area.selectionEnd > area.selectionStart;
+  actions.hidden = !hasSelection;
+  if ($('selectVoiceBtn')) $('selectVoiceBtn').textContent = hasSelection ? 'Zaznaczono wszystko' : 'Zaznacz wszystko';
+}
+
+function selectAllVoiceText() {
+  const area = $('voiceCommand');
+  if (!area) return;
+  area.focus();
+  area.select();
+  updateVoiceSelectionActions();
+}
+
+function getSelectedVoiceText() {
+  const area = $('voiceCommand');
+  if (!area) return '';
+  return area.value.slice(area.selectionStart, area.selectionEnd);
+}
+
+function copySelectedVoiceText() {
+  const selected = getSelectedVoiceText();
+  if (!selected) {
+    showInfo('Najpierw zaznacz tekst w polu dyktowania.');
+    return;
+  }
+  copyTextToClipboard(selected, 'Zaznaczony tekst skopiowany do schowka.');
+}
+
+function clearSelectedVoiceText() {
+  const area = $('voiceCommand');
+  if (!area) return;
+  const start = area.selectionStart;
+  const end = area.selectionEnd;
+  if (end <= start) {
+    showInfo('Najpierw zaznacz fragment do usunięcia.');
+    return;
+  }
+  area.value = area.value.slice(0, start) + area.value.slice(end);
+  area.focus();
+  area.setSelectionRange(start, start);
+  rejectParserPreview(false);
+  updateVoiceSelectionActions();
+}
+
+function importVoiceTextFile(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const loadedText = String(reader.result || '').replace(/\r\n/g, '\n').trim();
+    if (!loadedText) {
+      showInfo('Wybrany plik TXT jest pusty.');
+      return;
+    }
+    const area = $('voiceCommand');
+    const current = area.value.trim();
+    if (current) {
+      const append = confirm('Pole dyktowania zawiera już tekst. Kliknij OK, aby dopisać plik na końcu. Kliknij Anuluj, aby zastąpić obecny tekst.');
+      area.value = append ? `${current}\n\n${loadedText}` : loadedText;
+    } else {
+      area.value = loadedText;
+    }
+    rejectParserPreview(false);
+    updateVoiceSelectionActions();
+    showInfo(`Wczytano plik TXT: ${file.name}. Kliknij „Rozbij tekst”, żeby przygotować wycenę.`);
+  };
+  reader.onerror = () => showInfo('Nie udało się wczytać pliku TXT.');
+  reader.readAsText(file, 'utf-8');
 }
 
 function analyzeVoiceCommandFromField() {
@@ -3447,7 +3569,7 @@ function renderParserPreview(raw, result) {
 
 function previewItemEditorHtml(item, index, categoryOptions) {
   return `<article class="preview-item-editor" data-preview-index="${index}">
-    <label>Usługa<input data-preview-field="name" value="${escapeAttr(item.name || '')}"></label>
+    <label>Usługa<input data-preview-field="name" value="${escapeAttr(item.name || '')}">${quoteItemBadgesHtml(item)}</label>
     <label>Ilość<input type="number" min="0" step="0.5" data-preview-field="quantity" value="${number(item.quantity, 1)}"></label>
     <label>Jm.<input data-preview-field="unit" value="${escapeAttr(item.unit || 'szt')}"></label>
     <label>Cena netto<input type="number" min="0" step="0.01" data-preview-field="priceNet" value="${number(item.priceNet, 0)}"></label>
@@ -4888,7 +5010,7 @@ function renderMaterialPrices() {
         <div>${escapeHtml(item.unit)}</div>
         <div class="price">${money(item.price_net)}</div>
         <div class="muted">${money(item.min_net)}–${money(item.max_net)}</div>
-        <button class="btn btn-soft" data-action="search">Sprawdź</button>`;
+        <button class="btn btn-soft" data-action="search">Szukaj ceny</button>`;
       row.querySelector('[data-action="search"]').addEventListener('click', () => {
         const q = encodeURIComponent(`${item.name.replace(/—\s*materiał/i, '').trim()} cena Polska`);
         window.open(`https://www.google.com/search?q=${q}`, '_blank', 'noopener');
