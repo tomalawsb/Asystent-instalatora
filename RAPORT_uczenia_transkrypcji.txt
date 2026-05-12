@@ -1,0 +1,31 @@
+Raport uczenia parsera - 3.1 - 1205261115
+
+Przeanalizowano plik: Transkrypcje usług.zip
+Liczba plików TXT: 417
+
+Najważniejsze wnioski:
+1. Transkrypcje są mocno zaszumione: nagłówki programu transkrypcji, powtarzane „dziękuję”, urwane zdania, błędy nazw własnych i sprzętu.
+2. Parser musi traktować tekst kontekstowo, nie dosłownie. Szczególnie przy przewodach, routerach, kamerach i materiałach.
+3. Największe ryzyko błędnej wyceny to mieszanie robocizny z materiałem oraz dopisywanie sprzętu bez ceny.
+4. Przewody wymagają osobnych reguł: UTP/Cat5e/Cat6, RG6, niskoprądowy 2×0,5, prądowy 3×1,5/3×2,5.
+5. Router wspomniany w rozmowie nie zawsze oznacza usługę konfiguracji routera. Czasem to tylko sprzęt albo element istniejącej instalacji.
+6. Kamera IP nie powinna być automatycznie „wewnętrzna” lub „zewnętrzna”, jeżeli tekst tego nie mówi.
+
+Trafienia kategorii:
+- Kamery CCTV: 182
+- Sieć / Wi‑Fi: 316
+- Anteny / Sygnał: 239
+- TV / Montaż: 221
+- Komputery / Telefony: 372
+- Prace drobne: 84
+- Domofon: 12
+- Alarm: 25
+- Przewody / Okablowanie: 263
+
+
+Pliki wynikowe:
+- dane_uczace_transkrypcji.json — rozbudowana baza reguł, wariantów, korekt i ostrzeżeń.
+- slownik_bledow_transkrypcji_do_wklejenia.txt — prosty słownik w formacie błędna fraza = poprawna fraza.
+
+Uwaga techniczna:
+W aktualnej wersji programu część reguł parsera jest zaszyta w app.js. Samo podmienienie JSON-a może nie uruchomić wszystkich nowych sekcji. Żeby program realnie korzystał z pełnej bazy, trzeba w kolejnym kroku podpiąć ładowanie JSON-a do parsera albo przenieść najważniejsze reguły do app.js.
