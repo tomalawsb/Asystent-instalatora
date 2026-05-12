@@ -1,4 +1,4 @@
-const APP_VERSION = '2.3 - 1205260748';
+const APP_VERSION = '2.4 - 1205260816';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -4096,3 +4096,408 @@ function hasExplicitQuantityForTranscript(context, key) {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+
+/* v2.4 — wzorce z archiwum transkrypcji usług, parser kontekstowy i łatwiejsze poprawki */
+const INSTALLER_ARCHIVE_TRAINING = {
+  version: '2.4 - 1205260816',
+  filesScanned: 417,
+  categories: {
+    'Kamery CCTV': 186,
+    'Sieć / Wi‑Fi': 316,
+    'Anteny / Sygnał': 241,
+    'TV / Montaż': 229,
+    'Komputery / Telefony': 371,
+    'Prace drobne': 82
+  },
+  notes: [
+    'Długie transkrypcje są najpierw czyszczone z nagłówków, znaczników czasu, INFO/ERROR i pustych wstawek.',
+    'Program odróżnia pewne pozycje do wyceny od wariantów: można, ewentualnie, wchodzi w grę, trzeba sprawdzić.',
+    'Przy niepewnej transkrypcji program ma dopisywać braki i pytania zamiast doliczać pozycje na siłę.'
+  ]
+};
+
+const INSTALLER_BUILTIN_PHRASE_RULES = [
+  ['rjotki', 'rj45'], ['erjotki', 'rj45'], ['arjotki', 'rj45'], ['rj ki', 'rj45'], ['rj-ki', 'rj45'], ['rjki', 'rj45'],
+  ['f ki', 'złącza f'], ['f-ki', 'złącza f'], ['efki', 'złącza f'], ['fka', 'złącze f'],
+  ['obrotowki', 'kamery obrotowe'], ['obrotówki', 'kamery obrotowe'], ['obrotowka', 'kamera obrotowa'], ['obrotówka', 'kamera obrotowa'],
+  ['tubowki', 'kamery tubowe'], ['tubówki', 'kamery tubowe'], ['tubowa', 'kamera tubowa'], ['tubowe', 'kamery tubowe'],
+  ['listy mastujace', 'listwy maskujące'], ['listwy mastujace', 'listwy maskujące'], ['listwy mastujące', 'listwy maskujące'], ['listwa wykanczajaca', 'listwa maskująca'], ['listwa wykańczająca', 'listwa maskująca'],
+  ['korytko', 'listwa maskująca'], ['korytka', 'listwy maskujące'], ['korytkiem', 'listwą maskującą'],
+  ['przez jeden', '/1'], ['przez 1', '/1'], ['przez dwa', '/2'], ['przez 2', '/2'], ['przez trzy', '/3'], ['przez 3', '/3'],
+  ['podglad na telefon', 'podgląd zdalny'], ['podgląd na telefon', 'podgląd zdalny'], ['podglad w telefonie', 'podgląd zdalny'], ['podgląd w telefonie', 'podgląd zdalny'],
+  ['ancenowy', 'antenowy'], ['anceny', 'anteny'], ['ankene', 'antenę'], ['ankena', 'antena'], ['konwenter', 'konwerter'],
+  ['badowice gorne', 'wadowice górne'], ['badowice górne', 'wadowice górne'], ['rodowa 46', 'ogrodowa 46']
+];
+
+const INSTALLER_CONTEXT_STOP_PHRASES = /\b(można by|mozna by|ewentualnie|wchodzi w gre|wchodzi w grę|trzeba sprawdzic|trzeba sprawdzić|nie wiem czy|jedna z opcji|wariant|gdyby|jakby|moze|może|raczej|prawdopodobnie)\b/i;
+const INSTALLER_DECISION_PHRASES = /\b(robimy|montujemy|do zamontowania|trzeba zamontowac|trzeba zamontować|bede montowal|będę montował|ustalone|finalnie|ostatecznie|wycena|do wyceny|ma byc|ma być|klient chce|klientka chce)\b/i;
+
+function renderArchiveLearningView() {
+  const box = $('archiveLearningView');
+  if (!box) return;
+  const rows = Object.entries(INSTALLER_ARCHIVE_TRAINING.categories)
+    .map(([name, count]) => `<div class="archive-learning-pill"><strong>${escapeHtml(name)}</strong><span>${count} trafień w archiwum</span><small>Reguły używane przy analizie transkrypcji, korektach nazw i wykrywaniu wariantów.</small></div>`)
+    .join('');
+  box.innerHTML = rows + `<div class="archive-learning-pill"><strong>Słownik błędów transkrypcji</strong><span>${INSTALLER_BUILTIN_PHRASE_RULES.length} wbudowanych zamian</span><small>Pełne rozmowy nie są wbudowane w aplikację; zapisane są tylko wzorce i korekty.</small></div>`;
+}
+
+const init_v23_for_v24 = init;
+init = function() {
+  init_v23_for_v24();
+  renderArchiveLearningView();
+};
+
+applyPhraseDictionary = function(text) {
+  let out = String(text || '');
+  for (const [fromRaw, toRaw] of INSTALLER_BUILTIN_PHRASE_RULES) {
+    const from = baseNormalizeSpeechText(fromRaw);
+    const to = baseNormalizeSpeechText(toRaw);
+    if (!from || !to || from === to) continue;
+    out = out.replace(new RegExp(`(^|\s)${escapeRegExp(from)}(?=\s|$)`, 'gi'), `$1${to}`);
+  }
+  for (const rule of parsePhraseDictionary(loadPhraseDictionaryText())) {
+    const from = baseNormalizeSpeechText(rule.from);
+    const to = baseNormalizeSpeechText(rule.to);
+    if (!from || !to || from === to) continue;
+    out = out.replace(new RegExp(`(^|\s)${escapeRegExp(from)}(?=\s|$)`, 'g'), `$1${to}`);
+  }
+  return out.replace(/\s+/g, ' ').trim();
+};
+
+function installerStripTranscriptNoise(rawText) {
+  return String(rawText || '')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line && !/^=+$/.test(line) && !/^-+$/.test(line))
+    .filter(line => !/^RUN:|^large\s*\||^temperature=|^\[INFO\]|^\[ERROR\]|^\[Wykryty język|^TRANSKRYPCJA:|^F:\\|^[-=]/i.test(line))
+    .map(line => line.replace(/^\[\d{2}:\d{2}:\d{2}\]\s*/g, '').trim())
+    .filter(line => line && !/^(dziękuję|dziekuje|tak|no|aha|okej|dobra|super|do widzenia|wielkie dzięki.*kolejnych odcinkach)$/i.test(line))
+    .join('. ');
+}
+
+function installerLikelyAddressName(name) {
+  const n = String(name || '').toLowerCase();
+  return /skiego$|ckiego$|kiego$|owej$|owa$|owska$|arska$|erska$|owa$|ego$|iej$|na$|ska$|szereg|kosmonaut|partyzant|wolnosci|wolności|ogrodowa|sielska|kossaka|limanowskiego|poniatowskiego|bajana|modelarska|lwowska|ducha|dzialkowcow|działkowców/i.test(n);
+}
+
+function installerCleanTitleFromTranscript(rawText) {
+  const raw = String(rawText || '');
+  const m = raw.match(/TRANSKRYPCJA:\s*([^\n\r]+?\.(?:m4a|mp3|wav|aac))/i) || raw.match(/URecorder[^\n\r\\/]*[\\/](.+?\.(?:m4a|mp3|wav|aac))/i);
+  let title = m ? m[1] : '';
+  title = title.replace(/.*[\\/]/g, '').replace(/\.(m4a|mp3|wav|aac)$/i, '');
+  return title.replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function installerAddressFromPhrase(source, preferNoStreetPrefix = false) {
+  const text = String(source || '').replace(/_/g, ' ').replace(/\b(przez)\s+(\d+[a-z]?)\b/gi, '/$2').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  const patterns = [
+    /\bul\.?\s+([A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ .-]{2,60}?)\s+(\d+[a-zA-Z]?(?:\s*\/\s*\d+[a-zA-Z]?)?)/i,
+    /\b([A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ.-]{2,}(?:\s+[A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ.-]{2,}){0,2})\s+(\d+[a-zA-Z]?(?:\s*\/\s*\d+[a-zA-Z]?)?)/i
+  ];
+  const stopTail = /\b(wycena|kamera|kamery|montaz|montaż|router|internet|tp\s*-?\s*link|podlaczenie|podłączenie|v\d+|fv\d+|start|godzina|u mnie|rozliczenie|naprawa|zakladanie|zakładanie|txt|m4a)\b.*$/i;
+  for (const pat of patterns) {
+    const m = text.match(pat);
+    if (!m) continue;
+    let street = cleanAddressFragment(m[1].replace(stopTail, '').trim(), false);
+    let nr = String(m[2] || '').replace(/\s+/g, '').replace(/\/+/g, '/');
+    if (!street || !nr || /\d{1,2}:\d{2}/.test(nr)) continue;
+    const prefix = preferNoStreetPrefix || (!/^ul\.?/i.test(source) && !installerLikelyAddressName(street)) ? '' : 'ul. ';
+    return `${prefix}${street} ${nr}`.replace(/\s+/g, ' ').trim();
+  }
+  return '';
+}
+
+parseTranscriptAddress = function(rawText) {
+  const title = installerCleanTitleFromTranscript(rawText);
+  const fromTitle = installerAddressFromPhrase(title, false);
+  if (fromTitle) return fromTitle;
+  const raw = String(rawText || '').replace(/\\/g, ' / ').replace(/_/g, ' ');
+  const firstLines = raw.split('\n').slice(0, 80).join(' ');
+  const fromFirst = installerAddressFromPhrase(firstLines, false);
+  if (fromFirst) return fromFirst;
+  return '';
+};
+
+function installerScoreJobTypes(text) {
+  const src = normalizeSpeechText(text);
+  const scores = {};
+  const add = (cat, pts) => { scores[cat] = (scores[cat] || 0) + pts; };
+  const count = (re) => (src.match(re) || []).length;
+  add('Kamery CCTV', count(/\b(kamera|kamery|kamer|monitoring|rejestrator|nvr|dvr|poe|podglad zdalny|obrotow|ptz|tubow)\b/g) * 5);
+  add('Sieć / Wi‑Fi', count(/\b(router|internet|wifi|wi-fi|lan|rj45|switch|tp-link|access point|mesh|modem|swiatlowod|światłowód)\b/g) * 4);
+  add('Anteny / Sygnał', count(/\b(antena|anteny|antenowy|dvb|satelit|konwerter|talerz|dekoder|mux|polsat|canal|sygnal)\b/g) * 4);
+  add('TV / Montaż', count(/\b(telewizor|tv|uchwyt|wieszak|smart tv|powiesic|powiesić|wniesienie)\b/g) * 4);
+  add('Komputery / Telefony', count(/\b(laptop|komputer|windows|telefon|samsung|huawei|drukarka|facebook|poczta|haslo|hasło|tablet|dysk)\b/g) * 3);
+  add('Prace drobne', count(/\b(klamka|zamek|drzwi|zawias)\b/g) * 5);
+  add('Domofon', count(/\b(domofon|wideodomofon|unifon|elektrozaczep|furtka)\b/g) * 5);
+  add('Alarm', count(/\b(alarm|czujka|pir|sygnalizator|centrala alarmowa)\b/g) * 5);
+  if (/\b(przewod|przewód|kabel|listwa|korytko|peszel|cat\s*\d|rg6|ydyp)\b/.test(src)) add('Przewody / Okablowanie', 2);
+  if (/\b(zlacze|złącze|wtyk|rj45|beczka|rozgaleznik|rozgałęźnik|zasilacz|wzmacniacz)\b/.test(src)) add('Złącza / Akcesoria', 2);
+  return Object.entries(scores).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+}
+
+detectTypes = function(notes) {
+  return installerScoreJobTypes(notes).map(([cat]) => cat);
+};
+
+function installerSplitSentences(rawText) {
+  const cleaned = installerStripTranscriptNoise(rawText);
+  return cleaned.split(/(?<=[.!?])\s+|[\n;]+/).map(x => x.trim()).filter(Boolean);
+}
+
+buildFocusedTranscriptText = function(rawText) {
+  if (!isVisitTranscript(rawText)) return cleanDictationSpaces(rawText);
+  const title = installerCleanTitleFromTranscript(rawText);
+  const address = parseTranscriptAddress(rawText);
+  const keepRe = /wycena|ofert|kamera|kamery|monitoring|rejestrator|nvr|dvr|podgl[aą]d|telefon|aplikacj|router|internet|wifi|wi-fi|lan|rj|switch|anten|dekoder|konwerter|talerz|telewizor|uchwyt|wieszak|klamka|zamek|laptop|komputer|windows|drukarka|kabel|przew[oó]d|skr[eę]tka|cat|rg6|pr[aą]d|zasil|gniazdk|wago|puszk|listw|korytk|peszl|przewier|wierc|przekuc|kopan|strych|poddasz|podbitk|rynnie|rynn|komin|maszt|elewacj|ociepl|wysoko|drabin|dach|rolet|klimatyzac|s[aą]siad|dost[eę]p|trudn|wizualizac|mail|sms|koszt|cena|zł|netto|brutto|metr|mb/i;
+  const important = [];
+  for (const sentence of installerSplitSentences(rawText)) {
+    if (keepRe.test(sentence) || INSTALLER_DECISION_PHRASES.test(sentence)) important.push(sentence);
+  }
+  const prefix = [title ? `tytuł ${title}` : '', address ? `adres ${address}` : ''].filter(Boolean).join('. ');
+  return cleanDictationSpaces((prefix ? `${prefix}. ` : '') + important.join('. '));
+};
+
+analyzeVisitTranscript = function(rawText, focusedText) {
+  const isTranscript = isVisitTranscript(rawText);
+  if (!isTranscript) return { isTranscript: false, findings: [], options: [], rejected: [], followUps: [] };
+  const text = normalizeSpeechText(focusedText || rawText);
+  const findings = [];
+  const options = [];
+  const rejected = [];
+  const followUps = [];
+  const add = (arr, value) => { if (value && !arr.includes(value)) arr.push(value); };
+  const addr = parseTranscriptAddress(rawText);
+  if (addr) add(findings, `adres z transkrypcji / nazwy pliku: ${addr}`);
+  const start = String(rawText || '').match(/start\s+godzina\s+(\d{1,2}[.:]\d{2})/i);
+  if (start) add(findings, `początek wizyty: ${start[1].replace('.', ':')}`);
+  const scores = installerScoreJobTypes(text);
+  if (scores.length) add(findings, `najbardziej prawdopodobny typ: ${scores[0][0]}`);
+  if (/podglad zdalny|aplikacj/.test(text)) add(findings, 'w rozmowie pojawia się podgląd w telefonie / aplikacji');
+  if (/router|internet|wifi|wi-fi|lan|switch|modem|swiatlowod/.test(text)) add(findings, 'w rozmowie pojawia się internet / router / sieć');
+  if (/nagrywa|zapis|dysk|rejestrator/.test(text)) add(findings, 'omówiono zapis nagrań albo rejestrator');
+  if (/obrotow|ptz|sterowac|sterowac|obracac/.test(text)) add(options, 'kamery obrotowe PTZ');
+  if (/tubow|statyczn|kamera tubowa|zwykla kamera/.test(text)) add(options, 'kamery tubowe / statyczne');
+  if (/solarn/.test(text)) (/nie solarn|solarnych nie|anty-solarn|nie chce/.test(text) ? add(rejected, 'kamery solarne odrzucone albo niechciane') : add(options, 'kamery solarne'));
+  if (/korytk|listw|maskuj|ukryc kabel|ukryć kabel/.test(text)) add(options, 'prowadzenie przewodu w listwie / korytku');
+  if (/rynnie|rynn/.test(text)) add(options, 'prowadzenie przewodu przy rynnie');
+  if (/strych|poddasz|podbitk/.test(text)) add(options, 'przejście przez strych / poddasze / podbitkę');
+  if (/puszk.*rolet|rolety|rolet/.test(text)) add(options, 'wykorzystanie puszek albo przewodów od rolet');
+  if (/klimatyzac|skroplin|wymiennik/.test(text)) add(options, 'wariant przy klimatyzacji / skroplinach');
+  if (/przewier|wierc|przekuc|przejscie|przejście/.test(text)) add(options, 'przewiert / przekucie pod przewód');
+  if (/anten|dekoder|konwerter|sygnal/.test(text)) add(options, 'instalacja antenowa / sygnał TV');
+  if (/router|tp-link|access point|repeater|mesh/.test(text)) add(options, 'konfiguracja routera / Wi‑Fi');
+  if (/sasiad|sąsiad|ciezko dostep|ciężko dostęp/.test(text)) add(followUps, 'sprawdzić dostęp do sąsiada / strychu / części wspólnej');
+  if (/prad|prąd|gniazdk|zasil/.test(text)) add(followUps, 'sprawdzić realne źródło zasilania');
+  if (/wizualizac|wizualizator/.test(text)) add(followUps, 'przygotować wizualizację rozmieszczenia sprzętu');
+  if (/wy[sś]le ofert|ofert[eę]|mail|sms/.test(text)) add(followUps, 'przygotować i wysłać ofertę');
+  if (scores[0]?.[0] === 'Kamery CCTV' && !/\b\d+\s+kamer/.test(text)) add(followUps, 'liczba kamer nie jest jednoznaczna — nie doliczać kamer bez potwierdzenia');
+  if (/kabel|przewod|przewód|listw|korytk/.test(text) && !/\b\d+(?:[.]\d+)?\s*(?:m|mb)\b/.test(text)) add(followUps, 'brak długości przewodów / listew');
+  return { isTranscript: true, findings, options, rejected, followUps };
+};
+
+parseClientAddress = function(rawText, normalizedText) {
+  const transcriptAddress = parseTranscriptAddress(rawText);
+  if (transcriptAddress) return transcriptAddress;
+  const compact = cleanDictationSpaces(rawText);
+  const explicit = compact.match(/(?:adres|miejscowość|miejscowosc|ulica|ul\.?|ulica)\s+([^,.;\n]{3,90})/i);
+  if (explicit) {
+    const cut = explicit[1].split(/\b(?:telefon|tel|klient|montaz|montaż|kamera|kamery|router|internet|dojazd|cena)\b/i)[0].trim();
+    const adr = installerAddressFromPhrase((/^(ul\.?|ulica)/i.test(explicit[0]) ? 'ul. ' : '') + cut, false);
+    if (adr) return adr;
+  }
+  const addr = installerAddressFromPhrase(compact, false);
+  if (addr) return addr;
+  return '';
+};
+
+parseClientName = function(rawText) {
+  const raw = cleanDictationSpaces(rawText);
+  const explicit = raw.match(/\b(?:klient|klientka|pan|pani)\s+([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż-]+)/);
+  if (explicit && isLikelyHumanName(explicit[1])) return explicit[1];
+  const beforeAddress = raw.match(/^\s*([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż-]+)\s+(?:ul\.?|ulica|[A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźż-]+\s+\d)/);
+  if (beforeAddress && isLikelyHumanName(beforeAddress[1])) return beforeAddress[1];
+  const title = installerCleanTitleFromTranscript(rawText);
+  const titleName = title.match(/\b([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż-]+)\b/);
+  if (titleName && isLikelyHumanName(titleName[1]) && !/Wadowice|Ogrodowa|Limanowskiego|Sielska|Kossaka|Bajana|Cyranowska|Poniatowskiego|Lwowska|Wolno|Działkowców|Dzialkowcow|Top Gaz|FitCake/i.test(titleName[1])) return titleName[1];
+  return '';
+};
+
+function installerClauseHasDecision(clause, isTranscript) {
+  if (!isTranscript) return true;
+  if (INSTALLER_DECISION_PHRASES.test(clause)) return true;
+  if (/\b\d+\s+(?:kamer|kabli|przewod|przewód|m|mb|puszk|złącz|zlacz|rj45|gniazd|router|anten|telewizor)/i.test(clause)) return true;
+  return !INSTALLER_CONTEXT_STOP_PHRASES.test(clause);
+}
+
+function parseArchiveTrainedServiceItems(text, isTranscript) {
+  const items = [];
+  const usedFragments = [];
+  const add = (category, name, unit, qty, fallback, key, fragment) => {
+    if (isTranscript && !installerClauseHasDecision(fragment || text, true)) return;
+    if (items.some(i => i._voiceKey === key && i.name === name)) return;
+    const catalog = findCatalogService(category, name);
+    items.push(buildVoiceItem({ category, name, unit, quantity: qty || 1, priceNet: number(catalog?.price_net, fallback), key }));
+    if (fragment) usedFragments.push(fragment);
+  };
+  const clauses = String(text || '').split(/[.;\n]+|\s+oraz\s+/).map(x => x.trim()).filter(Boolean);
+  for (const clause of clauses) {
+    if (/router|tp\s*-?\s*link|access point/i.test(clause)) add('Sieć / Wi‑Fi', /access point/i.test(clause) ? 'Konfiguracja access pointa' : 'Konfiguracja routera', 'usł', 1, 180, 'router_config_archive', clause);
+    if (/repeater|wzmacniacz\s+wifi|wzmacniacz\s+wi-fi/i.test(clause)) add('Sieć / Wi‑Fi', 'Konfiguracja repeatera Wi‑Fi', 'usł', 1, 130, 'wifi_repeater_archive', clause);
+    if (/mesh/i.test(clause)) add('Sieć / Wi‑Fi', 'Konfiguracja sieci mesh', 'usł', 1, 240, 'wifi_mesh_archive', clause);
+    if (/drukark/i.test(clause)) add('Sieć / Wi‑Fi', 'Konfiguracja drukarki sieciowej', 'usł', 1, 100, 'network_printer_archive', clause);
+    if (/ustawien\w* anten|ustawic\w* anten|ustawić\w* anten|sygnal|sygnał|pomiar/i.test(clause) && /anten|dvb|sat/i.test(clause)) add('Anteny / Sygnał', /sat|satelit/i.test(clause) ? 'Ustawienie anteny satelitarnej' : 'Ustawienie anteny DVB-T', 'usł', 1, /sat|satelit/i.test(clause) ? 220 : 180, 'antenna_alignment_archive', clause);
+    if (/montaz\w* anten|montaż\w* anten|zakladanie\w* anten|zakładanie\w* anten/i.test(clause)) add('Anteny / Sygnał', /sat|satelit|talerz/i.test(clause) ? 'Montaż anteny satelitarnej' : 'Montaż anteny DVB-T', 'szt', 1, /sat|satelit|talerz/i.test(clause) ? 320 : 280, 'antenna_mount_archive', clause);
+    if (/konwerter/i.test(clause)) add('Anteny / Sygnał', /quad/i.test(clause) ? 'Wymiana konwertera QUAD' : 'Wymiana konwertera TWIN', 'szt', 1, /quad/i.test(clause) ? 130 : 110, 'lnb_archive', clause);
+    if (/dekoder/i.test(clause)) add('Anteny / Sygnał', 'Konfiguracja dekodera', 'usł', 1, 90, 'decoder_archive', clause);
+    if (/telewizor|\btv\b/i.test(clause) && /wieszak|uchwyt|powiesic|powiesić|montaz|montaż/i.test(clause)) add('TV / Montaż', 'Montaż telewizora na ścianie', 'szt', 1, 180, 'tv_wall_mount_archive', clause);
+    if (/smart\s*tv|konfigurac\w* telewizor/i.test(clause)) add('TV / Montaż', 'Konfiguracja telewizora / Smart TV', 'usł', 1, 120, 'smart_tv_archive', clause);
+    if (/laptop|komputer|windows/i.test(clause) && /instal|konfigur|napraw|diagnoz|system/i.test(clause)) add('Komputery / Telefony', /windows|system/i.test(clause) ? 'Instalacja / konfiguracja Windows' : 'Diagnostyka komputera / laptopa', 'usł', 1, /windows|system/i.test(clause) ? 180 : 120, 'computer_archive', clause);
+    if (/telefon|samsung|huawei|android/i.test(clause) && /konfigur|przywrac|reklamac|aplikac|konto|poczta|facebook/i.test(clause)) add('Komputery / Telefony', /reklamac|przywrac/i.test(clause) ? 'Przywracanie telefonu po serwisie / reklamacji' : 'Konfiguracja telefonu', 'usł', 1, /reklamac|przywrac/i.test(clause) ? 120 : 100, 'phone_archive', clause);
+    if (/klamk/i.test(clause)) add('Prace drobne', 'Montaż / naprawa klamki', 'szt', 1, 120, 'door_handle_archive', clause);
+    if (/zamek|zamka/i.test(clause)) add('Prace drobne', 'Wymiana zamka', 'szt', 1, 150, 'lock_archive', clause);
+  }
+  return { items, usedFragments };
+}
+
+const extractSpecialVoiceItems_v23_for_v24 = extractSpecialVoiceItems;
+extractSpecialVoiceItems = function(text) {
+  const base = extractSpecialVoiceItems_v23_for_v24(text);
+  const archive = parseArchiveTrainedServiceItems(text, isVisitTranscript(text));
+  for (const item of archive.items) {
+    if (!base.items.some(x => x._voiceKey === item._voiceKey || (x.category === item.category && x.name === item.name))) base.items.push(item);
+  }
+  base.usedFragments.push(...archive.usedFragments);
+  return base;
+};
+
+const parseSmartCommand_v23_for_v24 = parseSmartCommand;
+parseSmartCommand = function(rawText) {
+  const isTranscript = isVisitTranscript(rawText);
+  const focusedText = isTranscript ? buildFocusedTranscriptText(rawText) : rawText;
+  const result = parseSmartCommand_v23_for_v24(focusedText);
+  result.client = parseClientData(rawText, normalizeSpeechText(focusedText));
+  const transcriptInfo = analyzeVisitTranscript(rawText, focusedText);
+  result.transcriptInfo = transcriptInfo;
+  const scoreTypes = installerScoreJobTypes(focusedText);
+  if (scoreTypes.length) result.detectedType = scoreTypes[0][0];
+  if (isTranscript) {
+    const merged = mergeParserItems([...result.items, ...parseArchiveTrainedServiceItems(normalizeSpeechText(focusedText), true).items]);
+    result.items = merged.filter(item => {
+      const n = String(item.name || '').toLowerCase();
+      if (/montaż kamery ip zewnętrznej|montaż kamery ip wewnętrznej|montaż kamery obrotowej|montaż kamery tubowej/i.test(n)) {
+        return /\b\d+\s+kamer/i.test(normalizeSpeechText(focusedText));
+      }
+      return true;
+    });
+    result.missingData = detectMissingData(rawText, { client: result.client, items: result.items, detectedType: result.detectedType, distanceKm: result.distanceKm, distanceRate: result.distanceRate, freeKm: result.freeKm, transcriptInfo });
+    for (const f of transcriptInfo.followUps || []) if (!result.missingData.includes(f)) result.missingData.push(f);
+  }
+  result.learnedApplied = applyLearnedCorrections(rawText, result.items);
+  return result;
+};
+
+function isLikelyHumanName(text) {
+  const value = String(text || '').trim();
+  if (!value || value.split(/\s+/).length < 2) return false;
+  if (/(ulica|mielec|wadowice|ogrodowa|sielska|limanowskiego|kossaka|bajana|wolnosci|wolności|top gaz|fitcake|szkola|szkoła|centrum|medyczne|mój dysk|urecorder|trzeba|montaz|montaż|kamera|router|internet)/i.test(value)) return false;
+  return /^[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż]+\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż-]+$/.test(value);
+}
+
+// Rozszerzenie kategorii, podpowiedzi i checklist po wczytaniu cennika.
+function seedArchiveCatalogMetadata() {
+  TYPE_HINTS['TV / Montaż'] = ['Montaż telewizora na ścianie', 'Montaż uchwytu TV', 'Konfiguracja telewizora / Smart TV'];
+  TYPE_HINTS['Komputery / Telefony'] = ['Diagnostyka komputera / laptopa', 'Instalacja / konfiguracja Windows', 'Konfiguracja telefonu'];
+  TYPE_HINTS['Prace drobne'] = ['Montaż / naprawa klamki', 'Wymiana zamka'];
+  CHECKLISTS['TV / Montaż'] = ['Sprawdzić typ ściany i kołki', 'Sprawdzić wieszak / VESA', 'Ustalić wysokość montażu', 'Ukryć lub uporządkować przewody'];
+  CHECKLISTS['Komputery / Telefony'] = ['Sprawdzić objawy', 'Zrobić kopię ważnych danych', 'Zanotować hasła tylko jeśli klient je świadomie podaje', 'Sprawdzić konta i aplikacje po naprawie'];
+  CHECKLISTS['Prace drobne'] = ['Sprawdzić typ elementu', 'Ustalić materiał i zakres', 'Zanotować czy trzeba kupić części'];
+  const pushRule = (rule) => { if (!VOICE_ITEM_RULES.some(x => x.key === rule.key)) VOICE_ITEM_RULES.push(rule); };
+  pushRule({ key: 'tv_mount_archive', category: 'TV / Montaż', name: 'Montaż telewizora na ścianie', unit: 'szt', keywords: ['montaż tv', 'montaz tv', 'powieszenie telewizora', 'uchwyt tv', 'wieszak tv'] });
+  pushRule({ key: 'phone_config_archive', category: 'Komputery / Telefony', name: 'Konfiguracja telefonu', unit: 'usł', keywords: ['konfiguracja telefonu', 'ustawienie telefonu', 'przywracanie telefonu'] });
+  pushRule({ key: 'computer_diag_archive', category: 'Komputery / Telefony', name: 'Diagnostyka komputera / laptopa', unit: 'usł', keywords: ['laptop', 'komputer', 'diagnostyka komputera'] });
+  pushRule({ key: 'door_handle_archive', category: 'Prace drobne', name: 'Montaż / naprawa klamki', unit: 'szt', keywords: ['klamka', 'klamki', 'naprawa klamki'] });
+}
+seedArchiveCatalogMetadata();
+
+// v2.4: panel wzorców musi się wyrenderować niezależnie od wcześniejszego listenera init.
+document.addEventListener('DOMContentLoaded', renderArchiveLearningView);
+
+/* v2.4.1 — korekta adresu z miejscowością i ostrożniejsze pozycje z długich transkrypcji */
+function installerKnownCityFromText(text) {
+  const cities = ['Mielec','Tarnów','Tarnow','Rzeszów','Rzeszow','Dębica','Debica','Kolbuszowa','Przecław','Przeclaw','Radomyśl','Radomysl','Wadowice Górne','Wadowice Dolne','Złotniki','Zlotniki','Trzciana','Borowa','Malinie','Ruda','Jamy','Połaniec','Polaniec','Grochowe','Czermin','Chorzelów','Chorzelow','Tuszów Narodowy','Tuszow Narodowy','Wampierzów','Wampierzow','Łysaków','Lysakow','Wola Pławska','Wola Plawska','Trześń','Trzesn'];
+  const source = String(text || '');
+  for (const city of cities) {
+    const re = new RegExp(`\\b${escapeRegExp(city)}\\b`, 'i');
+    if (re.test(source)) return titleCase(city);
+  }
+  return '';
+}
+
+function installerJoinAddressCity(address, city) {
+  const a = String(address || '').replace(/,\s*$/,'').trim();
+  const c = String(city || '').trim();
+  if (!a) return c;
+  if (!c || new RegExp(`\\b${escapeRegExp(c)}\\b`, 'i').test(a)) return a;
+  return `${a}, ${c}`;
+}
+
+parseClientAddress = function(rawText, normalizedText) {
+  const transcriptAddress = parseTranscriptAddress(rawText);
+  if (transcriptAddress) return transcriptAddress;
+  const raw = cleanDictationSpaces(rawText);
+  const city = installerKnownCityFromText(raw);
+  const cityBeforeStreet = raw.match(/\b([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż-]+(?:\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż-]+)?)\s+(?:ul\.?|ulica)\s+([A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ.-]{2,}(?:\s+[A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ.-]{2,}){0,2})\s+(\d+[a-zA-Z]?(?:\s*(?:\/|przez)\s*\d+[a-zA-Z]?)?)/i);
+  if (cityBeforeStreet && installerKnownCityFromText(cityBeforeStreet[1])) {
+    return installerJoinAddressCity(`ul. ${titleCase(cityBeforeStreet[2])} ${cityBeforeStreet[3].replace(/\s*przez\s*/i,'/')}`, titleCase(cityBeforeStreet[1]));
+  }
+  const street = raw.match(/(?:ul\.?|ulica)\s+([A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ.-]{2,}(?:\s+[A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ.-]{2,}){0,2})\s+(\d+[a-zA-Z]?(?:\s*(?:\/|przez)\s*\d+[a-zA-Z]?)?)/i);
+  if (street) return installerJoinAddressCity(`ul. ${titleCase(street[1])} ${street[2].replace(/\s*przez\s*/i,'/')}`, city);
+  const addr = installerAddressFromPhrase(raw, false);
+  if (addr) return installerJoinAddressCity(addr, city);
+  return city || '';
+};
+
+function installerTranscriptItemCertain(item, focusedText) {
+  const name = String(item.name || '').toLowerCase();
+  const text = normalizeSpeechText(focusedText || '');
+  if (/montaz kamery|montaż kamery|kamera ip|kamera obrotowa|kamera tubowa/.test(name)) return /\b\d+\s+kamer/.test(text) && INSTALLER_DECISION_PHRASES.test(text);
+  if (/router|access point|repeater|mesh/.test(name)) return /\b(zakladanie routera|zakładanie routera|konfiguracja routera|montaz routera|montaż routera|podlaczenie internetu|podłączenie internetu|robimy internet|do wyceny.*router)\b/i.test(focusedText);
+  if (/rozgałęźnik|rozgaleznik|złącze|zlacze|wtyk|rj45|beczka|zasilacz|wzmacniacz/.test(name)) return /\b\d+\s*(?:szt|złącz|zlacz|wtyk|rj45|beczk|rozga)/i.test(text) && !INSTALLER_CONTEXT_STOP_PHRASES.test(focusedText);
+  if (String(item.unit || '').toLowerCase() === 'mb') return /\b\d+(?:[.]\d+)?\s*(?:m|mb)\b/i.test(text) && !INSTALLER_CONTEXT_STOP_PHRASES.test(focusedText);
+  if (/podglad zdalny|podgląd zdalny/.test(name)) return /klient.*podglad|klient.*podgląd|chce.*podglad|chce.*podgląd|ma byc.*podglad|ma być.*podgląd/i.test(focusedText);
+  if (/diagnostyka|serwis/.test(name)) return false;
+  return INSTALLER_DECISION_PHRASES.test(focusedText);
+}
+
+const parseSmartCommand_v24_before_filter = parseSmartCommand;
+parseSmartCommand = function(rawText) {
+  const result = parseSmartCommand_v24_before_filter(rawText);
+  if (isVisitTranscript(rawText)) {
+    const focused = buildFocusedTranscriptText(rawText);
+    result.items = result.items.filter(item => installerTranscriptItemCertain(item, focused));
+    result.missingData = detectMissingData(rawText, { client: result.client, items: result.items, detectedType: result.detectedType, distanceKm: result.distanceKm, distanceRate: result.distanceRate, freeKm: result.freeKm, transcriptInfo: result.transcriptInfo });
+    for (const f of result.transcriptInfo?.followUps || []) if (!result.missingData.includes(f)) result.missingData.push(f);
+  }
+  return result;
+};
+
+/* v2.4.2 — parseTranscriptAddress używany tylko dla realnej transkrypcji, żeby krótkie dyktowanie nie gubiło miasta */
+parseClientAddress = function(rawText, normalizedText) {
+  const transcriptAddress = isVisitTranscript(rawText) ? parseTranscriptAddress(rawText) : '';
+  if (transcriptAddress) return transcriptAddress;
+  const raw = cleanDictationSpaces(rawText);
+  const city = installerKnownCityFromText(raw);
+  const cityBeforeStreet = raw.match(/\b([A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż-]+(?:\s+[A-ZĄĆĘŁŃÓŚŹŻ][a-ząćęłńóśźż-]+)?)\s+(?:ul\.?|ulica)\s+([A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ.-]{2,}(?:\s+[A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ.-]{2,}){0,2})\s+(\d+[a-zA-Z]?(?:\s*(?:\/|przez)\s*\d+[a-zA-Z]?)?)/i);
+  if (cityBeforeStreet && installerKnownCityFromText(cityBeforeStreet[1])) {
+    return installerJoinAddressCity(`ul. ${titleCase(cityBeforeStreet[2])} ${cityBeforeStreet[3].replace(/\s*przez\s*/i,'/')}`, titleCase(cityBeforeStreet[1]));
+  }
+  const street = raw.match(/(?:ul\.?|ulica)\s+([A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ.-]{2,}(?:\s+[A-ZĄĆĘŁŃÓŚŹŻ][\wąćęłńóśźżĄĆĘŁŃÓŚŹŻ.-]{2,}){0,2})\s+(\d+[a-zA-Z]?(?:\s*(?:\/|przez)\s*\d+[a-zA-Z]?)?)/i);
+  if (street) return installerJoinAddressCity(`ul. ${titleCase(street[1])} ${street[2].replace(/\s*przez\s*/i,'/')}`, city);
+  const addr = installerAddressFromPhrase(raw, false);
+  if (addr) return installerJoinAddressCity(addr, city);
+  return city || '';
+};

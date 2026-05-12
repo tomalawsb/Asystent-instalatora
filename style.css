@@ -876,3 +876,60 @@ td input { min-height: 32px; padding: 5px 8px; }
     gap: 7px;
   }
 }
+
+
+/* v2.4 — archiwum transkrypcji, poprawki mobilnego UI i łatwiejsze korekty */
+.archive-learning-panel {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.archive-learning-view {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+.archive-learning-pill {
+  display: grid;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fbfdff;
+  font-size: 13px;
+}
+.archive-learning-pill strong { color: #174a82; }
+.archive-learning-pill small { color: var(--muted); }
+.parser-preview, .parser-preview * { max-width: 100%; }
+.parser-preview { overflow: visible; }
+.parser-preview details[open] { animation: none; }
+.preview-item-editor { grid-template-columns: minmax(190px, 1.7fr) 86px 74px 110px 118px auto; }
+.preview-item-editor input, .preview-item-editor select, .parser-data-row input, .parser-data-row select { font-size: 14px; }
+.transcript-mini li { overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .grid-main { grid-template-columns: 1fr !important; }
+  .sticky-card { position: static !important; }
+}
+@media (max-width: 760px) {
+  .preview-item-editor {
+    grid-template-columns: 1fr 92px;
+    align-items: stretch;
+  }
+  .preview-item-editor label:first-child,
+  .preview-item-editor label:nth-child(2),
+  .preview-item-editor label:nth-child(5),
+  .preview-line-total,
+  .preview-item-editor .btn-danger { grid-column: 1 / -1; }
+  .preview-item-editor label:nth-child(3),
+  .preview-item-editor label:nth-child(4) { min-width: 0; }
+  .parser-preview > .action-row {
+    position: sticky;
+    bottom: 0;
+    margin-left: -10px;
+    margin-right: -10px;
+    padding: 10px;
+    background: #f6f8fb;
+    border-top: 1px solid var(--line);
+  }
+  .archive-learning-pill { font-size: 12px; }
+}

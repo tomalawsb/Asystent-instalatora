@@ -1,0 +1,113 @@
+{
+  "version": "2.4 - 1205260816",
+  "source": "Transkrypcje usług.zip",
+  "files_scanned": 417,
+  "category_hits": {
+    "Kamery CCTV": 106,
+    "Sieć / Wi‑Fi": 227,
+    "Anteny / Sygnał": 191,
+    "TV / Montaż": 158,
+    "Komputery / Telefony": 240,
+    "Prace drobne": 30
+  },
+  "example_files": {
+    "Kamery CCTV": [
+      "Wolno#U015bci 43 zak#U0142adanie routera tp-link.txt",
+      "Ogrodowa 46 pod#U0142#U0105czenie internetu.txt",
+      "Topgaz monta#U017c internet wolno#U015bci.txt",
+      "Wolno#U015bci 43 V3.txt",
+      "Sielska 37 przez 1 wycena kamery.txt",
+      "Wolno#U015bci 43 v2.txt",
+      "limanowskiego 24 v3.txt",
+      "Szko#U0142a Chrz#U0105st#U00f3w.txt"
+    ],
+    "Sieć / Wi‑Fi": [
+      "Z#U0142otniki 56.txt",
+      "Wolno#U015bci 43 zak#U0142adanie routera tp-link.txt",
+      "Ogrodowa 46 pod#U0142#U0105czenie internetu.txt",
+      "Modelarska 14E Iwona ba#U0142a.txt",
+      "Topgaz monta#U017c internet wolno#U015bci.txt",
+      "Niesio#U0142owskiego 21 a e V3.txt",
+      "Ruda 196 V2.txt",
+      "akneo rozliczenie.txt"
+    ],
+    "Anteny / Sygnał": [
+      "trze#U015b#U0144 263 burczak.txt",
+      "Z#U0142otniki 56.txt",
+      "Lakmita 12.txt",
+      "Wadowice G#U00f3rne 13.txt",
+      "Modelarska 14E Iwona ba#U0142a.txt",
+      "Ruda 196 V2.txt",
+      "Warne#U0144czyka 15 przez 23.txt",
+      "Szarych Szereg#U00f3w 36.txt"
+    ],
+    "TV / Montaż": [
+      "Lakmita 12.txt",
+      "Wolno#U015bci 43 zak#U0142adanie routera tp-link.txt",
+      "Ogrodowa 46 pod#U0142#U0105czenie internetu.txt",
+      "Wadowice G#U00f3rne 13.txt",
+      "Ruda 196 V2.txt",
+      "Warne#U0144czyka 15 przez 23.txt",
+      "limanowskiego 24 v3.txt",
+      "tv Media Expert wniesienie.txt"
+    ],
+    "Komputery / Telefony": [
+      "Wolno#U015bci 43 zak#U0142adanie routera tp-link.txt",
+      "Ogrodowa 46 pod#U0142#U0105czenie internetu.txt",
+      "Modelarska 14E Iwona ba#U0142a.txt",
+      "+48177745818-1-1777461403726.txt",
+      "Jacek Ujazd przywracanie telefonu po reklamacji.txt",
+      "Wolno#U015bci 43 V3.txt",
+      "akneo rozliczenie.txt",
+      "Malinie 428.txt"
+    ],
+    "Prace drobne": [
+      "Sielska 37 przez 1 wycena kamery.txt",
+      "Lwowska 23 V2.txt",
+      "FitCake Zak#U0142adanie klamki.txt",
+      "Szymanowskiego 50 Biernacki.txt",
+      "fitCake naprawa klamki.txt",
+      "Wola Wadowska 98 Play.txt",
+      "Wadowice G#U00f3rne 99 V6.txt",
+      "URecorder_20260319_124254.txt"
+    ]
+  },
+  "built_in_corrections": [
+    [
+      "przez 1",
+      "/1"
+    ],
+    [
+      "rjki / rj-ki / erjotki",
+      "RJ45"
+    ],
+    [
+      "obrotówki",
+      "kamery obrotowe PTZ"
+    ],
+    [
+      "tubowe",
+      "kamery tubowe"
+    ],
+    [
+      "listwy mastujące",
+      "listwy maskujące"
+    ],
+    [
+      "korytko",
+      "listwa maskująca"
+    ],
+    [
+      "ancenowy / ankenowy",
+      "antenowy"
+    ],
+    [
+      "badowice",
+      "Wadowice"
+    ],
+    [
+      "rodowa 46",
+      "Ogrodowa 46"
+    ]
+  ]
+}

@@ -592,6 +592,21 @@ window.PRICE_CATALOG = {
       "name": "Zaciskanie wtyku RJ45",
       "unit": "szt",
       "price_net": 12.0
+    },
+    {
+      "name": "Wago / szybkozłączka elektryczna",
+      "unit": "szt",
+      "price_net": 2.0
+    },
+    {
+      "name": "Mała puszka elektryczna / hermetyczna",
+      "unit": "szt",
+      "price_net": 12.0
+    },
+    {
+      "name": "Listwa maskująca / korytko",
+      "unit": "mb",
+      "price_net": 7.0
     }
   ],
   "Domofon": [
@@ -872,6 +887,92 @@ window.PRICE_CATALOG = {
       "name": "Nauka obsługi i instalacja aplikacji",
       "unit": "usł",
       "price_net": 50.0
+    }
+  ],
+  "TV / Montaż": [
+    {
+      "name": "Montaż telewizora na ścianie",
+      "unit": "szt",
+      "price_net": 180.0
+    },
+    {
+      "name": "Montaż uchwytu TV",
+      "unit": "szt",
+      "price_net": 120.0
+    },
+    {
+      "name": "Wniesienie telewizora",
+      "unit": "usł",
+      "price_net": 80.0
+    },
+    {
+      "name": "Konfiguracja telewizora / Smart TV",
+      "unit": "usł",
+      "price_net": 120.0
+    },
+    {
+      "name": "Podłączenie dekodera / TV",
+      "unit": "usł",
+      "price_net": 90.0
+    },
+    {
+      "name": "Porządkowanie przewodów RTV",
+      "unit": "usł",
+      "price_net": 80.0
+    }
+  ],
+  "Komputery / Telefony": [
+    {
+      "name": "Diagnostyka komputera / laptopa",
+      "unit": "usł",
+      "price_net": 120.0
+    },
+    {
+      "name": "Instalacja / konfiguracja Windows",
+      "unit": "usł",
+      "price_net": 180.0
+    },
+    {
+      "name": "Konfiguracja telefonu",
+      "unit": "usł",
+      "price_net": 100.0
+    },
+    {
+      "name": "Przywracanie telefonu po serwisie / reklamacji",
+      "unit": "usł",
+      "price_net": 120.0
+    },
+    {
+      "name": "Konfiguracja konta, poczty lub aplikacji",
+      "unit": "usł",
+      "price_net": 90.0
+    },
+    {
+      "name": "Kopia danych / przeniesienie danych",
+      "unit": "usł",
+      "price_net": 150.0
+    },
+    {
+      "name": "Konfiguracja drukarki",
+      "unit": "usł",
+      "price_net": 100.0
+    }
+  ],
+  "Prace drobne": [
+    {
+      "name": "Montaż / naprawa klamki",
+      "unit": "szt",
+      "price_net": 120.0
+    },
+    {
+      "name": "Wymiana zamka",
+      "unit": "szt",
+      "price_net": 150.0
+    },
+    {
+      "name": "Drobna naprawa techniczna",
+      "unit": "usł",
+      "price_net": 100.0
     }
   ]
 };

@@ -14,3 +14,10 @@ Zakres tej paczki:
 - utrzymane samouczenie z poprawek w podglądzie i po zatwierdzeniu.
 
 Po wrzuceniu na GitHub Pages kliknij w aplikacji „Odśwież cache”.
+
+
+2.4 - 1205260816
+- Dodano wzorce z archiwum transkrypcji usług.
+- Dodano parser długich transkrypcji: czyszczenie nagłówków, wykrywanie typu zlecenia, wariantów i rzeczy do sprawdzenia.
+- Dodano kategorie: TV / Montaż, Komputery / Telefony, Prace drobne.
+- Dodano panel 'Wzorce z archiwum transkrypcji' w ustawieniach.
