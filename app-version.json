@@ -1,7 +1,7 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "3.0 - 1205261005",
-  "build": "1205261005",
-  "date": "2026-05-12",
-  "notes": "Przebudowano widok mobilny: usunięto opisy z głównych ekranów, dodano zakładkę Pomoc, uproszczono nagłówek i układ bez zmiany wielkości przycisków."
+  "version": "3.1 - 1505261224",
+  "build": "1505261224",
+  "date": "2026-05-15",
+  "notes": "Poprawiono rozbijanie wycen CCTV: fałszywy adres z liczby kamer, liczba RJ45 dla połączenia strych–parter, beczki LAN, kamera Wi‑Fi, rejestrator NVR oraz brak zgadywania metrów przewodu zasilającego."
 }

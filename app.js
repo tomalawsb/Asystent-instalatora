@@ -1,4 +1,4 @@
-const APP_VERSION = '3.0 - 1205261005';
+const APP_VERSION = '3.1 - 1505261224';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -5444,3 +5444,243 @@ document.addEventListener('DOMContentLoaded', () => {
   autoApplyMaterialPricesOnStart();
   renderMaterialPrices();
 });
+
+/* v3.1 - poprawki rozbijania kamer CCTV: adres, Wi-Fi, RJ45, beczki LAN, NVR i przewody bez zgadywania metrów */
+function installerV31Text(rawText) {
+  return normalizeSpeechText(String(rawText || '')).toLowerCase();
+}
+
+function installerV31Norm(value) {
+  return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').replace(/\s+/g, ' ').trim();
+}
+
+function installerV31WordNumber(value) {
+  const text = installerV31Norm(value);
+  if (/\b(?:jedna|jeden|jedno|1)\b/.test(text)) return 1;
+  if (/\b(?:dwie|dwa|2)\b/.test(text)) return 2;
+  if (/\b(?:trzy|3)\b/.test(text)) return 3;
+  if (/\b(?:cztery|4)\b/.test(text)) return 4;
+  if (/\b(?:piec|5)\b/.test(text)) return 5;
+  if (/\b(?:szesc|6)\b/.test(text)) return 6;
+  if (/\b(?:siedem|7)\b/.test(text)) return 7;
+  if (/\b(?:osiem|8)\b/.test(text)) return 8;
+  return 0;
+}
+
+function installerV31CameraCounts(rawText) {
+  const text = installerV31Text(rawText);
+  const total = extractCameraQuantity(text) || 0;
+  let wifi = 0;
+  const wifiNear = text.match(/\b(\d+|jedna|jeden|jedno|dwie|dwa|trzy|cztery|piec|pięc|szesc|sześć)\s+(?:z\s+nich\s+)?(?:kamer\w*\s+)?(?:bezprzewodow\w*|wi\s*-?\s*fi|wifi)\b/i)
+    || text.match(/\b(?:bezprzewodow\w*|wi\s*-?\s*fi|wifi)\s+(?:ma\s+byc\s+|będzie\s+|bedzie\s+)?(?:kamera\s+)?(\d+|jedna|jeden|jedno|dwie|dwa|trzy|cztery|piec|pięc|szesc|sześć)\b/i)
+    || text.match(/\b(\d+|jedna|jeden|jedno|dwie|dwa|trzy|cztery|piec|pięc|szesc|sześć)\s+z\s+nich\s+(?:jest\s+|ma\s+byc\s+|będzie\s+|bedzie\s+)?(?:bezprzewodow\w*|wi\s*-?\s*fi|wifi)\b/i);
+  if (wifiNear) wifi = installerV31WordNumber(wifiNear[1]) || number(wifiNear[1], 0);
+  if (!wifi && /(?:piata|piąta)\s+kamera[^.?!]{0,80}(?:wi\s*-?\s*fi|wifi|bezprzewodow)/i.test(text)) wifi = 1;
+  if (!wifi && total > 0 && /(?:jedna|1)\s+z\s+nich\s+(?:jest\s+)?(?:bezprzewodow\w*|wi\s*-?\s*fi|wifi)/i.test(text)) wifi = 1;
+  if (!wifi && total > 0 && /(?:wi\s*-?\s*fi|wifi|bezprzewodow)/i.test(text) && /\b(?:inna?m?|drugim|nowym)\s+budynk/i.test(text)) wifi = 1;
+  if (total > 0 && wifi > total) wifi = total;
+  const wired = total > 0 ? Math.max(0, total - wifi) : 0;
+  return { total, wifi, wired };
+}
+
+function installerV31HasAtticToGroundConnection(rawText) {
+  const text = installerV31Text(rawText);
+  return /(strych\w*[^.?!]{0,180}(?:parter|dol|dołu|dolu|na\s+dol|na\s+dół)|(?:parter|dol|dołu|dolu|na\s+dol|na\s+dół)[^.?!]{0,180}strych\w*)/i.test(text)
+    && /(polacz|połącz|laczyc|łączyć|zlaczyc|złączyć|id[aą]\s+na|ida\s+na|schodz[aą]|zejsc|zejść)/i.test(text);
+}
+
+function installerV31HasExplicitCableLength(rawText) {
+  const text = installerV31Text(rawText);
+  return /\b\d+(?:[,.]\d+)?\s*(?:m|mb|metr\w*)\b/i.test(text)
+    || /\b(?:piec|pięc|dziesiec|dziesięć|pietnascie|piętnaście|dwadziescia|dwadzieścia|trzydziesci|trzydzieści)\s+metr/i.test(text);
+}
+
+function installerV31IsBogusAddress(address, rawText) {
+  const addr = installerV31Norm(address);
+  if (!addr) return false;
+  if (/\b(kamer|kamera|kamery|hikvis|mpix|megapiksel|rejestrator|nvr|wifi|wi fi|bezprzewod)\b/.test(addr)) return true;
+  if (!/\b(ul\.?|ulica|miejscowosc|adres|mielec|tarnow|rzeszow|debica|kolbuszowa|wadowice|borowa|czermin|chorzelow|trzesn|przeclaw|radomysl)\b/.test(addr) && /\b\d+\b/.test(addr) && /\bkamer/.test(installerV31Norm(rawText))) return true;
+  return false;
+}
+
+const parseClientAddress_v31_before = parseClientAddress;
+parseClientAddress = function(rawText, normalizedText) {
+  const address = parseClientAddress_v31_before(rawText, normalizedText);
+  return installerV31IsBogusAddress(address, rawText) ? '' : address;
+};
+
+function installerV31Price(category, name, fallback) {
+  if (typeof installerFindCatalogPriceV29 === 'function') return installerFindCatalogPriceV29(category, name, fallback);
+  const catalog = findCatalogService(category, name);
+  return number(catalog?.price_net, fallback);
+}
+
+function installerV31AddOrSet(items, item) {
+  const key = `${item.category}|${installerV31Norm(item.name)}|${item.unit}`;
+  const found = items.find(existing => `${existing.category}|${installerV31Norm(existing.name)}|${existing.unit}` === key);
+  if (found) {
+    found.quantity = item.quantity;
+    found.priceNet = number(found.priceNet, item.priceNet);
+    if (item._voiceKey) found._voiceKey = item._voiceKey;
+  } else {
+    items.push(item);
+  }
+}
+
+function installerV31RemoveBadCableGuesses(rawText, result) {
+  if (!result || !Array.isArray(result.items)) return;
+  const text = installerV31Text(rawText);
+  const noRealLength = !installerV31HasExplicitCableLength(rawText);
+  const alreadyPrepared = /kable?\s+s[aą]\s+ju[zż]\s+(?:przeci[aą]gni[eę]te|gotowe|po[łl]o[zż]one)|wszystko\s+jest\s+na\s+skr[eę]tkach|skr[eę]tkach\s+zrobione/i.test(text);
+  result.items = result.items.filter(item => {
+    const name = installerV31Norm(item.name);
+    const qty = number(item.quantity, 0);
+    if (noRealLength && /prowadzenie.*skretki|prowadzenie.*przewodu|przewod.*2x0[,.]?5|przewod.*2×0[,.]?5/.test(name)) return false;
+    if (alreadyPrepared && /prowadzenie.*skretki|skretka utp|przewod.*cat/.test(name) && qty <= 1) return false;
+    return true;
+  });
+}
+
+function installerV31PatchCameraMounts(rawText, result) {
+  const counts = installerV31CameraCounts(rawText);
+  if (!counts.total || !result || !Array.isArray(result.items)) return counts;
+  if (!counts.wifi) return counts;
+  const cameraMountRe = /monta[zż] kamery ip zewn[eę]trznej|montaz kamery ip zewnetrznej|monta[zż] kamery ip wewn[eę]trznej|montaz kamery ip wewnetrznej/i;
+  result.items = result.items.filter(item => !cameraMountRe.test(String(item.name || '')));
+  if (counts.wired > 0) {
+    installerV31AddOrSet(result.items, buildVoiceItem({
+      category: 'Kamery CCTV',
+      name: 'Montaż kamery IP zewnętrznej',
+      unit: 'szt',
+      quantity: counts.wired,
+      priceNet: installerV31Price('Kamery CCTV', 'Montaż kamery IP zewnętrznej', 260),
+      key: 'camera_wired_v31'
+    }));
+  }
+  installerV31AddOrSet(result.items, buildVoiceItem({
+    category: 'Kamery CCTV',
+    name: 'Montaż kamery Wi‑Fi',
+    unit: 'szt',
+    quantity: counts.wifi,
+    priceNet: installerV31Price('Kamery CCTV', 'Montaż kamery Wi‑Fi', 230),
+    key: 'camera_wifi_v31'
+  }));
+  return counts;
+}
+
+function installerV31PatchRj45(rawText, result, counts) {
+  if (!result || !Array.isArray(result.items)) return;
+  const text = installerV31Text(rawText);
+  if (!/(rj\s*-?\s*45|rjek|rjki|pozarabia|zarobi[cć]|zacisn[aą][cć]|zacisk)/i.test(text)) return;
+  const wired = counts?.wired || installerV31CameraCounts(rawText).wired || 0;
+  if (!wired) return;
+  const atticJoin = installerV31HasAtticToGroundConnection(rawText);
+  const rjQty = atticJoin ? wired * 3 : wired * 2;
+  const couplerQty = atticJoin ? wired : 0;
+  result.items = result.items.filter(item => !/zaciskanie wtyku rj45|zarabianie końcówki rj45|zarabianie koncowki rj45|wtyk rj45 cat 5e utp|wtyk rj45 cat 6 utp|łącznik rj45|lacznik rj45|beczka lan/i.test(String(item.name || '')));
+  installerV31AddOrSet(result.items, buildVoiceItem({
+    category: 'Złącza / Akcesoria',
+    name: 'Zaciskanie wtyku RJ45',
+    unit: 'szt',
+    quantity: rjQty,
+    priceNet: installerV31Price('Złącza / Akcesoria', 'Zaciskanie wtyku RJ45', 12),
+    key: 'rj45_labor_v31'
+  }));
+  installerV31AddOrSet(result.items, buildVoiceItem({
+    category: 'Złącza / Akcesoria',
+    name: 'Wtyk RJ45 Cat 5e UTP',
+    unit: 'szt',
+    quantity: rjQty,
+    priceNet: installerV31Price('Złącza / Akcesoria', 'Wtyk RJ45 Cat 5e UTP', 0.6),
+    key: 'rj45_plug_v31'
+  }));
+  if (couplerQty > 0) {
+    installerV31AddOrSet(result.items, buildVoiceItem({
+      category: 'Złącza / Akcesoria',
+      name: 'Łącznik RJ45 / beczka LAN',
+      unit: 'szt',
+      quantity: couplerQty,
+      priceNet: installerV31Price('Złącza / Akcesoria', 'Łącznik RJ45 / beczka LAN', 8),
+      key: 'rj45_coupler_v31'
+    }));
+  }
+}
+
+function installerV31PatchNvr(rawText, result, counts) {
+  if (!result || !Array.isArray(result.items)) return;
+  const text = installerV31Text(rawText);
+  const total = counts?.total || installerV31CameraCounts(rawText).total || 0;
+  if (!/(rejestrator|nvr)/i.test(text)) return;
+  if (/\b(kupic|kupi[cć]|trzeba\s+kupi[cć]|nowy\s+rejestrator|rejestrator\s+nowy)/i.test(text)) {
+    const nvrName = total > 4 ? 'Rejestrator NVR 8 kanałów — materiał' : 'Rejestrator NVR 4 kanały — materiał';
+    installerV31AddOrSet(result.items, buildVoiceItem({
+      category: 'Kamery CCTV',
+      name: nvrName,
+      unit: 'szt',
+      quantity: 1,
+      priceNet: installerV31Price('Kamery CCTV', nvrName, total > 4 ? 560 : 390),
+      key: 'nvr_material_v31'
+    }));
+  }
+  if (/zainstalowa[cć]|podlaczyc|podłączy[cć]|do\s+przygotowanego\s+miejsca|stary\s+rejestrator/i.test(text)) {
+    installerV31AddOrSet(result.items, buildVoiceItem({
+      category: 'Kamery CCTV',
+      name: 'Montaż / podłączenie rejestratora NVR',
+      unit: 'usł',
+      quantity: 1,
+      priceNet: installerV31Price('Kamery CCTV', 'Montaż / podłączenie rejestratora NVR', 120),
+      key: 'nvr_mount_v31'
+    }));
+  }
+}
+
+function installerV31PatchSurcharges(rawText, result) {
+  if (!result) return;
+  const hasDrillingItem = (result.items || []).some(item => /przewiert przez ścianę|przewiert przez sciane|wiercenie przejścia|wiercenie przejscia/i.test(String(item.name || '')));
+  if (hasDrillingItem && Array.isArray(result.surchargeSuggestions)) {
+    result.surchargeSuggestions = result.surchargeSuggestions.filter(s => s.key !== 'surcharge_drilling' && !/przewiert|przekucie/i.test(String(s.item?.name || '')));
+  }
+}
+
+function installerV31PatchMissing(rawText, result, counts) {
+  if (!result) return;
+  const text = installerV31Text(rawText);
+  const missing = new Set(result.missingData || []);
+  if (counts?.wired && /rj\s*-?\s*45|pozarabia|zarobi[cć]/i.test(text) && installerV31HasAtticToGroundConnection(rawText)) {
+    missing.add(`RJ45 policzono wariantem pełnym: ${counts.wired * 3} szt. dla ${counts.wired} kamer przewodowych; sprawdź, czy stare końcówki na strychu są do użycia — wtedy może wystarczyć ${counts.wired * 2} szt.`);
+    missing.add(`łączniki RJ45 / beczki LAN policzono: ${counts.wired} szt. do połączenia kabli strych–parter`);
+  }
+  if (counts?.wifi && /podlaczyc[^.?!]{0,80}pr[aą]d|podłączyć[^.?!]{0,80}pr[aą]d|zasil/i.test(text) && !installerV31HasExplicitCableLength(rawText)) {
+    missing.add('przy kamerze Wi‑Fi: sprawdzić długość i sposób doprowadzenia zasilania — program nie zgaduje metrów przewodu');
+  }
+  if (/(nowymi\s+kamerami|5\s+kamer|piec\s+kamer|pięć\s+kamer)/i.test(text) && !/(kupic|kupi[cć]).{0,50}kamer/i.test(text)) {
+    missing.add('sprawdzić, czy kamery są po stronie klienta, czy też mają wejść jako materiały do zakupu');
+  }
+  if (/(rejestrator|nvr)/i.test(text) && !/dysk|hdd|tb|terabajt/i.test(text)) {
+    missing.add('sprawdzić dysk do rejestratora: pojemność, czy jest nowy, czy zostaje stary');
+  }
+  result.missingData = [...missing];
+}
+
+const parseSmartCommand_v31_before = parseSmartCommand;
+parseSmartCommand = function(rawText) {
+  const result = parseSmartCommand_v31_before(rawText);
+  if (result?.client?.address && installerV31IsBogusAddress(result.client.address, rawText)) result.client.address = '';
+  installerV31RemoveBadCableGuesses(rawText, result);
+  const counts = installerV31PatchCameraMounts(rawText, result);
+  installerV31PatchRj45(rawText, result, counts);
+  installerV31PatchNvr(rawText, result, counts);
+  installerV31PatchSurcharges(rawText, result);
+  result.items = mergeParserItems(result.items || []);
+  result.missingData = detectMissingData(rawText, {
+    client: result.client,
+    items: result.items,
+    detectedType: result.detectedType,
+    distanceKm: result.distanceKm,
+    distanceRate: result.distanceRate,
+    freeKm: result.freeKm,
+    transcriptInfo: result.transcriptInfo
+  });
+  installerV31PatchMissing(rawText, result, counts);
+  return result;
+};
