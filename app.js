@@ -1,4 +1,4 @@
-const APP_VERSION = '3.1 - 1505261224';
+const APP_VERSION = '3.2 - 1605261429';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -610,6 +610,8 @@ function initEvents() {
   });
   $('clearDataBtn').addEventListener('click', clearLocalData);
   $('exportBackupBtn').addEventListener('click', exportBackup);
+  $('importBackupBtn').addEventListener('click', () => $('importBackupFile').click());
+  $('importBackupFile').addEventListener('change', importBackupFromFile);
   $('refreshAppBtn').addEventListener('click', refreshAppCache);
   $('savePhraseDictionaryBtn').addEventListener('click', savePhraseDictionaryFromForm);
   $('resetPhraseDictionaryBtn').addEventListener('click', resetPhraseDictionary);
@@ -1523,6 +1525,88 @@ function exportBackup() {
     quotes: loadQuotes()
   };
   downloadFile(`pomocnik_instalatora_backup_${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
+}
+
+function extractBackupRecords(payload) {
+  if (!payload || typeof payload !== 'object') return [];
+  if (Array.isArray(payload.quoteRecords)) return payload.quoteRecords.map(normalizeQuoteRecord);
+  if (Array.isArray(payload.records)) return payload.records.map(normalizeQuoteRecord);
+  if (Array.isArray(payload.quotes)) return payload.quotes.map(normalizeQuoteRecord);
+  return [];
+}
+
+function refreshFormAfterBackupImport() {
+  const settings = loadSettings();
+  applyTheme(settings.uiTheme || 'light');
+  if ($('companyName')) $('companyName').value = settings.companyName || '';
+  if ($('vatRate')) $('vatRate').value = settings.vatRate ?? 23;
+  if ($('storageMode')) $('storageMode').value = settings.storageMode || 'local';
+  if ($('dropboxToken')) $('dropboxToken').value = settings.dropboxAccessToken || '';
+  if ($('dropboxPath')) $('dropboxPath').value = settings.dropboxPath || '/pomocnik_instalatora_data.json';
+  if ($('dropboxAutoSync')) $('dropboxAutoSync').checked = !!settings.dropboxAutoSync;
+  if ($('uiTheme')) $('uiTheme').value = normalizeTheme(settings.uiTheme || 'light');
+  if ($('phraseDictionary')) $('phraseDictionary').value = loadPhraseDictionaryText();
+  fillSelect($('jobType'), CATEGORIES);
+  fillSelect($('categorySelect'), CATEGORIES);
+  state.jobType = CATALOG[state.jobType] ? state.jobType : (CATEGORIES[0] || '');
+  $('jobType').value = state.jobType;
+  $('categorySelect').value = state.jobType;
+  updateServiceSelect();
+  renderAll();
+}
+
+function importBackupFromFile(event) {
+  const file = event.target.files?.[0];
+  event.target.value = '';
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(String(reader.result || '{}'));
+      const records = extractBackupRecords(parsed);
+      const catalog = validateCatalogObject(parsed.catalog || null);
+      const hasSettings = parsed.settings && typeof parsed.settings === 'object' && !Array.isArray(parsed.settings);
+      const hasDictionary = typeof parsed.phraseDictionary === 'string';
+      const hasLearnedRules = parsed.learnedParserRules && typeof parsed.learnedParserRules === 'object' && !Array.isArray(parsed.learnedParserRules);
+
+      if (!records.length && !catalog && !hasSettings && !hasDictionary && !hasLearnedRules) {
+        throw new Error('To nie wygląda jak kopia JSON tego programu.');
+      }
+
+      if (!confirm('Wgrać kopię JSON? Wyceny zostaną scalone z obecnymi, a ustawienia/cennik z pliku zostaną zastosowane.')) return;
+
+      if (hasSettings) {
+        saveSettings({
+          ...defaultSettings(),
+          ...loadSettings(),
+          ...parsed.settings,
+          uiTheme: normalizeTheme(parsed.settings.uiTheme || loadSettings().uiTheme || 'light')
+        });
+      }
+
+      if (hasDictionary) savePhraseDictionaryText(parsed.phraseDictionary);
+      if (hasLearnedRules) saveLearnedRules(parsed.learnedParserRules);
+
+      if (catalog) {
+        // Cennik z kopii ma pierwszeństwo, ale nie kasujemy pozycji, których w kopii nie było.
+        saveCatalog(mergeCatalogs(CATALOG, catalog));
+        refreshCatalogControls();
+      }
+
+      if (records.length) {
+        saveQuoteRecords(mergeQuoteRecords(loadQuoteRecords(), records));
+      }
+
+      refreshFormAfterBackupImport();
+      showInfo(`Wgrano kopię JSON. Aktywne wyceny: ${loadQuotes().length}. Rekordy łącznie: ${loadQuoteRecords().length}.`);
+    } catch (error) {
+      showInfo(`Nie udało się wgrać kopii JSON: ${error.message}`);
+    }
+  };
+
+  reader.onerror = () => showInfo('Nie udało się odczytać pliku JSON.');
+  reader.readAsText(file, 'utf-8');
 }
 
 function readSettingsFromForm() {

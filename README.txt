@@ -1,7 +1,15 @@
 Pomocnik Instalatora PWA
-Wersja: 3.1 - 1505261224
+Wersja: 3.2 - 1605261429
 
-Zmiany:
+Zmiany w tej paczce:
+- dodano przycisk „Wgraj JSON” w zakładce Zapisane, obok „Kopia JSON”,
+- import kopii JSON wczytuje ustawienia, cennik, słownik korekt, reguły parsera oraz zapisane wyceny z klientami,
+- zapisane wyceny są scalane z obecnymi, a nie kasowane na ślepo,
+- po imporcie odświeżany jest formularz, cennik, zapisane wyceny i ustawienia,
+- podbito wersję programu i cache PWA, żeby przeglądarka nie trzymała starego app.js,
+- dodano brakujący komunikat statusu przy imporcie/odświeżaniu bazy cen materiałów.
+
+Zmiany z poprzedniej paczki:
 - naprawiono błędne rozpoznawanie adresu z tekstu typu „5 kamer Hikvision 5 Mpix”,
 - rozdzielono kamery przewodowe i kamerę Wi‑Fi,
 - poprawiono liczenie RJ45 przy połączeniu kabli strych–parter,

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6f8fb">
   <meta name="description" content="Pomocnik Instalatora — szybkie wyceny, klienci, cennik i notatki z wizyt.">
-  <title>Pomocnik Instalatora PWA 3.1 - 1505261224</title>
+  <title>Pomocnik Instalatora PWA 3.2 - 1605261429</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -13,7 +13,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow">Wersja 3.1 - 1505261224</div>
+        <div class="eyebrow">Wersja 3.2 - 1605261429</div>
         <h1>Pomocnik Instalatora</h1>
       </div>
       <div class="top-actions">
@@ -238,7 +238,11 @@
               <h2>Zapisane wyceny</h2>
 
             </div>
-            <button id="exportBackupBtn" class="btn btn-soft">Kopia JSON</button>
+            <div class="action-row backup-actions">
+              <button id="exportBackupBtn" class="btn btn-soft">Kopia JSON</button>
+              <button id="importBackupBtn" class="btn btn-soft">Wgraj JSON</button>
+              <input id="importBackupFile" type="file" accept="application/json,.json" hidden>
+            </div>
           </div>
           <div id="savedQuotes" class="quote-list"></div>
           <div id="emptySaved" class="empty-state">Nie ma jeszcze zapisanych wycen.</div>
@@ -311,7 +315,7 @@
             </div>
           </div>
 
-
+          <div id="materialPriceStatus" class="catalog-edit-info"></div>
 
           <div id="materialPricesView" class="material-prices-view"></div>
         </section>
@@ -454,7 +458,7 @@
       </section>
 
     </main>
-    <footer class="app-footer">Wersja programu: 3.1 - 1505261224</footer>
+    <footer class="app-footer">Wersja programu: 3.2 - 1605261429</footer>
   </div>
 
   <template id="savedQuoteTemplate">

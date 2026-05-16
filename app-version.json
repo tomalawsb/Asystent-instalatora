@@ -1,7 +1,7 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "3.1 - 1505261224",
-  "build": "1505261224",
-  "date": "2026-05-15",
-  "notes": "Poprawiono rozbijanie wycen CCTV: fałszywy adres z liczby kamer, liczba RJ45 dla połączenia strych–parter, beczki LAN, kamera Wi‑Fi, rejestrator NVR oraz brak zgadywania metrów przewodu zasilającego."
+  "version": "3.2 - 1605261429",
+  "build": "1605261429",
+  "date": "2026-05-16",
+  "notes": "Dodano ręczne wgrywanie kopii JSON z ustawieniami, cennikiem, słownikiem, regułami parsera i zapisanymi wycenami/klientami. Poprawiono odświeżanie formularzy po imporcie oraz zwiększono wersję cache PWA."
 }
