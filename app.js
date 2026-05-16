@@ -1,4 +1,4 @@
-const APP_VERSION = '3.3 - 1605261610';
+const APP_VERSION = '3.5 - 1605261715';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -6241,3 +6241,814 @@ parseSmartCommand = function(rawText) {
   return parseSmartCommand_v33_before(rawText);
 };
 
+
+
+/* =========================================================
+   v3.4 - poprawka parsera dyktowania CCTV:
+   - rozbija „4 kamery, 3 obrotowe i jedną tubową” na osobne pozycje,
+   - nie gubi liczby zapisanej słownie: jedna/dwie/trzy/cztery itd.,
+   - „4 puszki pod kamery” traktuje jako materiał, nie jako montaż uchwytu,
+   - przelicza podsumowanie po poprawkach.
+   ========================================================= */
+
+function installerV34Norm(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/ł/g, 'l')
+    .replace(/[–—]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function installerV34Number(value, fallback = 0) {
+  const v = installerV34Norm(value);
+  if (/^\d+(?:[.,]\d+)?$/.test(v)) return number(v.replace(',', '.'), fallback);
+  const map = {
+    jeden: 1, jedna: 1, jedno: 1, jednej: 1,
+    dwa: 2, dwie: 2,
+    trzy: 3,
+    cztery: 4,
+    piec: 5,
+    szesc: 6,
+    siedem: 7,
+    osiem: 8,
+    dziewiec: 9,
+    dziesiec: 10
+  };
+  return map[v] || fallback;
+}
+
+function installerV34CatalogPrice(category, name, fallback) {
+  if (typeof installerFindCatalogPriceV29 === 'function') return installerFindCatalogPriceV29(category, name, fallback);
+  const catalog = findCatalogService(category, name);
+  return number(catalog?.price_net, fallback);
+}
+
+function installerV34CameraBreakdown(rawText) {
+  const source = installerV34Norm(rawText);
+  const qtyWord = '(\\d+(?:[.,]\\d+)?|jeden|jedna|jedno|jednej|dwa|dwie|trzy|cztery|piec|pi[eę]c|szesc|sze[sś]c|siedem|osiem|dziewiec|dziewi[eę]c|dziesiec|dziesi[eę]c)';
+  const read = (match) => match ? installerV34Number(match[1], 0) : 0;
+
+  const total = extractCameraQuantity(source) || read(source.match(new RegExp('\\b' + qtyWord + '\\s+kamer\\w*\\b', 'i')));
+
+  let ptz = 0;
+  let tube = 0;
+
+  const ptzPatterns = [
+    new RegExp('\\b' + qtyWord + '\\s+(?:szt\\.?\\s*)?(?:kamer\\w*\\s+)?(?:obrotow\\w*|ptz)\\b', 'i'),
+    new RegExp('\\b(?:obrotow\\w*|ptz)\\s+(?:kamer\\w*\\s+)?' + qtyWord + '\\b', 'i')
+  ];
+  for (const re of ptzPatterns) {
+    const m = source.match(re);
+    if (m) { ptz = installerV34Number(m[1], 0); break; }
+  }
+
+  const tubePatterns = [
+    new RegExp('\\b' + qtyWord + '\\s+(?:szt\\.?\\s*)?(?:kamer\\w*\\s+)?(?:tubow\\w*|tubowa|tubowe|tubowych|tuba)\\b', 'i'),
+    new RegExp('\\b(?:tubow\\w*|tubowa|tubowe|tubowych|tuba)\\s+(?:kamer\\w*\\s+)?' + qtyWord + '\\b', 'i')
+  ];
+  for (const re of tubePatterns) {
+    const m = source.match(re);
+    if (m) { tube = installerV34Number(m[1], 0); break; }
+  }
+
+  if (total > 0 && ptz > 0 && tube === 0 && /tubow|tuba/.test(source)) tube = Math.max(0, total - ptz);
+  if (total > 0 && tube > 0 && ptz === 0 && /obrotow|ptz/.test(source)) ptz = Math.max(0, total - tube);
+  if (total > 0 && ptz + tube > total) {
+    if (ptz > total) ptz = total;
+    if (ptz + tube > total) tube = Math.max(0, total - ptz);
+  }
+
+  return { total, ptz, tube };
+}
+
+function installerV34HasTypedCameraBreakdown(rawText) {
+  const b = installerV34CameraBreakdown(rawText);
+  return b.total > 0 && (b.ptz > 0 || b.tube > 0);
+}
+
+function installerV34PatchCameraItems(rawText, result) {
+  if (!result || !Array.isArray(result.items)) return;
+  const b = installerV34CameraBreakdown(rawText);
+  if (!b.total || (!b.ptz && !b.tube)) return;
+
+  const cameraMountRe = /monta[zż] kamery.*(?:ip|zewn[eę]trznej|wewn[eę]trznej|tubowej|obrotowej|ptz|wi.?fi)|montaz kamery.*(?:ip|zewnetrznej|wewnetrznej|tubowej|obrotowej|ptz|wi.?fi)/i;
+  result.items = result.items.filter(item => !cameraMountRe.test(String(item.name || '')) || /materia[lł]|— materiał|-- material/i.test(String(item.name || '')));
+
+  const add = (qty, name, fallback, key) => {
+    if (!qty || qty <= 0) return;
+    result.items.push(buildVoiceItem({
+      category: 'Kamery CCTV',
+      name,
+      unit: 'szt',
+      quantity: qty,
+      priceNet: installerV34CatalogPrice('Kamery CCTV', name, fallback),
+      key
+    }));
+  };
+
+  add(b.ptz, 'Montaż kamery obrotowej PTZ', 420, 'camera_ptz_mount_v34');
+  add(b.tube, 'Montaż kamery tubowej', 250, 'camera_tube_mount_v34');
+  result.items = mergeParserItems(result.items || []);
+}
+
+function installerV34PatchCameraBoxes(rawText, result) {
+  if (!result || !Array.isArray(result.items)) return;
+  const text = installerV34Norm(rawText);
+  if (!/puszk\w*/i.test(text) || !/kamer\w*/i.test(text)) return;
+
+  const qtyWord = '(\\d+(?:[.,]\\d+)?|jeden|jedna|jedno|jednej|dwa|dwie|trzy|cztery|piec|pi[eę]c|szesc|sze[sś]c|siedem|osiem|dziewiec|dziewi[eę]c|dziesiec|dziesi[eę]c)';
+  const m = text.match(new RegExp('\\b' + qtyWord + '\\s+puszk\\w*', 'i'));
+  const totalCameras = installerV34CameraBreakdown(rawText).total || extractCameraQuantity(text) || 0;
+  const qty = m ? installerV34Number(m[1], 0) : totalCameras;
+  if (!qty || qty <= 0) return;
+
+  // Fraza „puszki pod kamery” oznacza materiał. Robociznę montażu kamer program ma liczyć osobno.
+  const materialName = 'Puszka montażowa pod kamerę';
+  const shouldBeMaterial = /puszk\w*\s+pod\s+(?:te\s+)?kamer|puszk\w*\s+do\s+kamer|puszk\w*\s+montaz/i.test(text);
+  if (!shouldBeMaterial) return;
+
+  result.items = result.items.filter(item => !/monta[zż] puszki\s*\/\s*uchwytu kamery|montaz puszki\s*\/\s*uchwytu kamery|puszka monta[zż]owa pod kamer[eę]/i.test(String(item.name || '')));
+  const box = buildVoiceItem({
+    category: 'Kamery CCTV',
+    name: materialName,
+    unit: 'szt',
+    quantity: qty,
+    priceNet: installerV34CatalogPrice('Kamery CCTV', materialName, installerV34CatalogPrice('Kamery CCTV', 'Montaż puszki / uchwytu kamery', 45)),
+    key: 'mounting_box_material_v34'
+  });
+  box.itemKind = 'material';
+  result.items.push(box);
+  result.items = mergeParserItems(result.items || []);
+}
+
+function installerV34PatchMissing(rawText, result) {
+  if (!result) return;
+  result.missingData = detectMissingData(rawText, {
+    client: result.client,
+    items: result.items || [],
+    detectedType: result.detectedType,
+    distanceKm: result.distanceKm,
+    distanceRate: result.distanceRate,
+    freeKm: result.freeKm,
+    transcriptInfo: result.transcriptInfo
+  });
+}
+
+const parseSmartCommand_v34_before = parseSmartCommand;
+parseSmartCommand = function(rawText) {
+  const result = parseSmartCommand_v34_before(rawText);
+  if (result?.parserReport) return result;
+  installerV34PatchCameraItems(rawText, result);
+  installerV34PatchCameraBoxes(rawText, result);
+  result.items = mergeParserItems(result.items || []);
+  installerV34PatchMissing(rawText, result);
+  return result;
+};
+
+
+/* =========================================================
+   v3.5 - udoskonalenie parsera CCTV bez punktu 1 i 7:
+   - kontrola sumy ilości kamer,
+   - negacje: klient ma swoje / bez montażu / nie kupować / nie doliczać,
+   - domyślne podpowiedzi CCTV bez automatycznego doliczania,
+   - lepsze rozróżnienie materiałów i robocizny,
+   - prostszy SMS dla klienta,
+   - rozbudowany słownik odmian z przykładami.
+   ========================================================= */
+
+const INSTALLER_V35_PARSER_DICTIONARY = {
+  cameraTypes: [
+    {
+      key: 'ptz',
+      name: 'Montaż kamery obrotowej PTZ',
+      materialName: 'Kamera obrotowa PTZ — materiał',
+      fallbackPrice: 420,
+      words: ['ptz', 'obrotowa', 'obrotowe', 'obrotowych', 'ruchoma', 'ruchome', 'kręcona', 'krecona', 'obracana'],
+      examples: [
+        '3 kamery obrotowe',
+        'trzy obrotowe',
+        '3 PTZ',
+        'kamera kręcona',
+        'kamera obracana'
+      ]
+    },
+    {
+      key: 'tube',
+      name: 'Montaż kamery tubowej',
+      materialName: 'Kamera tubowa IP — materiał',
+      fallbackPrice: 250,
+      words: ['tubowa', 'tubowe', 'tubowych', 'tuba', 'tuby', 'bullet', 'statyczna', 'statyczne'],
+      examples: [
+        'jedna tubowa',
+        '1 kamera tuba',
+        '2 kamery bullet',
+        'dwie statyczne'
+      ]
+    },
+    {
+      key: 'dome',
+      name: 'Montaż kamery kopułkowej',
+      materialName: 'Kamera kopułkowa IP — materiał',
+      fallbackPrice: 240,
+      words: ['kopułkowa', 'kopulkowa', 'kopułkowe', 'kopulkowe', 'kopułkowych', 'kopulkowych', 'dome', 'sufitowa', 'sufitowe'],
+      examples: [
+        '2 kopułkowe',
+        'dwie kamery dome',
+        'kamera sufitowa'
+      ]
+    },
+    {
+      key: 'wifi',
+      name: 'Montaż kamery Wi‑Fi',
+      materialName: 'Kamera Wi‑Fi — materiał',
+      fallbackPrice: 230,
+      words: ['wifi', 'wi-fi', 'wi fi', 'bezprzewodowa', 'bezprzewodowe', 'bezprzewodowych'],
+      examples: [
+        'jedna kamera WiFi',
+        '1 bezprzewodowa',
+        'kamera na drugim budynku po Wi-Fi'
+      ]
+    },
+    {
+      key: 'generic',
+      name: 'Montaż kamery IP zewnętrznej',
+      materialName: 'Kamera IP zewnętrzna — materiał',
+      fallbackPrice: 260,
+      words: ['zwykła', 'zwykla', 'zwykłe', 'zwykle', 'normalna', 'normalne', 'zewnętrzna', 'zewnetrzna', 'zewnętrzne', 'zewnetrzne', 'ip'],
+      examples: [
+        'jedna zwykła',
+        'reszta zwykłe',
+        '4 kamery IP zewnętrzne'
+      ]
+    }
+  ],
+  materials: [
+    {
+      key: 'mounting_box',
+      name: 'Puszka montażowa pod kamerę',
+      words: ['puszka', 'puszki', 'baza', 'adapter', 'uchwyt', 'podstawa montażowa', 'podstawa montazowa'],
+      examples: ['4 puszki pod kamery', 'puszki montażowe', 'bazy pod kamery']
+    },
+    {
+      key: 'rj45',
+      name: 'Wtyki / zakończenia RJ45',
+      words: ['rj45', 'rj-45', 'wtyki', 'końcówki', 'koncowki', 'zarobić końcówki', 'zarobic koncowki'],
+      examples: ['zarobić RJ45', 'końcówki na skrętce', 'zakończenia przewodów']
+    },
+    {
+      key: 'recorder',
+      name: 'Rejestrator NVR',
+      words: ['rejestrator', 'nvr', 'dvr', 'nagrywarka'],
+      examples: ['trzeba kupić rejestrator', 'NVR 8 kanałów', 'stary rejestrator do wymiany']
+    },
+    {
+      key: 'disk',
+      name: 'Dysk do rejestratora',
+      words: ['dysk', 'hdd', 'skyhawk', 'zapis nagrań', 'zapis nagran'],
+      examples: ['dysk 4 TB', 'dysk do rejestratora', 'zapis nagrań']
+    },
+    {
+      key: 'cable',
+      name: 'Przewody / skrętka / korytko',
+      words: ['przewód', 'przewod', 'kabel', 'skrętka', 'skretka', 'lan', 'utp', 'peszel', 'korytko', 'listwa'],
+      examples: ['przewody są położone', 'trzeba puścić skrętkę', 'kabel w korytku']
+    }
+  ],
+  labor: [
+    {
+      key: 'drill',
+      name: 'Przewiert przez ścianę pod przewód',
+      words: ['przewiert', 'przekuć', 'przekuc', 'przebić', 'przebic', 'przekucie', 'przebicie', 'otwór', 'otwor'],
+      examples: ['przekuć się przez ścianę', 'jeden przewiert', 'otwór pod przewód']
+    },
+    {
+      key: 'preview',
+      name: 'Uruchomienie podglądu zdalnego',
+      words: ['podgląd', 'podglad', 'aplikacja', 'telefon', 'ezviz', 'hik-connect'],
+      examples: ['podgląd w telefonie', 'aplikacja do kamer', 'uruchomić Hik-Connect']
+    },
+    {
+      key: 'config',
+      name: 'Konfiguracja rejestratora NVR',
+      words: ['konfiguracja', 'ustawienie', 'nagrywanie', 'harmonogram', 'data godzina'],
+      examples: ['skonfigurować rejestrator', 'ustawić nagrywanie', 'ustawić datę i godzinę']
+    }
+  ],
+  negations: {
+    cameraMaterial: [
+      'kamery klient ma swoje',
+      'kamery są klienta',
+      'kamer nie kupować',
+      'bez kamer w materiałach',
+      'nie doliczać kamer'
+    ],
+    cameraMount: [
+      'bez montażu',
+      'montażu nie liczyć',
+      'tylko konfiguracja',
+      'same ustawienia bez montażu'
+    ],
+    recorder: [
+      'rejestratora nie trzeba kupować',
+      'bez rejestratora',
+      'rejestrator klient ma',
+      'rejestrator jest już na miejscu'
+    ],
+    cables: [
+      'przewody są już położone',
+      'kable są już przeciągnięte',
+      'bez prowadzenia kabli',
+      'kabli nie doliczać'
+    ],
+    boxes: [
+      'bez puszek',
+      'puszek nie doliczać',
+      'puszki klient ma swoje',
+      'puszek nie trzeba'
+    ]
+  },
+  cctvChecklistSuggestions: [
+    'rejestrator / NVR / DVR',
+    'dysk do nagrań',
+    'podgląd w telefonie / aplikacji',
+    'RJ45, zakończenia przewodów i test par',
+    'puszki / uchwyty pod kamery',
+    'zasilanie / PoE / switch',
+    'dojazd i termin realizacji'
+  ]
+};
+
+try { window.INSTALLER_V35_PARSER_DICTIONARY = INSTALLER_V35_PARSER_DICTIONARY; } catch {}
+
+function installerV35Norm(value) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/ł/g, 'l')
+    .replace(/[–—]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function installerV35EscRe(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function installerV35QtyWordPattern() {
+  return '(\\d+(?:[.,]\\d+)?|jeden|jedna|jedno|jednej|dwa|dwie|trzy|cztery|piec|szesc|siedem|osiem|dziewiec|dziesiec)';
+}
+
+function installerV35Number(value, fallback = 0) {
+  const v = installerV35Norm(value).replace(',', '.');
+  if (/^\d+(?:\.\d+)?$/.test(v)) return number(v, fallback);
+  const map = {
+    jeden: 1, jedna: 1, jedno: 1, jednej: 1,
+    dwa: 2, dwie: 2,
+    trzy: 3,
+    cztery: 4,
+    piec: 5,
+    szesc: 6,
+    siedem: 7,
+    osiem: 8,
+    dziewiec: 9,
+    dziesiec: 10
+  };
+  return map[v] || fallback;
+}
+
+function installerV35WordsAlt(words) {
+  return (words || [])
+    .map(installerV35Norm)
+    .filter(Boolean)
+    .map(installerV35EscRe)
+    .join('|');
+}
+
+function installerV35FindQtyForWords(source, words) {
+  const alt = installerV35WordsAlt(words);
+  if (!alt) return 0;
+  const qty = installerV35QtyWordPattern();
+  const patterns = [
+    new RegExp('\\b' + qty + '\\s+(?:szt\\.?\\s*)?(?:kamer\\w*\\s+)?(?:' + alt + ')\\b', 'i'),
+    new RegExp('\\b' + qty + '\\s+(?:szt\\.?\\s*)?(?:' + alt + ')\\s+kamer\\w*\\b', 'i'),
+    new RegExp('\\b(?:' + alt + ')\\s+(?:kamer\\w*\\s+)?' + qty + '\\b', 'i')
+  ];
+  for (const re of patterns) {
+    const m = source.match(re);
+    if (m) return installerV35Number(m[1], 0);
+  }
+  return 0;
+}
+
+function installerV35ExtractCameraBreakdown(rawText) {
+  const source = installerV35Norm(rawText);
+  const qty = installerV35QtyWordPattern();
+  let total = 0;
+  try { total = extractCameraQuantity(source) || 0; } catch { total = 0; }
+  if (!total) {
+    const m = source.match(new RegExp('\\b' + qty + '\\s+kamer\\w*\\b', 'i'));
+    if (m) total = installerV35Number(m[1], 0);
+  }
+
+  const out = { total, types: {}, typedTotal: 0, unknown: 0, warnings: [] };
+  for (const type of INSTALLER_V35_PARSER_DICTIONARY.cameraTypes) {
+    let value = installerV35FindQtyForWords(source, type.words);
+    out.types[type.key] = value;
+  }
+
+  const remainingWords = ['reszta', 'pozostale', 'pozostala', 'pozostalych'];
+  if (total > 0 && remainingWords.some(w => source.includes(w))) {
+    for (const type of INSTALLER_V35_PARSER_DICTIONARY.cameraTypes) {
+      const alt = installerV35WordsAlt(type.words);
+      if (!alt) continue;
+      const re = new RegExp('\\b(?:reszta|pozostale|pozostala|pozostalych)\\s+(?:kamer\\w*\\s+)?(?:' + alt + ')\\b', 'i');
+      if (!re.test(source)) continue;
+      const currentSum = Object.entries(out.types).filter(([key]) => key !== type.key).reduce((sum, [, v]) => sum + number(v, 0), 0);
+      out.types[type.key] = Math.max(0, total - currentSum);
+    }
+  }
+
+  out.typedTotal = Object.values(out.types).reduce((sum, v) => sum + number(v, 0), 0);
+  if (total > 0 && out.typedTotal > 0 && out.typedTotal < total) {
+    out.unknown = round2(total - out.typedTotal);
+    out.warnings.push(`liczba kamer: wykryto typ dla ${out.typedTotal} z ${total}; brakuje typu dla ${out.unknown} szt.`);
+  }
+  if (total > 0 && out.typedTotal > total) {
+    out.warnings.push(`liczba kamer: suma typów (${out.typedTotal}) jest większa niż liczba kamer (${total}).`);
+  }
+  return out;
+}
+
+function installerV35CatalogPrice(category, name, fallback) {
+  if (typeof installerV34CatalogPrice === 'function') return installerV34CatalogPrice(category, name, fallback);
+  const catalog = findCatalogService(category, name);
+  return number(catalog?.price_net, fallback);
+}
+
+function installerV35LooksMaterial(item) {
+  const name = installerV35Norm(item?.name);
+  if (/material|kamera .*material|puszka montazowa pod kamere|rejestrator .*material|dysk .*material|switch .*material|zasilacz .*material|wtyki|wtyk|rj45|patchcord|beczka|lacznik|kabel|przewod|skretka|peszel|korytko/.test(name)) return true;
+  return false;
+}
+
+const classifyQuoteItem_v35_before = classifyQuoteItem;
+classifyQuoteItem = function(item) {
+  if (item?.itemKind === 'material') return { key: 'material', label: 'materiał' };
+  if (item?.itemKind === 'labor') return { key: 'labor', label: 'robocizna' };
+  if (installerV35LooksMaterial(item)) return { key: 'material', label: 'materiał' };
+  return classifyQuoteItem_v35_before(item);
+};
+
+function installerV35MarkKinds(result) {
+  for (const item of result?.items || []) {
+    const name = installerV35Norm(item.name);
+    if (installerV35LooksMaterial(item)) item.itemKind = 'material';
+    if (/^montaz kamery|^konfiguracja|^uruchomienie|^test|^sprawdzenie|^zarabianie|^prowadzenie|^przewiert|^wiercenie|^podlaczenie/.test(name)) {
+      if (!/puszka montazowa pod kamere|material/.test(name)) item.itemKind = 'labor';
+    }
+  }
+}
+
+function installerV35PatchCameraItems(rawText, result) {
+  if (!result || !Array.isArray(result.items) || result.parserReport) return;
+  const b = installerV35ExtractCameraBreakdown(rawText);
+  if (!b.total && !b.typedTotal) return;
+  if (b.typedTotal <= 0) return;
+
+  const cameraMountRe = /monta[zż] kamery.*(?:ip|zewn[eę]trznej|wewn[eę]trznej|tubowej|obrotowej|ptz|kopułkowej|kopulkowej|wi.?fi)|montaz kamery.*(?:ip|zewnetrznej|wewnetrznej|tubowej|obrotowej|ptz|kopulkowej|wi.?fi)/i;
+  result.items = result.items.filter(item => !cameraMountRe.test(String(item.name || '')) || installerV35LooksMaterial(item));
+
+  const add = (qty, type) => {
+    if (!qty || qty <= 0) return;
+    const item = buildVoiceItem({
+      category: 'Kamery CCTV',
+      name: type.name,
+      unit: 'szt',
+      quantity: qty,
+      priceNet: installerV35CatalogPrice('Kamery CCTV', type.name, type.fallbackPrice),
+      key: `camera_${type.key}_mount_v35`
+    });
+    item.itemKind = 'labor';
+    result.items.push(item);
+  };
+
+  for (const type of INSTALLER_V35_PARSER_DICTIONARY.cameraTypes) add(b.types[type.key], type);
+  result.items = mergeParserItems(result.items || []);
+}
+
+function installerV35PatchCameraBoxes(rawText, result) {
+  if (!result || !Array.isArray(result.items) || result.parserReport) return;
+  const text = installerV35Norm(rawText);
+  if (!/puszk|baza|adapter|uchwyt/.test(text) || !/kamer/.test(text)) return;
+  const qty = (() => {
+    const q = installerV35QtyWordPattern();
+    const m = text.match(new RegExp('\\b' + q + '\\s+(?:szt\\.?\\s*)?(?:puszk\\w*|baz\\w*|adapter\\w*|uchwyt\\w*)', 'i'));
+    if (m) return installerV35Number(m[1], 0);
+    return installerV35ExtractCameraBreakdown(rawText).total || 0;
+  })();
+  if (!qty || qty <= 0) return;
+
+  const materialName = 'Puszka montażowa pod kamerę';
+  result.items = result.items.filter(item => !/monta[zż] puszki\s*\/\s*uchwytu kamery|montaz puszki\s*\/\s*uchwytu kamery|puszka monta[zż]owa pod kamer[eę]/i.test(String(item.name || '')));
+  const item = buildVoiceItem({
+    category: 'Kamery CCTV',
+    name: materialName,
+    unit: 'szt',
+    quantity: qty,
+    priceNet: installerV35CatalogPrice('Kamery CCTV', materialName, 60),
+    key: 'mounting_box_material_v35'
+  });
+  item.itemKind = 'material';
+  result.items.push(item);
+  result.items = mergeParserItems(result.items || []);
+}
+
+function installerV35DetectNegations(rawText) {
+  const t = installerV35Norm(rawText);
+  const has = (re) => re.test(t);
+  return {
+    noCameraMaterial: has(/(?:kamery|kamerki|kamera).{0,40}(?:klient\w*\s+ma\s+swoje|sa\s+klienta|swoje|wlasne|dostarcza\s+klient)|(?:nie\s+(?:kupowac|doliczac)|bez)\s+(?:nowych\s+)?kamer/i),
+    noCameraMount: has(/bez\s+montazu|montazu\s+nie\s+(?:liczyc|doliczac|robic)|tylko\s+konfiguracj|same\s+ustawienia/i),
+    noRecorderMaterial: has(/(?:rejestrator|nvr|dvr).{0,45}(?:nie\s+trzeba\s+kupowac|bez\s+zakupu|klient\w*\s+ma|jest\s+juz|sa\s+na\s+miejscu)|(?:bez|nie\s+doliczac)\s+(?:rejestratora|nvr|dvr)/i),
+    noRecorderAll: has(/(?:rejestrator|nvr|dvr).{0,25}(?:nie\s+trzeba|nie\s+bedzie)|bez\s+rejestratora/i) && !has(/konfiguracj|podlaczyc|podłąc|uruchom/i),
+    noCables: has(/(?:przewody|kable|skretka).{0,60}(?:sa\s+)?(?:juz\s+)?(?:polozone|poprowadzone|pociagniete|przeciagniete|gotowe)|(?:bez|nie\s+doliczac)\s+(?:kabli|przewodow|okablowania|skretki)/i),
+    noBoxes: has(/(?:puszek|puszki|baz|adapterow|uchwytow).{0,35}(?:nie\s+(?:trzeba|doliczac|liczyc|kupowac)|klient\w*\s+ma\s+swoje)|bez\s+puszek/i),
+    noDisk: has(/(?:dysk|hdd).{0,35}(?:nie\s+trzeba|nie\s+doliczac|klient\w*\s+ma|jest\s+juz)|bez\s+dysku/i),
+    noPreview: has(/(?:podglad|aplikacj).{0,35}(?:nie\s+trzeba|nie\s+doliczac)|bez\s+podgladu/i)
+  };
+}
+
+function installerV35PushUnique(list, value) {
+  if (!value) return;
+  if (!Array.isArray(list)) return;
+  if (!list.includes(value)) list.push(value);
+}
+
+function installerV35ApplyNegations(rawText, result) {
+  if (!result || !Array.isArray(result.items)) return;
+  const neg = installerV35DetectNegations(rawText);
+  const before = result.items.length;
+  const removedNotes = [];
+
+  const removeIf = (predicate, note) => {
+    const oldLen = result.items.length;
+    result.items = result.items.filter(item => !predicate(item));
+    if (result.items.length !== oldLen) removedNotes.push(note);
+  };
+
+  if (neg.noCameraMount) {
+    removeIf(item => /^monta[zż] kamery|^montaz kamery|przewiert|wiercenie|puszka monta[zż]owa pod kamer|monta[zż] puszki/i.test(String(item.name || '')), 'pominięto montaż kamer/puszek/przewiert, bo tekst zawiera negację montażu');
+  }
+  if (neg.noCameraMaterial) {
+    removeIf(item => /kamera .*materia[lł]|kamera .*material/i.test(String(item.name || '')), 'pominięto kamery jako materiał, bo z tekstu wynika, że klient ma własne albo nie kupować kamer');
+  }
+  if (neg.noRecorderMaterial) {
+    removeIf(item => /rejestrator|\bnvr\b|\bdvr\b/i.test(String(item.name || '')) && installerV35LooksMaterial(item), 'pominięto rejestrator jako materiał');
+  }
+  if (neg.noRecorderAll) {
+    removeIf(item => /rejestrator|\bnvr\b|\bdvr\b/i.test(String(item.name || '')), 'pominięto rejestrator, bo tekst zawiera negację');
+  }
+  if (neg.noCables) {
+    removeIf(item => /prowadzenie|okablowanie|kabel|przew[oó]d|skr[eę]tka|peszel|korytko|listwa/i.test(String(item.name || '')) && !/przewiert|wiercenie/i.test(String(item.name || '')), 'pominięto prowadzenie przewodów, bo tekst mówi, że przewody są gotowe');
+  }
+  if (neg.noBoxes) {
+    removeIf(item => /puszk|baza|adapter|uchwyt kamery/i.test(String(item.name || '')), 'pominięto puszki/uchwyty, bo tekst zawiera negację');
+  }
+  if (neg.noDisk) {
+    removeIf(item => /dysk|hdd/i.test(String(item.name || '')), 'pominięto dysk');
+  }
+  if (neg.noPreview) {
+    removeIf(item => /podgl[aą]d|podglad|aplikacj/i.test(String(item.name || '')), 'pominięto podgląd/aplikację');
+  }
+
+  if (result.items.length !== before) {
+    result.unknown = Array.isArray(result.unknown) ? result.unknown : [];
+    for (const note of removedNotes) installerV35PushUnique(result.unknown, `Zastosowano negację: ${note}.`);
+  }
+}
+
+function installerV35AddCameraQuantityWarnings(rawText, result) {
+  if (!result) return;
+  const b = installerV35ExtractCameraBreakdown(rawText);
+  result.missingData = Array.isArray(result.missingData) ? result.missingData : [];
+  for (const warning of b.warnings) installerV35PushUnique(result.missingData, warning);
+}
+
+function installerV35HasItem(result, re) {
+  return (result?.items || []).some(item => re.test(`${item.category || ''} ${item.name || ''}`));
+}
+
+function installerV35AddCctvChecklistSuggestions(rawText, result) {
+  if (!result) return;
+  const text = installerV35Norm(rawText);
+  const hasCctv = /kamera|kamery|kamer|monitoring|cctv|rejestrator|nvr|dvr|poe/.test(text) || installerV35HasItem(result, /kamera|monitoring|cctv|rejestrator|nvr|dvr/i);
+  if (!hasCctv) return;
+  const neg = installerV35DetectNegations(rawText);
+  result.missingData = Array.isArray(result.missingData) ? result.missingData : [];
+
+  if (!neg.noRecorderMaterial && !neg.noRecorderAll && !installerV35HasItem(result, /rejestrator|\bnvr\b|\bdvr\b/i)) installerV35PushUnique(result.missingData, 'CCTV: sprawdzić, czy rejestrator/NVR/DVR ma wejść do oferty');
+  if (!neg.noDisk && !installerV35HasItem(result, /dysk|hdd|nagran/i)) installerV35PushUnique(result.missingData, 'CCTV: sprawdzić, czy doliczyć dysk do nagrań');
+  if (!neg.noPreview && !installerV35HasItem(result, /podgl[aą]d|podglad|aplikacj|telefon/i)) installerV35PushUnique(result.missingData, 'CCTV: sprawdzić, czy doliczyć podgląd w telefonie / aplikacji');
+  if (!neg.noCables && !installerV35HasItem(result, /rj45|rj-45|zarabianie|wtyk|test.*przew|okablowanie|skr[eę]tka|kabel|przew[oó]d/i)) installerV35PushUnique(result.missingData, 'CCTV: sprawdzić RJ45, zakończenia przewodów i test par');
+  if (!neg.noBoxes && /kamer/.test(text) && !installerV35HasItem(result, /puszk|baza|uchwyt/i)) installerV35PushUnique(result.missingData, 'CCTV: sprawdzić puszki / uchwyty pod kamery');
+  if (!/poe|zasil|switch|wi\s*-?fi|wifi|bezprzewod/i.test(text) && !installerV35HasItem(result, /poe|zasil|switch|wi.?fi/i)) installerV35PushUnique(result.missingData, 'CCTV: sprawdzić zasilanie / PoE / switch');
+}
+
+function installerV35RefreshMissing(rawText, result) {
+  if (!result) return;
+  try {
+    result.missingData = detectMissingData(rawText, {
+      client: result.client,
+      items: result.items || [],
+      detectedType: result.detectedType,
+      distanceKm: result.distanceKm,
+      distanceRate: result.distanceRate,
+      freeKm: result.freeKm,
+      transcriptInfo: result.transcriptInfo
+    });
+  } catch {
+    result.missingData = Array.isArray(result.missingData) ? result.missingData : [];
+  }
+  installerV35AddCameraQuantityWarnings(rawText, result);
+  installerV35AddCctvChecklistSuggestions(rawText, result);
+}
+
+const parseSmartCommand_v35_before = parseSmartCommand;
+parseSmartCommand = function(rawText) {
+  const result = parseSmartCommand_v35_before(rawText);
+  if (!result) return result;
+  installerV35PatchCameraItems(rawText, result);
+  installerV35PatchCameraBoxes(rawText, result);
+  installerV35MarkKinds(result);
+  installerV35ApplyNegations(rawText, result);
+  result.items = mergeParserItems(result.items || []);
+  installerV35MarkKinds(result);
+  installerV35RefreshMissing(rawText, result);
+  return result;
+};
+
+function installerV35PolishCameraLabel(name, qty) {
+  const n = installerV35Norm(name);
+  const q = number(qty, 1);
+  const one = q === 1;
+  if (/obrotow|ptz/.test(n)) return one ? '1 kamera obrotowa PTZ' : `${q} kamery obrotowe PTZ`;
+  if (/tubow|tuba/.test(n)) return one ? '1 kamera tubowa' : `${q} kamery tubowe`;
+  if (/kopulk|dome|sufit/.test(n)) return one ? '1 kamera kopułkowa' : `${q} kamery kopułkowe`;
+  if (/wi-?fi|wifi|bezprzewod/.test(n)) return one ? '1 kamera Wi‑Fi' : `${q} kamery Wi‑Fi`;
+  return one ? '1 kamera IP' : `${q} kamery IP`;
+}
+
+function installerV35ServicePhrase(item) {
+  const name = String(item.name || '');
+  const n = installerV35Norm(name);
+  const q = number(item.quantity, 1);
+  if (/montaz kamery/.test(n)) return installerV35PolishCameraLabel(name, q);
+  if (/puszka montazowa pod kamere|montaz puszki\s*\/\s*uchwytu/.test(n)) return q === 1 ? '1 puszka montażowa pod kamerę' : `${q} puszki montażowe pod kamery`;
+  if (/przewiert|wiercenie|przekucie/.test(n)) return q === 1 ? '1 przewiert pod przewód' : `${q} przewierty pod przewód`;
+  if (/konfiguracja rejestratora|rejestrator nvr|rejestrator dvr/.test(n) && !installerV35LooksMaterial(item)) return 'konfiguracja rejestratora';
+  if (/podglad|podglad zdalny|aplikacj/.test(n)) return 'uruchomienie podglądu w telefonie';
+  if (/zarabianie.*rj45|rj45/.test(n) && !installerV35LooksMaterial(item)) return q === 1 ? 'zarobienie 1 końcówki RJ45' : `zarobienie ${q} końcówek RJ45`;
+  return `${q}× ${name}`;
+}
+
+function installerV35JoinNatural(parts) {
+  const clean = [...new Set((parts || []).map(p => String(p || '').trim()).filter(Boolean))];
+  if (!clean.length) return 'zakres do ustalenia';
+  if (clean.length === 1) return clean[0];
+  if (clean.length === 2) return `${clean[0]} oraz ${clean[1]}`;
+  return `${clean.slice(0, -1).join(', ')} oraz ${clean[clean.length - 1]}`;
+}
+
+const buildClientSms_v35_before = buildClientSms;
+buildClientSms = function(quote = state) {
+  const totals = calculateTotals(quote);
+  const jobType = quote.jobType || 'usługa instalacyjna';
+  const isCctv = /kamery|cctv|monitoring/i.test(jobType) || (quote.services || []).some(item => /kamera|rejestrator|cctv|monitoring/i.test(item.name || ''));
+  if (!isCctv) return buildClientSms_v35_before(quote);
+
+  const scopeItems = (quote.services || []).map(installerV35ServicePhrase);
+  const scope = installerV35JoinNatural(scopeItems.slice(0, 8));
+  const address = quote.clientAddress ? ` Adres: ${quote.clientAddress}.` : '';
+  const distance = totals.distanceNet > 0 ? ` Dojazd: ${money(totals.distanceNet)} netto.` : '';
+  const date = quote.visitDate ? ` Termin: ${formatDate(quote.visitDate)}.` : '';
+  return normalizeSpaces(`Dzień dobry, wycena montażu monitoringu: ${scope}. Razem: ${money(totals.gross)} brutto (${money(totals.net)} netto).${address}${distance}${date}`);
+};
+
+/* v3.5.1 - drobne dopięcie: „puszek” + jawna konfiguracja rejestratora + kolejność SMS */
+function installerV351PatchCameraBoxesFixed(rawText, result) {
+  if (!result || !Array.isArray(result.items) || result.parserReport) return;
+  const text = installerV35Norm(rawText);
+  if (!/pusz|baza|adapter|uchwyt/.test(text) || !/kamer/.test(text)) return;
+  const q = installerV35QtyWordPattern();
+  const m = text.match(new RegExp('\\b' + q + '\\s+(?:szt\\.?\\s*)?(?:pusz\\w*|baz\\w*|adapter\\w*|uchwyt\\w*)', 'i'));
+  const qty = m ? installerV35Number(m[1], 0) : (installerV35ExtractCameraBreakdown(rawText).total || 0);
+  if (!qty || qty <= 0) return;
+
+  const materialName = 'Puszka montażowa pod kamerę';
+  result.items = result.items.filter(item => !/monta[zż] puszki\s*\/\s*uchwytu kamery|montaz puszki\s*\/\s*uchwytu kamery|puszka monta[zż]owa pod kamer[eę]|puszka montazowa pod kamere/i.test(String(item.name || '')));
+  const item = buildVoiceItem({
+    category: 'Kamery CCTV',
+    name: materialName,
+    unit: 'szt',
+    quantity: qty,
+    priceNet: installerV35CatalogPrice('Kamery CCTV', materialName, 60),
+    key: 'mounting_box_material_v351'
+  });
+  item.itemKind = 'material';
+  result.items.push(item);
+  result.items = mergeParserItems(result.items || []);
+}
+
+function installerV351PatchExplicitCctvLabor(rawText, result) {
+  if (!result || !Array.isArray(result.items) || result.parserReport) return;
+  const text = installerV35Norm(rawText);
+  const add = (condition, name, fallback, key) => {
+    if (!condition) return;
+    if (result.items.some(item => installerV35Norm(item.name) === installerV35Norm(name))) return;
+    const item = buildVoiceItem({
+      category: 'Kamery CCTV',
+      name,
+      unit: 'usł',
+      quantity: 1,
+      priceNet: installerV35CatalogPrice('Kamery CCTV', name, fallback),
+      key
+    });
+    item.itemKind = 'labor';
+    result.items.push(item);
+  };
+  add(/konfiguracj\w*.{0,35}(?:rejestrator|nvr|dvr)|(?:rejestrator|nvr|dvr).{0,35}konfiguracj\w*/i.test(text), 'Konfiguracja rejestratora NVR', 350, 'nvr_config_v351');
+  add(/podglad|aplikacj|hik-connect|ezviz|telefon/i.test(text), 'Uruchomienie podglądu zdalnego', 150, 'remote_preview_v351');
+}
+
+const parseSmartCommand_v351_before = parseSmartCommand;
+parseSmartCommand = function(rawText) {
+  const result = parseSmartCommand_v351_before(rawText);
+  if (!result) return result;
+  installerV351PatchCameraBoxesFixed(rawText, result);
+  installerV351PatchExplicitCctvLabor(rawText, result);
+  installerV35MarkKinds(result);
+  installerV35ApplyNegations(rawText, result);
+  result.items = mergeParserItems(result.items || []);
+  installerV35MarkKinds(result);
+  installerV35RefreshMissing(rawText, result);
+  return result;
+};
+
+function installerV351SmsPriority(item) {
+  const n = installerV35Norm(item?.name);
+  if (/montaz kamery/.test(n)) return 10;
+  if (/puszka|baza|uchwyt/.test(n)) return 20;
+  if (/przewiert|wiercenie|przekucie/.test(n)) return 30;
+  if (/konfiguracja/.test(n)) return 40;
+  if (/podglad|aplikacj/.test(n)) return 50;
+  return 90;
+}
+
+const buildClientSms_v351_before = buildClientSms;
+buildClientSms = function(quote = state) {
+  const totals = calculateTotals(quote);
+  const jobType = quote.jobType || 'usługa instalacyjna';
+  const isCctv = /kamery|cctv|monitoring/i.test(jobType) || (quote.services || []).some(item => /kamera|rejestrator|cctv|monitoring|puszka montażowa|puszka montazowa/i.test(item.name || ''));
+  if (!isCctv) return buildClientSms_v351_before(quote);
+  const sorted = [...(quote.services || [])].sort((a, b) => installerV351SmsPriority(a) - installerV351SmsPriority(b));
+  const scope = installerV35JoinNatural(sorted.map(installerV35ServicePhrase).slice(0, 8));
+  const address = quote.clientAddress ? ` Adres: ${quote.clientAddress}.` : '';
+  const distance = totals.distanceNet > 0 ? ` Dojazd: ${money(totals.distanceNet)} netto.` : '';
+  const date = quote.visitDate ? ` Termin: ${formatDate(quote.visitDate)}.` : '';
+  return normalizeSpaces(`Dzień dobry, wycena montażu monitoringu: ${scope}. Razem: ${money(totals.gross)} brutto (${money(totals.net)} netto).${address}${distance}${date}`);
+};
+
+/* v3.5.2 - odmiana liczebników w SMS */
+function installerV352Plural(q, one, few, many) {
+  const n = Math.abs(Math.floor(number(q, 0)));
+  if (n === 1) return one;
+  const last = n % 10;
+  const last2 = n % 100;
+  if (last >= 2 && last <= 4 && !(last2 >= 12 && last2 <= 14)) return few;
+  return many;
+}
+
+installerV35PolishCameraLabel = function(name, qty) {
+  const n = installerV35Norm(name);
+  const q = number(qty, 1);
+  if (/obrotow|ptz/.test(n)) return `${q} ${installerV352Plural(q, 'kamera obrotowa PTZ', 'kamery obrotowe PTZ', 'kamer obrotowych PTZ')}`;
+  if (/tubow|tuba/.test(n)) return `${q} ${installerV352Plural(q, 'kamera tubowa', 'kamery tubowe', 'kamer tubowych')}`;
+  if (/kopulk|dome|sufit/.test(n)) return `${q} ${installerV352Plural(q, 'kamera kopułkowa', 'kamery kopułkowe', 'kamer kopułkowych')}`;
+  if (/wi-?fi|wifi|bezprzewod/.test(n)) return `${q} ${installerV352Plural(q, 'kamera Wi‑Fi', 'kamery Wi‑Fi', 'kamer Wi‑Fi')}`;
+  return `${q} ${installerV352Plural(q, 'kamera IP', 'kamery IP', 'kamer IP')}`;
+};
+
+installerV35ServicePhrase = function(item) {
+  const name = String(item.name || '');
+  const n = installerV35Norm(name);
+  const q = number(item.quantity, 1);
+  if (/montaz kamery/.test(n)) return installerV35PolishCameraLabel(name, q);
+  if (/puszka montazowa pod kamere|montaz puszki\s*\/\s*uchwytu/.test(n)) return `${q} ${installerV352Plural(q, 'puszka montażowa pod kamerę', 'puszki montażowe pod kamery', 'puszek montażowych pod kamery')}`;
+  if (/przewiert|wiercenie|przekucie/.test(n)) return `${q} ${installerV352Plural(q, 'przewiert pod przewód', 'przewierty pod przewód', 'przewiertów pod przewód')}`;
+  if (/konfiguracja rejestratora|rejestrator nvr|rejestrator dvr/.test(n) && !installerV35LooksMaterial(item)) return 'konfiguracja rejestratora';
+  if (/podglad|podglad zdalny|aplikacj/.test(n)) return 'uruchomienie podglądu w telefonie';
+  if (/zarabianie.*rj45|rj45/.test(n) && !installerV35LooksMaterial(item)) return q === 1 ? 'zarobienie 1 końcówki RJ45' : `zarobienie ${q} końcówek RJ45`;
+  return `${q}× ${name}`;
+};

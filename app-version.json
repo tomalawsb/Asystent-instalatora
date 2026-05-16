@@ -1,7 +1,7 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "3.3 - 1605261610",
-  "build": "1605261610",
+  "version": "3.5 - 1605261715",
+  "build": "1605261715",
   "date": "2026-05-16",
-  "notes": "Dodano stos parserów strukturalnych: JSON z pozycjami, tabela Excel/TSV, Markdown, CSV/średniki, lista cenowa oraz sekcje Materiały/Robocizna. Parser potrafi przenieść pełną tabelę wyceny do pozycji, rozróżnia materiały i robociznę, sumuje raport parsera oraz ostrzega o niespójności ilość × cena."
+  "notes": "Udoskonalono parser CCTV: kontrola sumy kamer, negacje typu bez montażu / klient ma swoje kamery / nie kupować rejestratora, domyślne podpowiedzi CCTV, lepszy SMS dla klienta oraz rozbudowany słownik odmian i przykładów."
 }
