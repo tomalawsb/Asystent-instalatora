@@ -1,10 +1,9 @@
-Pomocnik Instalatora PWA - wersja 3.4 - 1605261700
+Pomocnik Instalatora PWA
+Wersja: 3.6 - 1605261805
 
-Zmiany w tej paczce:
-- poprawiono rozpoznawanie kamer CCTV z dyktowania, np. „4 kamery, 3 obrotowe i jedną tubową”;
-- liczby słowne: jedna/dwie/trzy/cztery itd. są liczone jak cyfry;
-- „puszki pod kamery” trafiają jako materiał: Puszka montażowa pod kamerę;
-- zachowano parsery tabel/CSV/Markdown/JSON/list z wersji 3.3;
-- zmieniono nazwę cache service workera, żeby telefon pobrał nową wersję app.js.
-
-Po wgraniu na GitHub Pages: Ustawienia -> Aktualizuj aplikację albo wyczyść dane strony/PWA, jeżeli telefon nadal pokazuje starą wersję.
+Poprawki:
+- dodano brakujący montaż kamer tubowych, gdy parser dodał tylko materiał,
+- usuwanie fałszywego adresu typu „ul. Tego 4” z frazy „do tego 4 puszki”,
+- kamery oznaczane jako Wi‑Fi, gdy tekst mówi, że wszystkie będą Wi‑Fi,
+- opcjonalny wzmacniacz Wi‑Fi trafia do pozycji opcjonalnych, nie do obowiązkowej wyceny,
+- poprawiony komunikat przy zatwierdzaniu bez aktywnego podglądu.

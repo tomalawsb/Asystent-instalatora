@@ -1,4 +1,4 @@
-const APP_VERSION = '3.5 - 1605261715';
+const APP_VERSION = '3.6 - 1605261805';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -7051,4 +7051,156 @@ installerV35ServicePhrase = function(item) {
   if (/podglad|podglad zdalny|aplikacj/.test(n)) return 'uruchomienie podglądu w telefonie';
   if (/zarabianie.*rj45|rj45/.test(n) && !installerV35LooksMaterial(item)) return q === 1 ? 'zarobienie 1 końcówki RJ45' : `zarobienie ${q} końcówek RJ45`;
   return `${q}× ${name}`;
+};
+
+
+/* v3.6 - poprawka parsera: kamery Wi-Fi, montaż tubowych, fałszywy adres „do tego 4”, opcjonalny wzmacniacz Wi-Fi */
+function installerV36Norm(rawText) {
+  return installerV35Norm ? installerV35Norm(rawText) : normalizeSpeechText(String(rawText || '')).toLowerCase();
+}
+
+function installerV36HasInstallIntent(rawText) {
+  const text = installerV36Norm(rawText);
+  return /trzeba|założyć|zalozyc|zamontowac|zamontować|montaz|montaż|instalacj|podlaczyc|podłączyć|uruchomic|uruchomić/.test(text);
+}
+
+function installerV36MaxQty(result, re) {
+  let qty = 0;
+  for (const item of result?.items || []) {
+    if (re.test(installerV36Norm(item.name || ''))) qty = Math.max(qty, number(item.quantity, 0));
+  }
+  return qty;
+}
+
+function installerV36AddLaborFromCameraMaterials(rawText, result) {
+  if (!result || !Array.isArray(result.items) || result.parserReport) return;
+  if (!installerV36HasInstallIntent(rawText)) return;
+  const neg = installerV35DetectNegations ? installerV35DetectNegations(rawText) : {};
+  if (neg.noCameraMount) return;
+
+  const addLabor = (qty, name, fallback, key) => {
+    if (!qty || qty <= 0) return;
+    const n = installerV36Norm(name);
+    if (result.items.some(item => installerV36Norm(item.name || '') === n)) return;
+    const item = buildVoiceItem({
+      category: 'Kamery CCTV',
+      name,
+      unit: 'szt',
+      quantity: qty,
+      priceNet: installerV35CatalogPrice ? installerV35CatalogPrice('Kamery CCTV', name, fallback) : fallback,
+      key
+    });
+    item.itemKind = 'labor';
+    result.items.push(item);
+  };
+
+  const tubeQty = installerV36MaxQty(result, /kamera tubow|kamera tuba|tubowa.*material|tubowa.*materiał/);
+  const ptzQty = installerV36MaxQty(result, /kamera obrotow|ptz/);
+
+  if (tubeQty && !installerV36MaxQty(result, /montaz kamery tubow|montaż kamery tubow/)) {
+    addLabor(tubeQty, 'Montaż kamery tubowej', 250, 'camera_tube_mount_v36');
+  }
+  if (ptzQty && !installerV36MaxQty(result, /montaz kamery obrotow|montaż kamery obrotow|montaz.*ptz|montaż.*ptz/)) {
+    addLabor(ptzQty, 'Montaż kamery obrotowej PTZ', 420, 'camera_ptz_mount_v36');
+  }
+}
+
+function installerV36RenameWifiCameraMaterials(rawText, result) {
+  if (!result || !Array.isArray(result.items) || result.parserReport) return;
+  const text = installerV36Norm(rawText);
+  const allWifi = /wszystk\w*.{0,30}kamer\w*.{0,30}(?:wifi|wi\s*-?fi|bezprzewod)/i.test(text)
+    || /kamer\w*.{0,40}(?:wifi|wi\s*-?fi|bezprzewod)/i.test(text);
+  if (!allWifi) return;
+  for (const item of result.items) {
+    const n = installerV36Norm(item.name || '');
+    if (/kamera tubow/.test(n) && /material|materia[lł]/.test(n)) item.name = 'Kamera tubowa Wi‑Fi — materiał';
+    if (/kamera obrotow|ptz/.test(n) && /material|materia[lł]/.test(n)) item.name = 'Kamera obrotowa PTZ Wi‑Fi — materiał';
+  }
+}
+
+function installerV36FixFalseAddress(rawText, result) {
+  if (!result || !result.client) return;
+  const address = installerV36Norm(result.client.address || '');
+  const text = installerV36Norm(rawText);
+  if (/^ul\.?\s*tego\s+\d+\b/.test(address) && /do\s+tego\s+\d+\s+(?:pusz|kamer|uchwyt|przew|kab|szt)/.test(text)) {
+    result.client.address = '';
+    result.unknown = Array.isArray(result.unknown) ? result.unknown : [];
+    installerV35PushUnique(result.unknown, 'Nie wpisano adresu: fragment „do tego 4 …” wyglądał jak fałszywy adres, a nie ulica.');
+  }
+}
+
+function installerV36CameraTypedQtyFromItems(result) {
+  const tube = installerV36MaxQty(result, /kamera tubow|montaz kamery tubow|montaż kamery tubow|tubowa/);
+  const ptz = installerV36MaxQty(result, /kamera obrotow|montaz kamery obrotow|montaż kamery obrotow|ptz/);
+  const dome = installerV36MaxQty(result, /kopulk|kopułk|dome/);
+  return tube + ptz + dome;
+}
+
+function installerV36FixCameraQuantityWarnings(rawText, result) {
+  if (!result || !Array.isArray(result.missingData)) return;
+  const total = (installerV35ExtractCameraBreakdown ? installerV35ExtractCameraBreakdown(rawText).total : 0) || extractCameraQuantity(rawText) || 0;
+  if (!total) return;
+  const typed = installerV36CameraTypedQtyFromItems(result);
+  if (typed >= total) {
+    result.missingData = result.missingData.filter(item => !/^liczba kamer:/i.test(String(item || '')));
+  }
+}
+
+function installerV36HandleOptionalWifiExtender(rawText, result) {
+  if (!result || !Array.isArray(result.items) || result.parserReport) return;
+  const text = installerV36Norm(rawText);
+  const optionalWifi = /(?:ewentualnie|opcjonalnie|jeżeli|jesli|jeśli|gdyby|w razie).{0,80}(?:wzmacniacz|repeater|repeter|access point|ap).{0,80}(?:wifi|wi\s*-?fi|sygnal|sygnał)/i.test(text)
+    || /(?:wzmacniacz|repeater|repeter|access point|ap).{0,80}(?:wifi|wi\s*-?fi|sygnal|sygnał).{0,80}(?:ewentualnie|opcjonalnie|jeżeli|jesli|jeśli|gdyby|w razie)/i.test(text);
+  if (!optionalWifi) return;
+
+  result.items = result.items.filter(item => !/test i optymalizacja wi|optymalizacja wi|wzmacniacz|repeater|repeter|access point/i.test(String(item.name || '')));
+  result.missingData = Array.isArray(result.missingData) ? result.missingData : [];
+  installerV35PushUnique(result.missingData, 'Opcjonalnie: wzmacniacz / repeater Wi‑Fi doliczyć tylko po sprawdzeniu, że sygnał przy kamerze jest za słaby.');
+
+  result.surchargeSuggestions = Array.isArray(result.surchargeSuggestions) ? result.surchargeSuggestions : [];
+  if (!result.surchargeSuggestions.some(s => /wzmacniacz|repeater|repeter|wi/i.test(String(s.item?.name || '')))) {
+    const item = buildVoiceItem({
+      category: 'Sieć / Wi‑Fi',
+      name: 'Wzmacniacz / repeater Wi‑Fi — opcjonalnie',
+      unit: 'szt',
+      quantity: 1,
+      priceNet: installerV35CatalogPrice ? installerV35CatalogPrice('Sieć / Wi‑Fi', 'Wzmacniacz / repeater Wi‑Fi', 120) : 120,
+      key: 'optional_wifi_extender_v36'
+    });
+    item.itemKind = 'material';
+    result.surchargeSuggestions.push({
+      key: 'optional_wifi_extender_v36',
+      reason: 'Tekst mówi, że wzmacniacz Wi‑Fi jest opcjonalny i zależy od pomiaru sygnału.',
+      item
+    });
+  }
+}
+
+const parseSmartCommand_v36_before = parseSmartCommand;
+parseSmartCommand = function(rawText) {
+  const result = parseSmartCommand_v36_before(rawText);
+  if (!result) return result;
+  installerV36FixFalseAddress(rawText, result);
+  installerV36AddLaborFromCameraMaterials(rawText, result);
+  installerV36RenameWifiCameraMaterials(rawText, result);
+  installerV36HandleOptionalWifiExtender(rawText, result);
+  installerV35MarkKinds(result);
+  installerV35ApplyNegations(rawText, result);
+  result.items = mergeParserItems(result.items || []);
+  installerV35MarkKinds(result);
+  installerV36FixCameraQuantityWarnings(rawText, result);
+  installerV35RefreshMissing(rawText, result);
+  installerV36FixCameraQuantityWarnings(rawText, result);
+  installerV36HandleOptionalWifiExtender(rawText, result);
+  return result;
+};
+
+/* v3.6 - status/przyciski podglądu: jawny komunikat, gdy nie ma aktywnego rozbicia */
+const acceptParserPreview_v36_before = acceptParserPreview;
+acceptParserPreview = function() {
+  if (!pendingParse) {
+    showInfo('Nie ma aktywnego podglądu do zatwierdzenia. Najpierw kliknij „Rozbij tekst”, potem „Zatwierdź rozbicie”.');
+    return;
+  }
+  return acceptParserPreview_v36_before();
 };
