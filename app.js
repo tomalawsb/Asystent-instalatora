@@ -1,4 +1,4 @@
-const APP_VERSION = '3.2 - 1605261429';
+const APP_VERSION = '3.3 - 1605261610';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -5768,3 +5768,476 @@ parseSmartCommand = function(rawText) {
   installerV31PatchMissing(rawText, result, counts);
   return result;
 };
+/* =========================================================
+   v3.3 - stos parserów: tabela/CSV/Markdown/lista/sekcje/JSON
+   Cel: lepsze wczytywanie gotowych wycen i ofert z Excela, Allegro,
+   TXT, tabel Markdown oraz tekstów sekcyjnych Materiały/Robocizna.
+   ========================================================= */
+
+const INSTALLER_V33_STRUCTURED_PARSERS = [
+  'JSON wyceny z pozycjami',
+  'Tabela z Excela / arkusza TSV',
+  'Tabela Markdown z pionowymi kreskami',
+  'CSV / średniki',
+  'Lista pozycji z cenami',
+  'Tekst sekcyjny: Materiały / Robocizna'
+];
+
+function installerV33Normalize(value) {
+  return String(value || '')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[„”]/g, '"')
+    .replace(/[–—]/g, '-')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function installerV33NormNoPl(value) {
+  return installerV33Normalize(value).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/ł/g, 'l');
+}
+
+function installerV33ParseNumber(value, fallback = null) {
+  const raw = String(value ?? '').replace(/\u00a0/g, ' ').trim();
+  if (!raw) return fallback;
+  const match = raw.match(/-?\d{1,3}(?:[\s.]?\d{3})*(?:[,.]\d+)?|-?\d+(?:[,.]\d+)?/);
+  if (!match) return fallback;
+  let s = match[0].replace(/\s+/g, '');
+  if (/\.\d{3}(?:\D|$)/.test(s)) s = s.replace(/\./g, '');
+  s = s.replace(',', '.');
+  const n = Number(s);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function installerV33IsUrl(value) {
+  return /^https?:\/\//i.test(String(value || '').trim());
+}
+
+function installerV33IsOrdinalCell(value) {
+  return /^\d{1,3}[.)]?$/.test(String(value || '').trim());
+}
+
+function installerV33IsUnitCell(value) {
+  return /^(szt\.?|sztuki?|kpl\.?|komplet|komplety|usł\.?|usl\.?|usługa|usluga|mb|m|metr|metry|tor|tory|godz\.?|h|km)$/i.test(String(value || '').trim());
+}
+
+function installerV33NormalizeUnit(value, fallback = 'szt') {
+  const v = installerV33NormNoPl(value).replace(/\./g, '');
+  if (/^(szt|sztuka|sztuki)$/.test(v)) return 'szt';
+  if (/^(kpl|komplet|komplety)$/.test(v)) return 'kpl';
+  if (/^(usl|usluga)$/.test(v)) return 'usł';
+  if (/^(mb|m|metr|metry)$/.test(v)) return v === 'm' ? 'm' : 'mb';
+  if (/^(tor|tory)$/.test(v)) return 'tor';
+  if (/^(godz|h)$/.test(v)) return 'godz';
+  if (/^km$/.test(v)) return 'km';
+  return fallback || 'szt';
+}
+
+function installerV33LooksLikeMoneyCell(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return false;
+  if (/\b(zł|zl|pln)\b/i.test(raw) || /zł/i.test(raw)) return /\d/.test(raw);
+  const compact = raw.replace(/\s+/g, '');
+  return /^-?\d{1,6}[,.]\d{1,2}$/.test(compact);
+}
+
+function installerV33ParseMoneyCell(value) {
+  return installerV33LooksLikeMoneyCell(value) ? installerV33ParseNumber(value, null) : null;
+}
+
+function installerV33InferKind(group, name, desc, explicitKind = '') {
+  const explicit = installerV33NormNoPl(explicitKind);
+  if (/material/.test(explicit)) return 'material';
+  if (/robocizna|usluga|praca/.test(explicit)) return 'labor';
+  const src = installerV33NormNoPl([group, name, desc].join(' '));
+  if (/\b(montaz|demontaz|konfiguracja|uruchomienie|inicjalizacja|test|sprawdzenie|inwentaryzacja|oznaczenie|uporzadkowanie|zarabianie|zaciskanie|przewiert|wiercenie|podlaczenie|przeszkolenie|odbior|ustawienie|serwis|robocizna)\b/.test(src)) return 'labor';
+  if (/\b(kamera|hikvision|hilook|ezviz|rejestrator|nvr|dvr|dysk|hdd|skyhawk|puszka|uchwyt|adapter|wtyk|wtyki|rj45|patchcord|beczka|lacznik|łącznik|przewod|przewód|kabel|ydy|ydyp|korytko|rura|peszel|kolki|kołki|wkrety|wkręty|opaski|dlawnice|dławnice|izolacja|uszczelnienie|zasilacz|switch|router|most wifi|aplikacja)\b/.test(src)) return 'material';
+  return 'labor';
+}
+
+function installerV33CategoryFromText(group, name, desc, kind = '') {
+  const src = installerV33NormNoPl([group, name, desc].join(' '));
+  if (/\b(rj45|rj-45|wtyk|wtyki|beczka|lacznik|łącznik|patchcord|keystone|zlacze|złącze|rozgaleznik|rozgałęźnik|adapter)\b/.test(src)) return 'Złącza / Akcesoria';
+  if (/\b(przewod|przewód|kabel|skr[eę]tka|cat\s*5|cat\s*6|ydy|ydyp|korytko|rura|peszel|ochrona przewod|przewiert|wiercenie|przekucie)\b/.test(src)) return 'Przewody / Okablowanie';
+  if (/\b(kamera|kamery|monitoring|cctv|hikvision|hilook|ezviz|rejestrator|nvr|dvr|poe|dysk|hdd|skyhawk|puszka.*kamer|ptz)\b/.test(src)) return 'Kamery CCTV';
+  if (/\b(router|wifi|wi-fi|lan|switch|access point|mesh|most wifi)\b/.test(src)) return 'Sieć / Wi‑Fi';
+  if (/\b(antena|antenowy|konwerter|dekoder|dvb|satelit|sygnal|sygnał)\b/.test(src)) return 'Anteny / Sygnał';
+  if (/\b(telewizor|smart tv|uchwyt tv|wieszak)\b/.test(src)) return 'TV / Montaż';
+  if (/\b(domofon|wideodomofon|unifon|elektrozaczep)\b/.test(src)) return 'Domofon';
+  if (/\b(alarm|czujka|pir|sygnalizator)\b/.test(src)) return 'Alarm';
+  if (/\b(doplat|dopłat|trudny|wysokosc|wysokość|komin|maszt|kopanie)\b/.test(src)) return 'Dopłaty / Trudne warunki';
+  return kind === 'material' ? 'Złącza / Akcesoria' : 'Serwis';
+}
+
+function installerV33MakeItem({ group = '', name = '', desc = '', quantity = 1, unit = 'szt', priceNet = 0, total = null, kind = '', parser = 'structured', source = '' }) {
+  const cleanName = installerV33Normalize(name || group || 'Pozycja z tekstu');
+  const inferredKind = kind || installerV33InferKind(group, cleanName, desc);
+  const category = installerV33CategoryFromText(group, cleanName, desc, inferredKind);
+  const item = buildVoiceItem({
+    category,
+    name: cleanName,
+    unit: installerV33NormalizeUnit(unit, inferredKind === 'labor' ? 'usł' : 'szt'),
+    quantity: number(quantity, 1),
+    priceNet: round2(number(priceNet, 0)),
+    key: `v33_${parser}_${installerV33NormNoPl(cleanName).slice(0, 40)}`
+  });
+  item.itemKind = inferredKind;
+  item.parserSource = parser;
+  item.parserKey = item._voiceKey;
+  item.sourceParser = parser;
+  item.sourceDescription = installerV33Normalize(desc || source || '');
+  if (total !== null) item.sourceTotalNet = round2(total);
+  return item;
+}
+
+function installerV33SplitStructuredLine(line, forcedMode = '') {
+  const raw = String(line || '').replace(/\u00a0/g, ' ').trim();
+  if (!raw) return null;
+  if (forcedMode === 'markdown' || /^\s*\|.*\|\s*$/.test(raw)) {
+    const cells = raw.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(installerV33Normalize).filter(Boolean);
+    if (cells.length >= 4) return { mode: 'markdown', cells };
+  }
+  if (raw.includes('\t')) {
+    const cells = raw.split('\t').map(installerV33Normalize);
+    if (cells.filter(Boolean).length >= 5) return { mode: 'tsv', cells };
+  }
+  if ((raw.match(/;/g) || []).length >= 4) {
+    const cells = raw.split(';').map(installerV33Normalize);
+    if (cells.filter(Boolean).length >= 5) return { mode: 'csv-semicolon', cells };
+  }
+  if (/\s{3,}/.test(raw) && (raw.match(/(?:zł|zl|pln)/gi) || []).length >= 2) {
+    const cells = raw.split(/\s{3,}/).map(installerV33Normalize);
+    if (cells.filter(Boolean).length >= 5) return { mode: 'fixed-width', cells };
+  }
+  return null;
+}
+
+function installerV33LooksLikeHeader(cells) {
+  const joined = installerV33NormNoPl((cells || []).join(' '));
+  if (/\b(lp|nr|kategoria|nazwa|opis|ilosc|ilość|jm|jednostka|cena|razem|typ)\b/.test(joined) && !/\d+[,.]\d+\s*(zl|zł|pln)/.test(joined)) return true;
+  if (/^-+$/.test(joined.replace(/\s+/g, ''))) return true;
+  return false;
+}
+
+function installerV33RowFromCells(cells, mode = 'structured') {
+  const cleanCells = (cells || []).map(installerV33Normalize);
+  if (cleanCells.length < 5 || installerV33LooksLikeHeader(cleanCells)) return null;
+  const priceIndexes = [];
+  cleanCells.forEach((cell, index) => {
+    if (installerV33ParseMoneyCell(cell) !== null) priceIndexes.push(index);
+  });
+  if (!priceIndexes.length) return null;
+
+  const firstPriceIndex = priceIndexes[0];
+  const lastPriceIndex = priceIndexes[priceIndexes.length - 1];
+  const total = installerV33ParseMoneyCell(cleanCells[lastPriceIndex]);
+  let unitPrice = priceIndexes.length >= 2 ? installerV33ParseMoneyCell(cleanCells[priceIndexes[priceIndexes.length - 2]]) : null;
+
+  let unitIndex = -1;
+  for (let i = firstPriceIndex - 1; i >= 0; i--) {
+    if (installerV33IsUnitCell(cleanCells[i])) { unitIndex = i; break; }
+  }
+  let unit = unitIndex >= 0 ? cleanCells[unitIndex] : 'szt';
+  let quantity = 1;
+  if (unitIndex > 0) quantity = installerV33ParseNumber(cleanCells[unitIndex - 1], 1);
+  else {
+    for (let i = firstPriceIndex - 1; i >= 0; i--) {
+      if (/^\d+(?:[,.]\d+)?$/.test(cleanCells[i])) { quantity = installerV33ParseNumber(cleanCells[i], 1); break; }
+    }
+  }
+  if (unitPrice === null && total !== null) unitPrice = quantity > 0 ? total / quantity : total;
+  if (unitPrice === null) return null;
+
+  let explicitKind = '';
+  for (let i = cleanCells.length - 1; i >= 0; i--) {
+    const n = installerV33NormNoPl(cleanCells[i]);
+    if (/^(material|robocizna|usluga)$/.test(n)) { explicitKind = cleanCells[i]; break; }
+  }
+
+  let startIndex = installerV33IsOrdinalCell(cleanCells[0]) ? 1 : 0;
+  const beforeQtyEnd = unitIndex > startIndex ? unitIndex - 1 : firstPriceIndex;
+  let candidates = cleanCells.slice(startIndex, beforeQtyEnd).filter(x => x && !installerV33IsUrl(x) && !installerV33LooksLikeMoneyCell(x));
+  candidates = candidates.filter(x => !/^(material|robocizna|usluga)$/i.test(installerV33NormNoPl(x)));
+  if (!candidates.length) return null;
+
+  const group = candidates[0] || '';
+  let name = candidates.length >= 2 ? candidates[1] : candidates[0];
+  const desc = candidates.length >= 3 ? candidates.slice(2).join(' — ') : '';
+  if (installerV33NormNoPl(name).length < 3 && desc) name = desc;
+
+  const kind = installerV33InferKind(group, name, desc, explicitKind);
+  const expectedTotal = round2(quantity * unitPrice);
+  const mismatch = total !== null && Math.abs(expectedTotal - round2(total)) > 0.05;
+  return {
+    group,
+    name,
+    desc,
+    quantity,
+    unit,
+    unitPrice,
+    total,
+    kind,
+    parser: mode,
+    warning: mismatch ? `Różnica w pozycji „${name}”: ilość × cena = ${money(expectedTotal)}, a w tabeli razem = ${money(total)}.` : ''
+  };
+}
+
+function installerV33ParseStructuredTable(rawText) {
+  const rows = [];
+  const warnings = [];
+  const modes = new Set();
+  for (const line of String(rawText || '').replace(/\r/g, '\n').split('\n')) {
+    const split = installerV33SplitStructuredLine(line);
+    if (!split) continue;
+    const row = installerV33RowFromCells(split.cells, split.mode);
+    if (!row) continue;
+    rows.push(row);
+    modes.add(split.mode);
+    if (row.warning) warnings.push(row.warning);
+  }
+  if (rows.length < 2) return null;
+  return { parser: [...modes].join(' + ') || 'structured-table', rows, warnings, confidence: rows.length >= 5 ? 0.98 : 0.88 };
+}
+
+function installerV33ParseLooseLine(rawLine, sectionKind = '') {
+  const line = installerV33Normalize(rawLine);
+  if (!line || !/\d/.test(line) || !/(?:zł|zl|pln)/i.test(line)) return null;
+  if (/^(netto|brutto|vat|razem|suma)\b/i.test(line)) return null;
+
+  const prefix = String.raw`(?:[-*•]\s*)?(?:\d{1,3}[.)]\s*)?`;
+  const units = String.raw`(szt\.?|kpl\.?|usł\.?|usl\.?|mb|m|tor|godz\.?)`;
+  const nameQtyMatch = line.match(new RegExp(`^${prefix}(.+?)\\s+(\\d+(?:[,.]\\d+)?)\\s*${units}\\s+(\\d{1,3}(?:[\\s.]?\\d{3})*(?:[,.]\\d{1,2})?|\\d+(?:[,.]\\d{1,2})?)\\s*(?:zł|zl|pln)(?:\\s*(?:/|za)\\s*${units})?`, 'i'));
+  if (nameQtyMatch) {
+    const name0 = installerV33Normalize(nameQtyMatch[1]).replace(/\b(razem|łącznie|lacznie|suma)\b.*$/i, '').trim();
+    const qty0 = installerV33ParseNumber(nameQtyMatch[2], 1);
+    const unit0 = installerV33NormalizeUnit(nameQtyMatch[3], 'szt');
+    const price0 = installerV33ParseNumber(nameQtyMatch[4], 0);
+    const isTotal0 = qty0 > 1 && /\b(razem|łącznie|lacznie|suma)\b/i.test(line) && !/\/\s*(szt|kpl|usł|usl|mb|m|tor|godz)/i.test(line);
+    if (name0) return { group: sectionKind === 'material' ? 'Materiał' : (sectionKind === 'labor' ? 'Robocizna' : ''), name: name0, desc: '', quantity: qty0, unit: unit0, unitPrice: isTotal0 && qty0 > 0 ? price0 / qty0 : price0, total: isTotal0 ? price0 : round2(qty0 * price0), kind: installerV33InferKind(sectionKind, name0, '', sectionKind), parser: 'lista' };
+  }
+  let match = line.match(new RegExp(`^${prefix}(?:(\\d+(?:[,.]\\d+)?)\\s*${units}\\s*(?:x|×|-)?\\s*)?(.+?)\\s+(\\d{1,3}(?:[\\s.]?\\d{3})*(?:[,.]\\d{1,2})?|\\d+(?:[,.]\\d{1,2})?)\\s*(?:zł|zl|pln)(?:\\s*(?:/|za)\\s*${units})?`, 'i'));
+  if (!match) {
+    match = line.match(new RegExp(`^${prefix}(.+?)\\s+(\\d+(?:[,.]\\d+)?)\\s*${units}\\s+(\\d{1,3}(?:[\\s.]?\\d{3})*(?:[,.]\\d{1,2})?|\\d+(?:[,.]\\d{1,2})?)\\s*(?:zł|zl|pln)`, 'i'));
+    if (match) {
+      const name2 = installerV33Normalize(match[1]).replace(/\b(razem|łącznie|lacznie)\b.*$/i, '').trim();
+      const qty2 = installerV33ParseNumber(match[2], 1);
+      const unit2 = installerV33NormalizeUnit(match[3], 'szt');
+      const price2 = installerV33ParseNumber(match[4], 0);
+      const isTotal2 = /\b(razem|łącznie|lacznie|suma)\b/i.test(line);
+      return { group: sectionKind === 'material' ? 'Materiał' : (sectionKind === 'labor' ? 'Robocizna' : ''), name: name2, desc: '', quantity: qty2, unit: unit2, unitPrice: isTotal2 && qty2 > 0 ? price2 / qty2 : price2, total: isTotal2 ? price2 : round2(qty2 * price2), kind: installerV33InferKind(sectionKind, name2, '', sectionKind), parser: 'lista' };
+    }
+    return null;
+  }
+
+  const qty = installerV33ParseNumber(match[1], 1);
+  const unit = installerV33NormalizeUnit(match[2] || match[5] || 'szt', 'szt');
+  let name = installerV33Normalize(match[3]).replace(/\b(razem|łącznie|lacznie|suma)\b.*$/i, '').trim();
+  const price = installerV33ParseNumber(match[4], 0);
+  if (!name || name.length < 3) return null;
+  const isTotal = qty > 1 && /\b(razem|łącznie|lacznie|suma)\b/i.test(line) && !/\/\s*(szt|kpl|usł|usl|mb|m|tor|godz)/i.test(line);
+  return {
+    group: sectionKind === 'material' ? 'Materiał' : (sectionKind === 'labor' ? 'Robocizna' : ''),
+    name,
+    desc: '',
+    quantity: qty,
+    unit,
+    unitPrice: isTotal && qty > 0 ? price / qty : price,
+    total: isTotal ? price : round2(qty * price),
+    kind: installerV33InferKind(sectionKind, name, '', sectionKind),
+    parser: 'lista'
+  };
+}
+
+function installerV33ParseSectionedList(rawText) {
+  const rows = [];
+  const warnings = [];
+  let sectionKind = '';
+  const lines = String(rawText || '').replace(/\r/g, '\n').split('\n');
+  for (const rawLine of lines) {
+    const normalized = installerV33NormNoPl(rawLine);
+    if (/^\s*(materialy|material|sprzet|sprzęt|zakupy)\s*[:\-]/i.test(normalized)) { sectionKind = 'material'; continue; }
+    if (/^\s*(robocizna|uslugi|usluga|prace|montaz)\s*[:\-]/i.test(normalized)) { sectionKind = 'labor'; continue; }
+    const row = installerV33ParseLooseLine(rawLine, sectionKind);
+    if (row) rows.push(row);
+  }
+  if (rows.length < 2) return null;
+  return { parser: 'lista/sekcje', rows, warnings, confidence: rows.length >= 4 ? 0.82 : 0.72 };
+}
+
+function installerV33ParseJsonQuote(rawText) {
+  const source = String(rawText || '').trim();
+  if (!source || !/^[\[{]/.test(source)) return null;
+  try {
+    const parsed = JSON.parse(source);
+    const candidates = [];
+    if (Array.isArray(parsed)) candidates.push(...parsed);
+    if (Array.isArray(parsed.services)) candidates.push(...parsed.services);
+    if (Array.isArray(parsed.items)) candidates.push(...parsed.items);
+    if (Array.isArray(parsed.quotes) && parsed.quotes[0]?.services) candidates.push(...parsed.quotes[0].services);
+    if (Array.isArray(parsed.records) && parsed.records[0]?.services) candidates.push(...parsed.records[0].services);
+    const rows = candidates
+      .map(item => ({
+        group: item.category || '',
+        name: item.name || item.title || '',
+        desc: item.description || item.note || '',
+        quantity: number(item.quantity ?? item.qty ?? 1, 1),
+        unit: item.unit || 'szt',
+        unitPrice: number(item.priceNet ?? item.price_net ?? item.price ?? 0, 0),
+        total: null,
+        kind: item.itemKind || item.kind || '',
+        parser: 'json'
+      }))
+      .filter(row => row.name && row.unitPrice >= 0);
+    if (!rows.length) return null;
+    return { parser: 'json', rows, warnings: ['Wklejono JSON z pozycjami — sprawdź, czy nie powinien być importowany przez Kopia JSON zamiast parsera.'], confidence: 0.9 };
+  } catch {
+    return null;
+  }
+}
+
+function installerV33BuildStructuredResult(rawText, parsed) {
+  const items = [];
+  const warnings = [...(parsed.warnings || [])];
+  for (const row of parsed.rows || []) {
+    const item = installerV33MakeItem({
+      group: row.group,
+      name: row.name,
+      desc: row.desc,
+      quantity: row.quantity,
+      unit: row.unit,
+      priceNet: row.unitPrice,
+      total: row.total,
+      kind: row.kind,
+      parser: row.parser || parsed.parser,
+      source: row.source || ''
+    });
+    items.push(item);
+  }
+  const merged = mergeParserItems(items);
+  for (const item of merged) {
+    item.parserSource = item.sourceParser || parsed.parser || 'structured';
+    item.parserKey = item._voiceKey || item.name;
+    item.learningSignature = `v33|${item.parserSource}|${installerV33NormNoPl(item.name)}|${item.unit}|${number(item.priceNet, 0)}`;
+  }
+
+  const client = parseClientData(rawText, normalizeSpeechText(rawText));
+  const distance = parseDistance(normalizeSpeechText(rawText));
+  const freeKm = parseFreeKm(normalizeSpeechText(rawText));
+  const detectedType = installerV33DetectTypeFromItems(rawText, merged);
+  const totals = installerV33TotalsByKind(merged);
+  const parserReport = {
+    parser: parsed.parser || 'structured',
+    parsersAvailable: INSTALLER_V33_STRUCTURED_PARSERS,
+    items: merged.length,
+    materialsNet: totals.material,
+    laborNet: totals.labor,
+    totalNet: totals.total,
+    warnings
+  };
+  const missingData = installerV33StructuredMissing(rawText, merged, parserReport, { client, distanceKm: distance?.km ?? null, freeKm: freeKm ?? null });
+  return {
+    client,
+    items: merged,
+    detectedType,
+    distanceKm: distance ? distance.km : null,
+    distanceRate: distance?.rate ?? null,
+    freeKm: freeKm !== null ? freeKm : null,
+    unknown: warnings,
+    learnedApplied: [],
+    missingData,
+    surchargeSuggestions: [],
+    transcriptInfo: { isTranscript: false, findings: [], options: [], rejected: [], followUps: [] },
+    parserReport
+  };
+}
+
+function installerV33DetectTypeFromItems(rawText, items) {
+  const text = installerV33NormNoPl([rawText, ...(items || []).map(i => `${i.category} ${i.name}`)].join(' '));
+  const scores = installerScoreJobTypes ? installerScoreJobTypes(text) : [];
+  if (scores.length) return scores[0][0];
+  const first = (items || []).find(i => i.category && !/Złącza|Przewody|Dopłaty/i.test(i.category));
+  return first?.category || 'Serwis';
+}
+
+function installerV33TotalsByKind(items) {
+  const out = { material: 0, labor: 0, total: 0 };
+  for (const item of items || []) {
+    const value = number(item.quantity, 1) * number(item.priceNet, 0);
+    out.total += value;
+    const kind = item.itemKind || classifyQuoteItem(item).key;
+    if (kind === 'material') out.material += value;
+    else out.labor += value;
+  }
+  out.material = round2(out.material);
+  out.labor = round2(out.labor);
+  out.total = round2(out.total);
+  return out;
+}
+
+function installerV33StructuredMissing(rawText, items, report, context) {
+  const missing = [];
+  if (!context.client?.name) missing.push('imię i nazwisko klienta — tabela/oferta zwykle tego nie zawiera');
+  if (!context.client?.phone) missing.push('numer telefonu klienta');
+  if (!context.client?.address) missing.push('adres / miejscowość montażu');
+  if (context.distanceKm === null && number(state.distanceKm, 0) <= 0) missing.push('dojazd w km albo informacja, że dojazd nie jest liczony');
+  if (!/netto|brutto/i.test(rawText)) missing.push('czy podane ceny są netto czy brutto — program przyjął netto');
+  if (report.warnings?.length) missing.push(`sprawdzić ostrzeżenia parsera: ${report.warnings.length}`);
+  const materialWithoutKind = items.filter(item => !item.itemKind).length;
+  if (materialWithoutKind) missing.push(`część pozycji nie miała kolumny Materiał/Robocizna — program dopasował typ automatycznie: ${materialWithoutKind}`);
+  if ((items || []).some(item => /dysk|hdd|skyhawk/i.test(item.name)) && !(items || []).some(item => /rejestrator|nvr|dvr/i.test(item.name))) missing.push('jest dysk, ale nie wykryto rejestratora — sprawdź kompletność oferty');
+  if ((items || []).some(item => /kamera/i.test(item.name)) && !(items || []).some(item => /rejestrator|nvr|dvr|zapis|podgląd|podglad/i.test(item.name))) missing.push('są kamery, ale nie wykryto zapisu/podglądu/rejestratora — sprawdź zakres');
+  return [...new Set(missing)];
+}
+
+function installerV33RunStructuredParsers(rawText) {
+  const parsers = [
+    installerV33ParseJsonQuote,
+    installerV33ParseStructuredTable,
+    installerV33ParseSectionedList
+  ];
+  const candidates = parsers.map(fn => fn(rawText)).filter(Boolean);
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => (b.rows?.length || 0) - (a.rows?.length || 0) || b.confidence - a.confidence);
+  const best = candidates[0];
+  if ((best.rows?.length || 0) < 2 && best.parser !== 'json') return null;
+  return installerV33BuildStructuredResult(rawText, best);
+}
+
+const classifyQuoteItem_v33_before = classifyQuoteItem;
+classifyQuoteItem = function(item) {
+  if (item?.itemKind === 'material') return { key: 'material', label: 'materiał' };
+  if (item?.itemKind === 'labor') return { key: 'labor', label: 'robocizna' };
+  return classifyQuoteItem_v33_before(item);
+};
+
+function installerV33ParserReportHtml(report) {
+  if (!report) return '';
+  const warnings = report.warnings?.length
+    ? `<details class="preview-warning"><summary>Ostrzeżenia parsera (${report.warnings.length})</summary><ul>${report.warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('')}</ul></details>`
+    : '';
+  const available = report.parsersAvailable?.length
+    ? `<small>Aktywne parsery: ${report.parsersAvailable.map(escapeHtml).join(', ')}</small>`
+    : '';
+  return `<details class="preview-block" open><summary>Raport parsera: ${escapeHtml(report.parser || 'strukturalny')}</summary>
+    <div class="preview-muted">Wykryto pozycji: <b>${number(report.items, 0)}</b>. Materiały: <b>${money(report.materialsNet)}</b>, robocizna: <b>${money(report.laborNet)}</b>, razem: <b>${money(report.totalNet)}</b>.</div>
+    ${available}
+    ${warnings}
+  </details>`;
+}
+
+const renderParserPreview_v33_before = renderParserPreview;
+renderParserPreview = function(raw, result) {
+  renderParserPreview_v33_before(raw, result);
+  if (!result?.parserReport) return;
+  const content = $('parserPreviewContent');
+  if (content) content.insertAdjacentHTML('afterbegin', installerV33ParserReportHtml(result.parserReport));
+};
+
+const parseSmartCommand_v33_before = parseSmartCommand;
+parseSmartCommand = function(rawText) {
+  const structured = installerV33RunStructuredParsers(rawText);
+  if (structured?.items?.length) return structured;
+  return parseSmartCommand_v33_before(rawText);
+};
+

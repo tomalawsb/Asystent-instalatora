@@ -1,7 +1,13 @@
 Pomocnik Instalatora PWA
-Wersja: 3.2 - 1605261429
+Wersja: 3.3 - 1605261610
 
 Zmiany w tej paczce:
+- dodano stos parserów strukturalnych: Excel/TSV, CSV/średniki, Markdown, lista cenowa, sekcje Materiały/Robocizna oraz JSON z pozycjami,
+- parser gotowych tabel przenosi pełną listę pozycji do wyceny zamiast zostawiać ją jako zwykły tekst,
+- dodano rozróżnianie itemKind: materiał / robocizna, dzięki czemu dysk, puszki, RJ45 i podobne pozycje nie wypadają z klasyfikacji,
+- dodano raport parsera w podglądzie: liczba pozycji, suma materiałów, suma robocizny i suma razem,
+- dodano kontrolę niespójności: ilość × cena jednostkowa kontra kolumna Razem,
+- przetestowano na tabeli CCTV: 24 pozycje, materiały 3 359,90 zł, robocizna 3 070,00 zł, razem 6 429,90 zł netto,
 - dodano przycisk „Wgraj JSON” w zakładce Zapisane, obok „Kopia JSON”,
 - import kopii JSON wczytuje ustawienia, cennik, słownik korekt, reguły parsera oraz zapisane wyceny z klientami,
 - zapisane wyceny są scalane z obecnymi, a nie kasowane na ślepo,

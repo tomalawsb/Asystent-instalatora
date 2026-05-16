@@ -1,7 +1,7 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "3.2 - 1605261429",
-  "build": "1605261429",
+  "version": "3.3 - 1605261610",
+  "build": "1605261610",
   "date": "2026-05-16",
-  "notes": "Dodano ręczne wgrywanie kopii JSON z ustawieniami, cennikiem, słownikiem, regułami parsera i zapisanymi wycenami/klientami. Poprawiono odświeżanie formularzy po imporcie oraz zwiększono wersję cache PWA."
+  "notes": "Dodano stos parserów strukturalnych: JSON z pozycjami, tabela Excel/TSV, Markdown, CSV/średniki, lista cenowa oraz sekcje Materiały/Robocizna. Parser potrafi przenieść pełną tabelę wyceny do pozycji, rozróżnia materiały i robociznę, sumuje raport parsera oraz ostrzega o niespójności ilość × cena."
 }
