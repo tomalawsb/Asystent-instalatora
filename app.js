@@ -2048,13 +2048,16 @@ function clearLocalData() {
 }
 
 async function refreshAppCache() {
+  const cachePrefix = 'pomocnik-instalatora-pwa-';
   if ('caches' in window) {
     const names = await caches.keys();
-    await Promise.all(names.map(name => caches.delete(name)));
+    await Promise.all(names.filter(name => name.startsWith(cachePrefix)).map(name => caches.delete(name)));
   }
   if ('serviceWorker' in navigator) {
     const registrations = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(registrations.map(reg => reg.update()));
+    await Promise.all(registrations
+      .filter(reg => String(reg.scope || '').includes(location.pathname.replace(/[^/]*$/, '')))
+      .map(reg => reg.update()));
   }
   location.reload();
 }
@@ -7188,6 +7191,7 @@ parseSmartCommand = function(rawText) {
   installerV35ApplyNegations(rawText, result);
   result.items = mergeParserItems(result.items || []);
   installerV35MarkKinds(result);
+  installerV361PatchRj45MaterialAndLabor(rawText, result);
   installerV36FixCameraQuantityWarnings(rawText, result);
   installerV35RefreshMissing(rawText, result);
   installerV36FixCameraQuantityWarnings(rawText, result);
@@ -7203,4 +7207,265 @@ acceptParserPreview = function() {
     return;
   }
   return acceptParserPreview_v36_before();
+};
+
+
+/* v3.6.1 - poprawki po audycie: parser, Dropbox push, cache, PWA */
+function installerV361Norm(rawText) {
+  return (typeof installerV35Norm === 'function')
+    ? installerV35Norm(rawText)
+    : String(rawText || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').replace(/\s+/g, ' ').trim();
+}
+
+function installerV361Number(value, fallback = 0) {
+  if (typeof installerV35Number === 'function') return installerV35Number(value, fallback);
+  const v = installerV361Norm(value).replace(',', '.');
+  const map = { jeden: 1, jedna: 1, jedno: 1, jednej: 1, dwa: 2, dwie: 2, trzy: 3, cztery: 4, piec: 5, szesc: 6, siedem: 7, osiem: 8, dziewiec: 9, dziesiec: 10 };
+  return /^\d+(?:\.\d+)?$/.test(v) ? number(v, fallback) : (map[v] || fallback);
+}
+
+function installerV361QtyPattern() {
+  return '(\\d+(?:[.,]\\d+)?|jeden|jedna|jedno|jednej|dwa|dwie|trzy|cztery|piec|szesc|siedem|osiem|dziewiec|dziesiec)';
+}
+
+function installerV361AccessoryWords() {
+  return '(?:zlacz\\w*|złąc\\w*|złacz\\w*|zlace\\w*|zlacze\\w*|wtyk\\w*|wtycz\\w*|koncow\\w*|końc\\w*|koncowek|końcówek|rj\\s*-?\\s*45|rjek|rjki|rj-ki|beczk\\w*|rozgaleznik\\w*|rozgał\\w*|rozdzielacz\\w*|splitter\\w*|odgaleznik\\w*|odgał\\w*|gniazd\\w*|keystone|modul\\w*|moduł\\w*|zasilacz\\w*|wzmacniacz\\w*|separator\\w*|oslon\\w*|osłon\\w*|patch\\s*panel)';
+}
+
+if (typeof splitAccessoryClauses === 'function') {
+  splitAccessoryClauses = function(text) {
+    const raw = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!raw) return [];
+    const prepared = raw
+      .replace(/(separatorem|separatorze)\s+(?=wzmacniacz\w*\s+anten)/gi, '$1, ')
+      .replace(/(zasilacz\w*\s+anten\w*(?:\s+12\s*v)?(?:\s+z\s+separatorem)?)\s+(?=wzmacniacz\w*\s+anten)/gi, '$1, ')
+      .replace(new RegExp('\\s+i\\s+(?=' + installerV361QtyPattern().replaceAll('\\\\', '\\\\') + '\\s+(?:szt\\.?\\s*)?' + installerV361AccessoryWords().replaceAll('\\\\', '\\\\') + ')', 'gi'), ', ');
+    const parts = prepared.split(/[,;\n]+|\s+oraz\s+|\s+plus\s+/i);
+    return parts.map(x => x.trim()).filter(Boolean);
+  };
+}
+
+if (typeof parseAccessoryQuantity === 'function') {
+  parseAccessoryQuantity = function(text) {
+    const source = installerV361Norm(text);
+    const qty = installerV361QtyPattern();
+    const acc = installerV361AccessoryWords();
+    const patterns = [
+      new RegExp('\\b' + qty + '\\s*(?:szt\\.?\\s*)?' + acc + '\\b', 'i'),
+      new RegExp('\\b' + qty + '\\s*(?:szt\\.?\\s*)?(?:koncowek|koncowki|koncowka|wtykow|wtyki|wtyk)\\s+(?:rj\\s*-?\\s*45|rjki|rjek)\\b', 'i'),
+      new RegExp('(?:rj\\s*-?\\s*45|rjki|rjek|' + acc + ')\\D{0,40}?' + qty + '\\s*szt\\b', 'i')
+    ];
+    for (const pattern of patterns) {
+      const match = source.match(pattern);
+      if (match) return installerV361Number(match[1], 1);
+    }
+    return 1;
+  };
+}
+
+if (typeof installerPatchCableItemsV29 === 'function') {
+  installerPatchCableItemsV29 = function(rawText, result) {
+    if (!result || !Array.isArray(result.items)) return result;
+    const focused = buildFocusedTranscriptText(rawText);
+    const normalized = normalizeSpeechText(focused);
+    const additions = [];
+    const hasItem = (category, name, quantity) => (result.items || []).some(item =>
+      String(item.category || '') === category
+      && normalizeMaterialName(item.name || '') === normalizeMaterialName(name)
+      && number(item.quantity, 0) === number(quantity, 0)
+    );
+    const addOnce = (category, name, unit, quantity, priceNet, key) => {
+      if (hasItem(category, name, quantity)) return;
+      additions.push(buildVoiceItem({ category, name, unit, quantity, priceNet, key }));
+    };
+
+    const internetLength = installerDetectInternetCableLengthV29(normalized);
+    const hasInternetCableWords = /przew[oó]d\w*\s+(?:internetow\w*|sieciow\w*)|kabel\w*\s+(?:internetow\w*|sieciow\w*)|skr[eę]tk\w*|lan|utp|cat\s*5|kat\s*5|cat\s*6|kat\s*6|kategori\w*\s*[56]/i.test(normalized);
+
+    if (internetLength > 0 && hasInternetCableWords) {
+      const cableName = installerDetectInternetCableNameV29(normalized);
+      result.items = result.items.filter(item => {
+        const name = String(item.name || '');
+        const category = String(item.category || '');
+        const qty = number(item.quantity, 0);
+        if (/Prowadzenie skr[eę]tki zewn[eę]trznej/i.test(name) && /Kamery CCTV/i.test(category) && qty === internetLength) return false;
+        return true;
+      });
+      addOnce('Przewody / Okablowanie', cableName, 'mb', internetLength, installerFindCatalogPriceV29('Przewody / Okablowanie', cableName, cableName.includes('Cat 6') ? 2 : 2), cableName.includes('Cat 6') ? 'cable_cat6_cu_v29' : 'cable_cat5e_cu_v29');
+      addOnce('Przewody / Okablowanie', 'Prowadzenie przewodu — standardowe', 'mb', internetLength, installerFindCatalogPriceV29('Przewody / Okablowanie', 'Prowadzenie przewodu — standardowe', 8), 'cable_labor_standard_internet_v29');
+    }
+
+    const electricRuns = installerDetectElectricCableRunsV29(normalized);
+    if (electricRuns.length) {
+      const has2x25 = electricRuns.some(run => /2×2,5/.test(run.name));
+      if (has2x25 && !/2\s*(?:x|×|razy)\s*0[,.]?5/i.test(normalized)) {
+        result.items = result.items.filter(item => !/2×0,5|2x0,5/i.test(String(item.name || '')));
+      }
+      for (const run of electricRuns) {
+        addOnce('Przewody / Okablowanie', run.name, 'mb', run.length, installerFindCatalogPriceV29('Przewody / Okablowanie', run.name, run.fallback), run.key);
+        addOnce('Przewody / Okablowanie', 'Prowadzenie przewodu — standardowe', 'mb', run.length, installerFindCatalogPriceV29('Przewody / Okablowanie', 'Prowadzenie przewodu — standardowe', 8), `${run.key}_labor`);
+      }
+    }
+
+    if (additions.length) result.items = mergeParserItems([...(result.items || []), ...additions]);
+    return result;
+  };
+}
+
+function installerV361AllCamerasWifi(rawText) {
+  const text = installerV361Norm(rawText);
+  return /(?:wszystk\w*|obie|oba|calosc|całość).{0,70}(?:wifi|wi\s*-?\s*fi|bezprzewod)/i.test(text)
+    || /(?:wifi|wi\s*-?\s*fi|bezprzewod).{0,70}(?:wszystk\w*|obie|oba|calosc|całość).{0,30}kamer/i.test(text)
+    || /kamer\w*.{0,60}(?:wifi|wi\s*-?\s*fi|bezprzewod)/i.test(text);
+}
+
+function installerV361WifiMaterialName(typeKey, defaultName, allWifi) {
+  if (!allWifi) return defaultName;
+  if (typeKey === 'tube') return 'Kamera tubowa Wi‑Fi — materiał';
+  if (typeKey === 'ptz') return 'Kamera obrotowa PTZ Wi‑Fi — materiał';
+  if (typeKey === 'dome') return 'Kamera kopułkowa Wi‑Fi — materiał';
+  return 'Kamera Wi‑Fi — materiał';
+}
+
+function installerV361PatchCameraMaterials(rawText, result) {
+  if (!result || !Array.isArray(result.items) || result.parserReport) return;
+  if (typeof installerV35ExtractCameraBreakdown !== 'function' || !INSTALLER_V35_PARSER_DICTIONARY?.cameraTypes) return;
+  const breakdown = installerV35ExtractCameraBreakdown(rawText);
+  const allWifi = installerV361AllCamerasWifi(rawText);
+  if (!breakdown || breakdown.typedTotal <= 0) {
+    if (allWifi) installerV36RenameWifiCameraMaterials(rawText, result);
+    return;
+  }
+
+  result.items = result.items.filter(item => {
+    const n = installerV361Norm(item.name || '');
+    const isCameraMaterial = /kamera/.test(n) && /material|materia[lł]/.test(n);
+    return !(String(item.category || '') === 'Kamery CCTV' && isCameraMaterial);
+  });
+
+  for (const type of INSTALLER_V35_PARSER_DICTIONARY.cameraTypes) {
+    const qty = number(breakdown.types?.[type.key], 0);
+    if (!qty || qty <= 0) continue;
+    const defaultName = type.materialName || 'Kamera IP zewnętrzna — materiał';
+    const name = installerV361WifiMaterialName(type.key, defaultName, allWifi);
+    const price = getSuggestedMaterialPrice(name, 'Kamery CCTV') ?? getSuggestedMaterialPrice(defaultName, 'Kamery CCTV');
+    const catalog = findCatalogService('Kamery CCTV', defaultName) || findCatalogService('Kamery CCTV', name);
+    const item = buildVoiceItem({
+      category: 'Kamery CCTV',
+      name,
+      unit: 'szt',
+      quantity: qty,
+      priceNet: number(price ?? catalog?.price_net, 0),
+      key: `camera_${type.key}_hardware_v361`
+    });
+    item.itemKind = 'material';
+    result.items.push(item);
+  }
+}
+
+if (typeof installerV36RenameWifiCameraMaterials === 'function') {
+  installerV36RenameWifiCameraMaterials = function(rawText, result) {
+    if (!result || !Array.isArray(result.items) || result.parserReport) return;
+    if (!installerV361AllCamerasWifi(rawText)) return;
+    for (const item of result.items) {
+      const n = installerV361Norm(item.name || '');
+      if (!/material|materia[lł]/.test(n)) continue;
+      if (/kamera tubow/.test(n)) item.name = 'Kamera tubowa Wi‑Fi — materiał';
+      else if (/kamera obrotow|ptz/.test(n)) item.name = 'Kamera obrotowa PTZ Wi‑Fi — materiał';
+      else if (/kamera kopulk|kamera dome/.test(n)) item.name = 'Kamera kopułkowa Wi‑Fi — materiał';
+      else if (/kamera/.test(n)) item.name = 'Kamera Wi‑Fi — materiał';
+    }
+  };
+}
+
+function installerV361FixFalseAddress(rawText, result) {
+  if (!result || !result.client || !result.client.address) return;
+  const address = installerV361Norm(result.client.address).replace(/^ul\.?\s+/, '');
+  const text = installerV361Norm(rawText);
+  const falseStart = /^(prowadzenie|polozenie|położenie|przeciagniecie|przeciagniecie|przewod|przewodu|kabel|kabla|skretka|skretki|skrętka|skrętki|kamera|kamery|montaz|montaż|zrobienie|zarobienie|koncowki|końcówki|wtyki|do tego)\s+\d+\b/i.test(address);
+  const technicalTail = new RegExp(address.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*(?:m|mb|km|szt|zl|zł|cat|kat|rj\\s*-?\\s*45|kamer|puszk|przewod|przewód|skretk|skrętk)', 'i').test(text);
+  if (falseStart || technicalTail) {
+    result.client.address = '';
+    result.unknown = Array.isArray(result.unknown) ? result.unknown : [];
+    installerV35PushUnique(result.unknown, 'Nie wpisano adresu: wykryty fragment wyglądał jak opis techniczny, nie adres klienta.');
+  }
+}
+
+
+function installerV361PatchRj45MaterialAndLabor(rawText, result) {
+  if (!result || !Array.isArray(result.items)) return;
+  const text = installerV361Norm(rawText);
+  if (!/(rj\s*-?\s*45|rjki|rjek|koncowek|koncowki|wtyk)/i.test(text)) return;
+  const qty = parseAccessoryQuantity(text);
+  if (!qty || qty <= 0) return;
+  const laborIntent = /(zacis|zarob|zakoncz|zakonczyc|zakonczenie|zakończ|zakończenie|zaciś|zaciśnie|zarobić|zarobienie)/i.test(text);
+  const cat6 = /cat\s*6|kat\s*6|kategori\w*\s*6/i.test(text) || result.items.some(item => /skr[eę]tka utp cat 6|cat 6/i.test(String(item.name || '')));
+  const materialName = cat6 ? 'Wtyk RJ45 Cat 6 UTP' : 'Wtyk RJ45 Cat 5e UTP';
+  const hasMaterial = result.items.some(item => /wtyk rj45/i.test(String(item.name || '')) && !/zaciskanie/i.test(String(item.name || '')));
+  if (!hasMaterial) {
+    const catalog = findCatalogService('Złącza / Akcesoria', materialName);
+    const item = buildVoiceItem({
+      category: 'Złącza / Akcesoria',
+      name: materialName,
+      unit: 'szt',
+      quantity: qty,
+      priceNet: number(catalog?.price_net, cat6 ? 0.9 : 0.6),
+      key: cat6 ? 'rj45_cat6_material_v361' : 'rj45_cat5e_material_v361'
+    });
+    item.itemKind = 'material';
+    result.items.push(item);
+  }
+  result.items = result.items.filter(item => {
+    const n = installerV361Norm(item.name || '');
+    if (!/zaciskanie wtyku rj45|zarabianie.*rj45/.test(n)) return true;
+    if (laborIntent) {
+      item.quantity = qty;
+      item.itemKind = 'labor';
+      return true;
+    }
+    return false;
+  });
+}
+
+function installerV361NormalizeRj45Quantity(rawText, result) {
+  if (!result || !Array.isArray(result.items)) return;
+  const text = installerV361Norm(rawText);
+  const qty = parseAccessoryQuantity(text);
+  if (!qty || qty <= 1 || !/(rj\s*-?\s*45|rjki|rjek|koncowek|koncowki|wtyk)/i.test(text)) return;
+  for (const item of result.items) {
+    const n = installerV361Norm(item.name || '');
+    if (/rj\s*-?\s*45|rj45/.test(n) && number(item.quantity, 0) === 1) item.quantity = qty;
+  }
+}
+
+const syncDropbox_v361_before = syncDropbox;
+syncDropbox = async function(mode = 'merge', silent = false) {
+  if (mode === 'push' && !silent) {
+    const ok = confirm('Uwaga: „Wyślij lokalne” zastąpi plik w Dropboxie danymi z tej przeglądarki. Bezpieczniejsza opcja to „Synchronizuj teraz” albo „Pobierz i scal”. Kontynuować nadpisanie Dropboxa?');
+    if (!ok) {
+      showDropboxStatus('Anulowano wysyłanie lokalnych danych do Dropboxa.');
+      return;
+    }
+  }
+  return syncDropbox_v361_before(mode, silent);
+};
+
+const parseSmartCommand_v361_before = parseSmartCommand;
+parseSmartCommand = function(rawText) {
+  const result = parseSmartCommand_v361_before(rawText);
+  if (!result) return result;
+  installerV361FixFalseAddress(rawText, result);
+  installerV361PatchCameraMaterials(rawText, result);
+  installerV36RenameWifiCameraMaterials(rawText, result);
+  installerV361NormalizeRj45Quantity(rawText, result);
+  installerV361PatchRj45MaterialAndLabor(rawText, result);
+  installerV35MarkKinds(result);
+  installerV35ApplyNegations(rawText, result);
+  result.items = mergeParserItems(result.items || []);
+  installerV35MarkKinds(result);
+  installerV361PatchRj45MaterialAndLabor(rawText, result);
+  installerV36FixCameraQuantityWarnings(rawText, result);
+  installerV35RefreshMissing(rawText, result);
+  installerV36FixCameraQuantityWarnings(rawText, result);
+  return result;
 };

@@ -1,4 +1,5 @@
-const CACHE_NAME = 'pomocnik-instalatora-pwa-3-5-1605261805';
+const CACHE_PREFIX = 'pomocnik-instalatora-pwa-';
+const CACHE_NAME = 'pomocnik-instalatora-pwa-3-6-1605261805';
 const FILES = [
   './',
   './index.html',
@@ -22,7 +23,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(names => Promise.all(names.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))))
+    caches.keys().then(names => Promise.all(names.filter(name => name.startsWith(CACHE_PREFIX) && name !== CACHE_NAME).map(name => caches.delete(name))))
       .then(() => self.clients.claim())
   );
 });
