@@ -1,5 +1,5 @@
 const CACHE_PREFIX = 'pomocnik-instalatora-pwa-';
-const CACHE_NAME = 'pomocnik-instalatora-pwa-3-7-1605261805-ai';
+const CACHE_NAME = 'pomocnik-instalatora-pwa-3-8-0706261140-ai-local-key-model-select';
 const FILES = [
   './',
   './index.html',

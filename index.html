@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6f8fb">
   <meta name="description" content="Pomocnik Instalatora — szybkie wyceny, klienci, cennik i notatki z wizyt.">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.dropboxapi.com https://content.dropboxapi.com https://*.workers.dev https://*.pages.dev https://*.vercel.app https://*.netlify.app http://localhost:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
-  <title>Pomocnik Instalatora PWA 3.7 - 1605261805 AI</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.dropboxapi.com https://content.dropboxapi.com https://api.openai.com https://*.workers.dev https://*.pages.dev https://*.vercel.app https://*.netlify.app http://localhost:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+  <title>Pomocnik Instalatora PWA 3.8 - 0706261140 AI Lokalny</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -14,7 +14,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow">Wersja 3.7 - 1605261805 AI</div>
+        <div class="eyebrow">Wersja 3.8 - 0706261140 AI Lokalny</div>
         <h1>Pomocnik Instalatora</h1>
       </div>
       <div class="top-actions">
@@ -350,25 +350,30 @@
           </div>
 
           <div class="ai-parser-panel">
-            <h3>Parser AI przez backend</h3>
-            <p class="muted">Dla GitHub Pages klucz OpenAI powinien być zapisany w backendzie/proxy, nie w kodzie aplikacji. Tu wpisz tylko adres backendu.</p>
+            <h3>Parser AI OpenAI</h3>
+            <p class="muted">Bez backendu i bez serwera pośredniego: wpisujesz klucz OpenAI raz, a aplikacja zapamiętuje go lokalnie w tej przeglądarce/PWA.</p>
             <div class="form-grid">
               <label>Domyślny tryb rozbijania
                 <select id="aiParserMode">
                   <option value="local">Parser lokalny</option>
-                  <option value="ai">AI przez backend</option>
+                  <option value="ai">AI OpenAI</option>
                 </select>
               </label>
-              <label class="span-2">Adres backendu AI
-                <input id="aiBackendUrl" type="url" autocomplete="off" placeholder="np. https://twoj-parser-ai.nazwa.workers.dev">
+              <label>Model OpenAI
+                <select id="aiModel">
+                  <option value="gpt-4o-mini">gpt-4o-mini — tańszy / szybki</option>
+                  <option value="gpt-4o">gpt-4o — dokładniejszy</option>
+                  <option value="gpt-4.1-mini">gpt-4.1-mini — nowszy mały model</option>
+                  <option value="gpt-4.1">gpt-4.1 — mocniejszy model</option>
+                </select>
               </label>
-              <label class="span-2">Token proxy, jeśli ustawiony w backendzie
-                <input id="aiProxyToken" type="password" autocomplete="off" placeholder="Opcjonalny token zabezpieczający backend">
+              <label class="span-2">Klucz OpenAI API
+                <input id="aiOpenAiKey" type="password" autocomplete="off" placeholder="sk-...">
               </label>
             </div>
             <div class="action-row">
               <button id="saveAiSettingsBtn" class="btn btn-primary">Zapisz AI</button>
-              <button id="aiTestBtn" class="btn btn-soft">Test backendu</button>
+              <button id="aiTestBtn" class="btn btn-soft">Test klucza</button>
             </div>
             <div id="aiParserStatus" class="dropbox-status">Parser lokalny — AI wyłączone.</div>
           </div>
@@ -485,7 +490,7 @@
       </section>
 
     </main>
-    <footer class="app-footer">Wersja programu: 3.7 - 1605261805 AI</footer>
+    <footer class="app-footer">Wersja programu: 3.8 - 0706261140 AI Lokalny</footer>
   </div>
 
   <template id="savedQuoteTemplate">

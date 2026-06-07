@@ -1,4 +1,4 @@
-const APP_VERSION = '3.7 - 1605261805 AI';
+const APP_VERSION = '3.7 - 1605261805 AI Prosta';
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -268,8 +268,8 @@ function defaultSettings() {
     lastDropboxSyncAt: '',
     uiTheme: 'light',
     aiParserMode: 'local',
-    aiBackendUrl: '',
-    aiProxyToken: '',
+    aiOpenAiKey: '',
+    aiModel: 'gpt-4o-mini',
     aiLastTestAt: ''
   };
 }
@@ -564,7 +564,9 @@ function initForm() {
   if ($('dropboxPath')) $('dropboxPath').value = settings.dropboxPath || '/pomocnik_instalatora_data.json';
   if ($('dropboxAutoSync')) $('dropboxAutoSync').checked = !!settings.dropboxAutoSync;
   if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
-  if ($('aiBackendUrl')) $('aiBackendUrl').value = settings.aiBackendUrl || '';
+  if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
+  fillAiModelSelect();
+  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4o-mini');
   renderAiParserStatus();
   $('phraseDictionary').value = loadPhraseDictionaryText();
   fillSelect($('jobType'), CATEGORIES);
@@ -631,7 +633,7 @@ function initEvents() {
   $('dropboxPushBtn').addEventListener('click', () => syncDropbox('push'));
   $('dropboxTestBtn').addEventListener('click', testDropboxConnection);
   if ($('saveAiSettingsBtn')) $('saveAiSettingsBtn').addEventListener('click', saveAiSettingsFromForm);
-  if ($('aiTestBtn')) $('aiTestBtn').addEventListener('click', testAiBackendConnection);
+  if ($('aiTestBtn')) $('aiTestBtn').addEventListener('click', testOpenAiKeyConnection);
   if ($('analyzeVoiceAiBtn')) $('analyzeVoiceAiBtn').addEventListener('click', analyzeVoiceCommandWithAiFromField);
   $('installBtn').addEventListener('click', installPwa);
   $('voiceBtn').addEventListener('click', startDictation);
@@ -1556,7 +1558,9 @@ function refreshFormAfterBackupImport() {
   if ($('dropboxAutoSync')) $('dropboxAutoSync').checked = !!settings.dropboxAutoSync;
   if ($('uiTheme')) $('uiTheme').value = normalizeTheme(settings.uiTheme || 'light');
   if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
-  if ($('aiBackendUrl')) $('aiBackendUrl').value = settings.aiBackendUrl || '';
+  if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
+  fillAiModelSelect();
+  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4o-mini');
   renderAiParserStatus();
   if ($('phraseDictionary')) $('phraseDictionary').value = loadPhraseDictionaryText();
   fillSelect($('jobType'), CATEGORIES);
@@ -1634,7 +1638,8 @@ function readSettingsFromForm() {
     dropboxAutoSync: !!$('dropboxAutoSync')?.checked,
     uiTheme: normalizeTheme($('uiTheme')?.value || current.uiTheme || 'light'),
     aiParserMode: normalizeAiParserMode($('aiParserMode')?.value || current.aiParserMode || 'local'),
-    aiBackendUrl: normalizeAiBackendUrl($('aiBackendUrl')?.value || current.aiBackendUrl || '')
+    aiOpenAiKey: $('aiOpenAiKey')?.value.trim() || current.aiOpenAiKey || '',
+    aiModel: getSelectedAiModel(current.aiModel)
   };
 }
 
@@ -7485,20 +7490,108 @@ parseSmartCommand = function(rawText) {
   return result;
 };
 
-/* v3.7 — parser AI przez bezpieczny backend/proxy. Klucz OpenAI zostaje po stronie backendu. */
+/* v3.8 — AI bez backendu: klucz OpenAI zapisywany lokalnie, test klucza i wybór modelu. */
+const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
+
+const AI_PARSE_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['client', 'detectedType', 'distanceKm', 'distanceRate', 'freeKm', 'dateHint', 'items', 'excluded', 'uncertain', 'warnings', 'facts', 'options'],
+  properties: {
+    client: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['name', 'phone', 'address'],
+      properties: {
+        name: { type: 'string' },
+        phone: { type: 'string' },
+        address: { type: 'string' }
+      }
+    },
+    detectedType: {
+      type: 'string',
+      enum: ['Kamery CCTV', 'Anteny / Sygnał', 'Sieć / Wi‑Fi', 'Domofon', 'Alarm', 'Automatyka bram', 'Przewody / Okablowanie', 'Złącza / Akcesoria', 'Dopłaty / Trudne warunki', 'Serwis', '']
+    },
+    distanceKm: { type: 'number' },
+    distanceRate: { type: 'number' },
+    freeKm: { type: 'number' },
+    dateHint: { type: 'string' },
+    items: {
+      type: 'array',
+      maxItems: 40,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['type', 'name', 'category', 'quantity', 'unit', 'cameraType', 'connectivity', 'difficulty', 'includeInQuote', 'confidence', 'notes'],
+        properties: {
+          type: {
+            type: 'string',
+            enum: ['camera_mount', 'camera_material', 'junction_box', 'cable', 'cable_labor', 'drilling', 'remote_view', 'switch_poe', 'recorder', 'disk', 'rj45_material', 'rj45_labor', 'wifi_extender', 'router_config', 'network_device', 'other_labor', 'other_material', 'unknown']
+          },
+          name: { type: 'string' },
+          category: { type: 'string' },
+          quantity: { type: 'number' },
+          unit: { type: 'string' },
+          cameraType: { type: 'string', enum: ['tube', 'dome', 'ptz', 'generic', 'none'] },
+          connectivity: { type: 'string', enum: ['poe', 'wifi', 'lte', 'wired', 'unknown', 'none'] },
+          difficulty: { type: 'string', enum: ['easy', 'standard', 'hard', 'unknown'] },
+          includeInQuote: { type: 'boolean' },
+          confidence: { type: 'number' },
+          notes: { type: 'string' }
+        }
+      }
+    },
+    excluded: { type: 'array', maxItems: 20, items: { type: 'string' } },
+    uncertain: { type: 'array', maxItems: 30, items: { type: 'string' } },
+    warnings: { type: 'array', maxItems: 30, items: { type: 'string' } },
+    facts: { type: 'array', maxItems: 30, items: { type: 'string' } },
+    options: { type: 'array', maxItems: 20, items: { type: 'string' } }
+  }
+};
+
 function normalizeAiParserMode(value) {
   return String(value || '').toLowerCase() === 'ai' ? 'ai' : 'local';
 }
 
-function normalizeAiBackendUrl(value) {
-  return String(value || '').trim().replace(/\/+$/, '');
+const AI_MODEL_OPTIONS = [
+  { value: 'gpt-4o-mini', label: 'gpt-4o-mini — tańszy / szybki' },
+  { value: 'gpt-4o', label: 'gpt-4o — dokładniejszy' },
+  { value: 'gpt-4.1-mini', label: 'gpt-4.1-mini — nowszy mały model' },
+  { value: 'gpt-4.1', label: 'gpt-4.1 — mocniejszy model' }
+];
+
+function normalizeAiModel(value) {
+  const model = String(value || '').trim();
+  return model || 'gpt-4o-mini';
 }
 
-function aiParserUrl(baseUrl, path = 'parse') {
-  const clean = normalizeAiBackendUrl(baseUrl);
+function getSelectedAiModel(fallback = 'gpt-4o-mini') {
+  const el = $('aiModel');
+  const selected = String(el?.value || '').trim();
+  return normalizeAiModel(selected || fallback);
+}
+
+function fillAiModelSelect() {
+  const select = $('aiModel');
+  if (!select || select.dataset.ready === '1') return;
+  const current = normalizeAiModel(loadSettings().aiModel || select.value || 'gpt-4o-mini');
+  select.innerHTML = AI_MODEL_OPTIONS.map(model => `<option value="${escapeAttr(model.value)}">${escapeHtml(model.label)}</option>`).join('');
+  const known = AI_MODEL_OPTIONS.some(model => model.value === current);
+  if (!known) {
+    const option = document.createElement('option');
+    option.value = current;
+    option.textContent = `${current} — zapisany wcześniej`;
+    select.appendChild(option);
+  }
+  select.value = current;
+  select.dataset.ready = '1';
+}
+
+function maskAiKey(key) {
+  const clean = String(key || '').trim();
   if (!clean) return '';
-  if (/\/(parse|api\/parse)$/i.test(clean)) return clean;
-  return `${clean}/${path.replace(/^\/+/, '')}`;
+  if (clean.length <= 12) return '********';
+  return `${clean.slice(0, 7)}...${clean.slice(-4)}`;
 }
 
 function renderAiParserStatus(text = '') {
@@ -7506,7 +7599,8 @@ function renderAiParserStatus(text = '') {
   if (!box) return;
   const settings = loadSettings();
   const mode = normalizeAiParserMode(settings.aiParserMode);
-  const url = normalizeAiBackendUrl(settings.aiBackendUrl);
+  const key = String(settings.aiOpenAiKey || '').trim();
+  const model = normalizeAiModel(settings.aiModel);
   const last = settings.aiLastTestAt ? ` Ostatni test: ${formatDateTime(settings.aiLastTestAt)}.` : '';
   box.classList.remove('ok', 'error');
   if (text) {
@@ -7514,30 +7608,30 @@ function renderAiParserStatus(text = '') {
     return;
   }
   if (mode !== 'ai') {
-    box.textContent = 'Parser lokalny — AI wyłączone. Możesz nadal używać przycisku „Rozbij AI”, jeśli wpiszesz adres backendu.';
+    box.textContent = 'Parser lokalny — AI wyłączone.';
     return;
   }
-  if (!url) {
-    box.textContent = 'AI włączone, ale brakuje adresu backendu.';
+  if (!key) {
+    box.textContent = 'AI włączone, ale brakuje klucza OpenAI.';
     box.classList.add('error');
     return;
   }
-  box.textContent = `AI włączone — backend: ${url}.${last}`;
+  box.textContent = `AI włączone — model: ${model}, klucz: ${maskAiKey(key)}.${last}`;
   box.classList.add('ok');
 }
 
 function saveAiSettingsFromForm() {
   const settings = readSettingsFromForm();
-  settings.aiProxyToken = $('aiProxyToken') ? $('aiProxyToken').value.trim() : (loadSettings().aiProxyToken || '');
   saveSettings(settings);
-  renderAiParserStatus('Zapisano ustawienia parsera AI.');
-  showInfo('Zapisano ustawienia parsera AI.');
+  renderAiParserStatus('Zapisano ustawienia AI w tej przeglądarce/PWA.');
+  showInfo('Zapisano ustawienia AI. Klucz nie trafia do GitHuba — jest zapisany lokalnie w tej przeglądarce/PWA.');
 }
 
 function aiReadSettingsFromFormPatch(settings) {
   return {
     ...settings,
-    aiProxyToken: $('aiProxyToken') ? $('aiProxyToken').value.trim() : (settings.aiProxyToken || '')
+    aiOpenAiKey: $('aiOpenAiKey') ? $('aiOpenAiKey').value.trim() : (settings.aiOpenAiKey || ''),
+    aiModel: getSelectedAiModel(settings.aiModel || 'gpt-4o-mini')
   };
 }
 
@@ -7551,8 +7645,9 @@ initForm = function() {
   initForm_v37_before_ai();
   const settings = loadSettings();
   if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
-  if ($('aiBackendUrl')) $('aiBackendUrl').value = settings.aiBackendUrl || '';
-  if ($('aiProxyToken')) $('aiProxyToken').value = settings.aiProxyToken || '';
+  if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
+  fillAiModelSelect();
+  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4o-mini');
   renderAiParserStatus();
 };
 
@@ -7561,48 +7656,125 @@ refreshFormAfterBackupImport = function() {
   refreshFormAfterBackupImport_v37_before_ai();
   const settings = loadSettings();
   if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
-  if ($('aiBackendUrl')) $('aiBackendUrl').value = settings.aiBackendUrl || '';
-  if ($('aiProxyToken')) $('aiProxyToken').value = settings.aiProxyToken || '';
+  if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
+  fillAiModelSelect();
+  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4o-mini');
   renderAiParserStatus();
 };
 
-async function testAiBackendConnection() {
-  const settings = readSettingsFromForm();
-  const baseUrl = normalizeAiBackendUrl(settings.aiBackendUrl);
-  if (!baseUrl) {
-    renderAiParserStatus('Wpisz adres backendu AI.');
-    showInfo('Wpisz adres backendu AI w ustawieniach.');
-    return;
-  }
-  const healthUrl = /\/(parse|api\/parse)$/i.test(baseUrl) ? baseUrl.replace(/\/(parse|api\/parse)$/i, '/health') : `${baseUrl}/health`;
-  renderAiParserStatus('Sprawdzam backend AI...');
-  try {
-    const response = await fetch(healthUrl, {
-      method: 'GET',
-      headers: aiAuthHeaders(settings),
-      cache: 'no-store'
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || data.ok === false) throw new Error(data.error || `HTTP ${response.status}`);
-    const updated = { ...settings, aiLastTestAt: new Date().toISOString() };
-    saveSettings(updated);
-    if ($('aiParserMode')) $('aiParserMode').value = updated.aiParserMode || 'local';
-    if ($('aiBackendUrl')) $('aiBackendUrl').value = updated.aiBackendUrl || '';
-    if ($('aiProxyToken')) $('aiProxyToken').value = updated.aiProxyToken || '';
-    renderAiParserStatus(`Połączenie z backendem AI działa. Model: ${data.model || 'domyślny'}.`);
-    showInfo('Połączenie z backendem AI działa.');
-  } catch (error) {
-    renderAiParserStatus(`Błąd backendu AI: ${error.message}`);
-    $('aiParserStatus')?.classList.add('error');
-    showInfo(`Błąd backendu AI: ${error.message}`);
-  }
+function openAiHeaders(settings = loadSettings()) {
+  const key = String(settings.aiOpenAiKey || '').trim();
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${key}`
+  };
 }
 
-function aiAuthHeaders(settings = loadSettings()) {
-  const headers = { 'Content-Type': 'application/json' };
-  const token = String(settings.aiProxyToken || '').trim();
-  if (token) headers['X-Proxy-Token'] = token;
-  return headers;
+function buildAiPrompt(text, catalogHints) {
+  const hints = Array.isArray(catalogHints) ? catalogHints.slice(0, 8) : [];
+  return [
+    'TEKST WIZYTY / TRANSKRYPCJA:',
+    text,
+    '',
+    'SKRÓT CENNIKA APLIKACJI, jeśli podano:',
+    JSON.stringify(hints).slice(0, 12000)
+  ].join('\n');
+}
+
+function extractOpenAiOutputText(data) {
+  if (typeof data.output_text === 'string' && data.output_text.trim()) return data.output_text;
+  const chunks = [];
+  for (const output of data.output || []) {
+    for (const content of output.content || []) {
+      if (typeof content.text === 'string') chunks.push(content.text);
+    }
+  }
+  return chunks.join('\n').trim();
+}
+
+async function callOpenAiParser(raw, settings) {
+  const key = String(settings.aiOpenAiKey || '').trim();
+  if (!key) throw new Error('Brakuje klucza OpenAI. Wklej go w Ustawieniach AI i kliknij „Zapisz AI”.');
+  if (raw.length > 12000) throw new Error('Tekst jest za długi. Skróć transkrypcję.');
+
+  const payload = {
+    model: normalizeAiModel(settings.aiModel),
+    store: false,
+    temperature: 0.1,
+    max_output_tokens: 3500,
+    input: [
+      {
+        role: 'system',
+        content: [
+          'Jesteś precyzyjnym parserem wycen instalatora w Polsce.',
+          'Zwracasz tylko dane zgodne ze schematem JSON.',
+          'Nie licz cen i nie wymyślaj cen. Ceny dobiera lokalna aplikacja z cennika.',
+          'Rozpoznawaj klienta, adres, telefon, typ zlecenia, pozycje, ilości, jednostki, wykluczenia i ostrzeżenia.',
+          'Jeżeli tekst mówi: bez rejestratora, bez dysku, nie trzeba rejestratora — dodaj do excluded i nie dodawaj tej pozycji do wyceny.',
+          'Jeżeli tekst mówi o kamerach, dodaj osobno montaż kamer i osobno materiał kamer, chyba że wyraźnie chodzi tylko o robociznę.',
+          'Jeżeli tekst mówi o przewodzie/kablu i metrach, dodaj osobno materiał cable oraz robociznę cable_labor.',
+          'Dla zdań typu wszystkie będą Wi-Fi ustaw connectivity=wifi dla wszystkich kamer.',
+          'Dla podbitka, strych, drabina, trudne przeciąganie ustaw difficulty=hard lub dodaj ostrzeżenie.',
+          'Nie traktuj liczb technicznych jako adresu, jeśli są przy metrach, sztukach, kablach, kamerach albo sprzęcie.'
+        ].join(' ')
+      },
+      {
+        role: 'user',
+        content: buildAiPrompt(raw, buildAiCatalogHints())
+      }
+    ],
+    text: {
+      format: {
+        type: 'json_schema',
+        name: 'installer_visit_parse',
+        strict: true,
+        schema: AI_PARSE_SCHEMA
+      }
+    }
+  };
+
+  const response = await fetch(OPENAI_RESPONSES_URL, {
+    method: 'POST',
+    headers: openAiHeaders(settings),
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = data?.error?.message || `OpenAI HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  const outputText = extractOpenAiOutputText(data);
+  let parsed;
+  try {
+    parsed = JSON.parse(outputText);
+  } catch (error) {
+    throw new Error('OpenAI nie zwróciło poprawnego JSON-a. Spróbuj ponownie albo użyj parsera lokalnego.');
+  }
+  return { ok: true, model: data.model || payload.model, usage: data.usage || null, result: parsed };
+}
+
+async function testOpenAiKeyConnection() {
+  const settings = readSettingsFromForm();
+  const key = String(settings.aiOpenAiKey || '').trim();
+  if (!key) {
+    renderAiParserStatus('Wklej klucz OpenAI i kliknij „Zapisz AI”.');
+    $('aiParserStatus')?.classList.add('error');
+    showInfo('Wklej klucz OpenAI w ustawieniach AI.');
+    return;
+  }
+  renderAiParserStatus('Testuję OpenAI...');
+  try {
+    const testData = await callOpenAiParser('Test: Jan Kowalski, Warszawa, montaż jednej kamery IP.', settings);
+    const updated = { ...settings, aiParserMode: 'ai', aiLastTestAt: new Date().toISOString() };
+    saveSettings(updated);
+    if ($('aiParserMode')) $('aiParserMode').value = updated.aiParserMode;
+    renderAiParserStatus(`Połączenie z OpenAI działa. Model: ${testData.model || normalizeAiModel(updated.aiModel)}.`);
+    showInfo('Połączenie z OpenAI działa.');
+  } catch (error) {
+    renderAiParserStatus(`Błąd OpenAI: ${error.message}`);
+    $('aiParserStatus')?.classList.add('error');
+    showInfo(`Błąd OpenAI: ${error.message}`);
+  }
 }
 
 async function analyzeVoiceCommandWithAiFromField() {
@@ -7613,10 +7785,10 @@ async function analyzeVoiceCommandWithAiFromField() {
   }
   syncFromForm();
   const settings = readSettingsFromForm();
-  const endpoint = aiParserUrl(settings.aiBackendUrl, 'parse');
-  if (!endpoint) {
-    showInfo('Brakuje adresu backendu AI. Wpisz go w Ustawieniach albo użyj zwykłego „Rozbij tekst”.');
-    renderAiParserStatus('Brakuje adresu backendu AI.');
+  if (!String(settings.aiOpenAiKey || '').trim()) {
+    showInfo('Brakuje klucza OpenAI. Wklej go w Ustawieniach AI i kliknij „Zapisz AI”.');
+    renderAiParserStatus('Brakuje klucza OpenAI.');
+    $('aiParserStatus')?.classList.add('error');
     return;
   }
 
@@ -7628,19 +7800,7 @@ async function analyzeVoiceCommandWithAiFromField() {
     if (localBtn) localBtn.disabled = true;
     showInfo('AI analizuje opis wizyty. Po chwili pokaże podgląd do zatwierdzenia.');
 
-    const payload = {
-      text: raw,
-      appVersion: APP_VERSION,
-      locale: 'pl-PL',
-      catalogHints: buildAiCatalogHints()
-    };
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: aiAuthHeaders(settings),
-      body: JSON.stringify(payload)
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || data.ok === false) throw new Error(data.error || `HTTP ${response.status}`);
+    const data = await callOpenAiParser(raw, settings);
     const parsed = data.result || data;
     const result = convertAiParseToAppResult(raw, parsed, data);
     pendingParse = { raw, result };
@@ -7881,11 +8041,11 @@ function convertAiParseToAppResult(raw, ai, envelope = {}) {
     distanceRate: aiNumber(ai?.distanceRate, 0) > 0 ? aiNumber(ai.distanceRate, 0) : null,
     freeKm: aiNumber(ai?.freeKm, -1) >= 0 ? aiNumber(ai.freeKm, 0) : null,
     unknown: [...uncertain, ...skipped.map(x => `AI nie dopasowało pozycji: ${x}`)],
-    learnedApplied: ['Rozbicie wykonane przez AI przez backend. Ceny nadal pochodzą z lokalnego cennika aplikacji.'],
+    learnedApplied: ['Rozbicie wykonane przez OpenAI bezpośrednio z aplikacji. Ceny nadal pochodzą z lokalnego cennika aplikacji.'],
     missingData: [],
     surchargeSuggestions: [],
     parserReport: {
-      parser: `AI backend${envelope.model ? ` / ${envelope.model}` : ''}`,
+      parser: `OpenAI${envelope.model ? ` / ${envelope.model}` : ''}`,
       parsersAvailable: ['AI structured JSON', 'lokalny cennik', 'ręczny podgląd'],
       warnings: [...warnings, ...excluded.map(x => `Wykluczono z wyceny: ${x}`)],
       items: mergedItems.length,

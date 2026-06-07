@@ -1,5 +1,5 @@
 {
-  "version": "3.7 - 1605261805 AI",
-  "build": "1605261805-ai",
-  "note": "Dodano parser AI przez backend/proxy oraz pozostawiono parser lokalny jako tryb awaryjny."
+  "version": "3.8 - 0706261140 AI Lokalny",
+  "build": "0706261140-ai-local-key-model-select",
+  "note": "AI bez backendu: klucz OpenAI wpisywany w ustawieniach, zapisywany lokalnie, z testem klucza i wyborem modelu."
 }
