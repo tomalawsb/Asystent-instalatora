@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f6f8fb">
   <meta name="description" content="Pomocnik Instalatora — szybkie wyceny, klienci, cennik i notatki z wizyt.">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.dropboxapi.com https://content.dropboxapi.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
-  <title>Pomocnik Instalatora PWA 3.6 - 1605261805</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.dropboxapi.com https://content.dropboxapi.com https://*.workers.dev https://*.pages.dev https://*.vercel.app https://*.netlify.app http://localhost:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+  <title>Pomocnik Instalatora PWA 3.7 - 1605261805 AI</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -14,7 +14,7 @@
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow">Wersja 3.6 - 1605261805</div>
+        <div class="eyebrow">Wersja 3.7 - 1605261805 AI</div>
         <h1>Pomocnik Instalatora</h1>
       </div>
       <div class="top-actions">
@@ -60,6 +60,7 @@
               <div class="action-row voice-main-actions">
                 <button id="voiceBtn" class="btn btn-primary">Dyktuj wizytę</button>
                 <button id="analyzeVoiceBtn" class="btn btn-soft">Rozbij tekst</button>
+                <button id="analyzeVoiceAiBtn" class="btn btn-primary">Rozbij AI</button>
                 <button id="loadTextFileBtn" class="btn btn-soft">Wczytaj TXT</button>
                 <button id="selectVoiceBtn" class="btn btn-ghost">Zaznacz wszystko</button>
                 <button id="clearVoiceBtn" class="btn btn-ghost">Wyczyść pole</button>
@@ -348,6 +349,31 @@
             <button id="clearDataBtn" class="btn btn-danger">Usuń dane lokalne</button>
           </div>
 
+          <div class="ai-parser-panel">
+            <h3>Parser AI przez backend</h3>
+            <p class="muted">Dla GitHub Pages klucz OpenAI powinien być zapisany w backendzie/proxy, nie w kodzie aplikacji. Tu wpisz tylko adres backendu.</p>
+            <div class="form-grid">
+              <label>Domyślny tryb rozbijania
+                <select id="aiParserMode">
+                  <option value="local">Parser lokalny</option>
+                  <option value="ai">AI przez backend</option>
+                </select>
+              </label>
+              <label class="span-2">Adres backendu AI
+                <input id="aiBackendUrl" type="url" autocomplete="off" placeholder="np. https://twoj-parser-ai.nazwa.workers.dev">
+              </label>
+              <label class="span-2">Token proxy, jeśli ustawiony w backendzie
+                <input id="aiProxyToken" type="password" autocomplete="off" placeholder="Opcjonalny token zabezpieczający backend">
+              </label>
+            </div>
+            <div class="action-row">
+              <button id="saveAiSettingsBtn" class="btn btn-primary">Zapisz AI</button>
+              <button id="aiTestBtn" class="btn btn-soft">Test backendu</button>
+            </div>
+            <div id="aiParserStatus" class="dropbox-status">Parser lokalny — AI wyłączone.</div>
+          </div>
+
+
           <div class="dictionary-panel">
             <h3>Słownik własnych zwrotów</h3>
 
@@ -459,7 +485,7 @@
       </section>
 
     </main>
-    <footer class="app-footer">Wersja programu: 3.5 - 1605261715</footer>
+    <footer class="app-footer">Wersja programu: 3.7 - 1605261805 AI</footer>
   </div>
 
   <template id="savedQuoteTemplate">

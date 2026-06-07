@@ -1,0 +1,9 @@
+name = "pomocnik-instalatora-ai-parser"
+main = "worker.js"
+compatibility_date = "2025-08-01"
+
+[vars]
+OPENAI_MODEL = "gpt-4o-mini"
+# Wpisz swój adres GitHub Pages, np. "https://tomalawsb.github.io"
+ALLOWED_ORIGIN = "*"
+# PROXY_TOKEN ustaw jako secret, jeżeli chcesz zabezpieczyć endpoint dodatkowym tokenem.

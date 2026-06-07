@@ -1,9 +1,9 @@
 Pomocnik Instalatora PWA
-Wersja: 3.6 - 1605261805
+Wersja: 3.7 - 1605261805 AI
 
-Poprawki:
-- dodano brakujący montaż kamer tubowych, gdy parser dodał tylko materiał,
-- usuwanie fałszywego adresu typu „ul. Tego 4” z frazy „do tego 4 puszki”,
-- kamery oznaczane jako Wi‑Fi, gdy tekst mówi, że wszystkie będą Wi‑Fi,
-- opcjonalny wzmacniacz Wi‑Fi trafia do pozycji opcjonalnych, nie do obowiązkowej wyceny,
-- poprawiony komunikat przy zatwierdzaniu bez aktywnego podglądu.
+Zmiany:
+- dodano parser AI przez backend/proxy, bez trzymania klucza OpenAI w aplikacji na GitHub Pages,
+- dodano przycisk „Rozbij AI” oraz ustawienia adresu backendu,
+- parser lokalny zostaje jako tryb awaryjny/offline,
+- ceny i pozycje nadal są dopasowywane lokalnie do cennika aplikacji,
+- do paczki dodano katalog ai-backend-cloudflare-worker z gotowym Workerem Cloudflare.

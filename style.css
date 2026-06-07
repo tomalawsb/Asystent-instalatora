@@ -561,7 +561,8 @@ td input { min-height: 32px; padding: 5px 8px; }
 }
 
 .catalog-editor,
-.dropbox-panel {
+.dropbox-panel,
+.ai-parser-panel {
   display: grid;
   gap: 10px;
   margin: 0 0 14px;
@@ -571,7 +572,8 @@ td input { min-height: 32px; padding: 5px 8px; }
   background: #fbfdff;
 }
 .catalog-editor p,
-.dropbox-panel p {
+.dropbox-panel p,
+.ai-parser-panel p {
   color: var(--muted);
   font-size: 14px;
 }
@@ -1214,6 +1216,7 @@ body[data-theme="dark"] .material-price-item .muted,
 body[data-theme="dark"] .price-update-box p,
 body[data-theme="dark"] .catalog-editor p,
 body[data-theme="dark"] .dropbox-panel p,
+body[data-theme="dark"] .ai-parser-panel p,
 body[data-theme="dark"] .learning-panel p,
 body[data-theme="dark"] .parser-test-panel p {
   color: var(--muted);
@@ -1246,6 +1249,7 @@ body[data-theme="dark"] .parser-test-panel,
 body[data-theme="dark"] .learned-rule,
 body[data-theme="dark"] .catalog-editor,
 body[data-theme="dark"] .dropbox-panel,
+body[data-theme="dark"] .ai-parser-panel,
 body[data-theme="dark"] .client-message-card textarea,
 body[data-theme="dark"] .materials-preview,
 body[data-theme="dark"] .quick-jumps a,
@@ -1461,6 +1465,7 @@ body[data-theme="dark"] textarea:focus {
   .archive-learning-panel,
   .parser-test-panel,
   .dropbox-panel,
+  .ai-parser-panel,
   .price-update-box {
     margin-top: 10px;
   }

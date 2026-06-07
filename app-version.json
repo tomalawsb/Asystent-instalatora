@@ -1,5 +1,5 @@
 {
-  "version": "3.6 - 1605261805",
-  "build": "1605261805",
-  "note": "Poprawki parsera CCTV: montaż tubowych, kamery Wi-Fi, fałszywy adres i opcjonalny wzmacniacz Wi-Fi."
+  "version": "3.7 - 1605261805 AI",
+  "build": "1605261805-ai",
+  "note": "Dodano parser AI przez backend/proxy oraz pozostawiono parser lokalny jako tryb awaryjny."
 }
