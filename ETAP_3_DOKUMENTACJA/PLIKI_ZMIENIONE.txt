@@ -1,0 +1,23 @@
+Dodane:
+- js/bootstrap.js
+- upload_to_github.ps1
+- ETAP_3_DOKUMENTACJA/ETAP_3_RAPORT.md
+- ETAP_3_DOKUMENTACJA/PLIKI_ZMIENIONE.txt
+- ETAP_3_DOKUMENTACJA/run_stage3_tests.js
+- ETAP_3_DOKUMENTACJA/test_bootstrap.mjs
+- ETAP_3_DOKUMENTACJA/VALIDATION_RESULTS.txt
+- ETAP_3_DOKUMENTACJA/validation-results.json
+
+Zmienione:
+- app-version.json
+- index.html
+- service-worker.js
+- js/state.js
+- tools/build-app-bundle.js
+- app.js
+- README.txt
+- ETAP_1_TESTY/run_baseline_tests.js
+
+Usuniete:
+- pricing-data.js
+- material-prices.js

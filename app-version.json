@@ -1,5 +1,8 @@
 {
-  "version": "3.8 - 0706261140 AI Lokalny",
-  "build": "0706261140-ai-local-key-model-select",
-  "note": "AI bez backendu: klucz OpenAI wpisywany w ustawieniach, zapisywany lokalnie, z testem klucza i wyborem modelu."
+  "name": "Pomocnik Instalatora PWA",
+  "version": "3.9 - 1206260723",
+  "build": "1206260723-etap-3-single-source",
+  "stage": 3,
+  "released_at": "2026-06-12T07:23:00+02:00",
+  "note": "Etap 3: jedno zrodlo wersji, cennika i cen materialow; automatyczne ladowanie konfiguracji przed uruchomieniem aplikacji."
 }

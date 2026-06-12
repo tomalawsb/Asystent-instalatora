@@ -1,6 +1,8 @@
 /*
- * PLIK GENEROWANY — nie edytować ręcznie.
- * Źródła: katalog js/.
+ * PLIK GENEROWANY — nie edytowac recznie.
+ * Wersja: 3.9 - 1206260723
+ * Zrodla kodu: katalog js/.
+ * Zrodla danych: app-version.json, cennik.json, material-prices.json.
  * Odbudowa: node tools/build-app-bundle.js
  */
 
@@ -5895,7 +5897,7 @@ function renderParserPreview(raw, result) {
 
 /* Globalne stałe i bieżący stan aplikacji. */
 
-const APP_VERSION = '3.7 - 1605261805 AI Prosta';
+const APP_VERSION = String(window.APP_CONFIG?.version || window.APP_VERSION || '');
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';
@@ -7658,7 +7660,7 @@ parseSmartCommand = function(rawText) {
 
 /* Konfiguracja i podpięcie trybu AI, wykonywane po lokalnych poprawkach. */
 
-/* v3.8 — AI bez backendu: klucz OpenAI zapisywany lokalnie, test klucza i wybór modelu. */
+/* AI bez backendu: klucz OpenAI zapisywany lokalnie, test klucza i wybór modelu. */
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
 
 const AI_PARSE_SCHEMA = {

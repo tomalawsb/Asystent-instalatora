@@ -1,6 +1,6 @@
 /* Konfiguracja i podpięcie trybu AI, wykonywane po lokalnych poprawkach. */
 
-/* v3.8 — AI bez backendu: klucz OpenAI zapisywany lokalnie, test klucza i wybór modelu. */
+/* AI bez backendu: klucz OpenAI zapisywany lokalnie, test klucza i wybór modelu. */
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
 
 const AI_PARSE_SCHEMA = {

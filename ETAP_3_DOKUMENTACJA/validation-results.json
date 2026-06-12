@@ -1,0 +1,165 @@
+{
+  "generatedAt": "2026-06-12T05:29:55.986Z",
+  "summary": {
+    "pass": 30,
+    "fail": 0,
+    "info": 1
+  },
+  "results": [
+    {
+      "name": "Format wersji numer + DDMMRRHHMM",
+      "status": "PASS",
+      "details": "3.9 - 1206260723"
+    },
+    {
+      "name": "Etap zapisany jako 3",
+      "status": "PASS",
+      "details": "3"
+    },
+    {
+      "name": "Build zawiera znacznik etapu 3",
+      "status": "PASS",
+      "details": "1206260723-etap-3-single-source"
+    },
+    {
+      "name": "Wszystkie wymagane pliki istnieja",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunieto pricing-data.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunieto material-prices.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "index.html uruchamia tylko bootstrap",
+      "status": "PASS",
+      "details": "js/bootstrap.js"
+    },
+    {
+      "name": "Numer wersji nie jest wpisany recznie w HTML/state/SW/README",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "app.js ma wersje wygenerowana z app-version.json",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "state.js pobiera wersje z APP_CONFIG",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "service worker pobiera app-version.json",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "service worker nie ma stalego CACHE_NAME",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "bootstrap laduje trzy zrodla JSON",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "bootstrap laduje wszystkie moduly etapu 2",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Wszystkie pliki cache service workera istnieja",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Cennik JSON zawiera dane",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Baza materialow JSON zawiera dane",
+      "status": "PASS",
+      "details": "79 pozycji"
+    },
+    {
+      "name": "Skladnia wszystkich plikow JavaScript",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "PS1 wskazuje poprawne repozytorium",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "PS1 pobiera wersje z app-version.json",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "PS1 nie pyta o opis commita",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "PS1 wykonuje push do main",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "PS1 usuwa stare kopie danych",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Bootstrap uruchamia aplikacje i laduje dane",
+      "status": "PASS",
+      "details": "{\n  \"ready\": true,\n  \"version\": \"3.9 - 1206260723\",\n  \"badge\": \"Wersja 3.9 - 1206260723\",\n  \"footer\": \"Wersja programu: 3.9 - 1206260723\",\n  \"title\": \"Pomocnik Instalatora PWA 3.9 - 1206260723\",\n  \"catalogCategories\": 13,\n  \"materialItems\": 79,\n  \"loadedScripts\": [\n    \"js/storage.js\",\n    \"js/catalog.js\",\n    \"js/quote.js\",\n    \"js/parser-local.js\",\n    \"js/parser-ai.js\",\n    \"js/sync.js\",\n    \"js/export.js\",\n    \"js/ui.js\",\n    \"js/state.js\",\n    \"js/patches.js\",\n    \"js/ai-runtime.js\"\n  ],\n  \"expectedScripts\": [\n    \"js/storage.js\",\n    \"js/catalog.js\",\n    \"js/quote.js\",\n    \"js/parser-local.js\",\n    \"js/parser-ai.js\",\n    \"js/sync.js\",\n    \"js/export.js\",\n    \"js/ui.js\",\n    \"js/state.js\",\n    \"js/patches.js\",\n    \"js/ai-runtime.js\"\n  ],\n  \"scriptsMatch\": true\n}\n"
+    },
+    {
+      "name": "Bootstrap pokazuje wersje z app-version.json",
+      "status": "PASS",
+      "details": "3.9 - 1206260723"
+    },
+    {
+      "name": "Bootstrap laduje 11 modulow w poprawnej kolejnosci",
+      "status": "PASS",
+      "details": "11 modulow"
+    },
+    {
+      "name": "Bootstrap udostepnia cennik i materialy",
+      "status": "PASS",
+      "details": "13 kategorii, 79 materialow"
+    },
+    {
+      "name": "Generator app.js jest powtarzalny",
+      "status": "PASS",
+      "details": "Odbudowano app.js z 11 modulow. Wersja: 3.9 - 1206260723"
+    },
+    {
+      "name": "Test roznicowy wzgledem etapu 2",
+      "status": "PASS",
+      "details": "8/8 zgodnych"
+    },
+    {
+      "name": "Brak nowych bledow poza znanymi bledami parsera",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Wynik testow bazowych",
+      "status": "INFO",
+      "details": "PASS 44, znane FAIL parsera 4, WARN 2"
+    }
+  ]
+}

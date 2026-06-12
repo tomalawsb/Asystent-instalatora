@@ -4,9 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const crypto = require('crypto');
+const childProcess = require('child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const RESULTS_DIR = path.join(__dirname, 'results');
+const MODULE_FILES = ['storage.js','catalog.js','quote.js','parser-local.js','parser-ai.js','sync.js','export.js','ui.js','state.js','patches.js','ai-runtime.js'];
 fs.mkdirSync(RESULTS_DIR, { recursive: true });
 
 const results = [];
@@ -89,13 +91,15 @@ function createAppContext() {
     TextEncoder,
     TextDecoder
   };
+  const versionConfig = JSON.parse(fs.readFileSync(path.join(ROOT, 'app-version.json'), 'utf8'));
+  context.window.APP_CONFIG = versionConfig;
+  context.window.APP_VERSION = versionConfig.version;
+  context.window.PRICE_CATALOG = JSON.parse(fs.readFileSync(path.join(ROOT, 'cennik.json'), 'utf8'));
+  context.window.MATERIAL_PRICE_DB = JSON.parse(fs.readFileSync(path.join(ROOT, 'material-prices.json'), 'utf8'));
   context.globalThis = context;
   vm.createContext(context);
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const scripts = [...html.matchAll(/<script\s+src=["']([^"']+)["']/g)]
-    .map(match => match[1])
-    .filter(src => src.startsWith('js/'));
-  for (const script of scripts) {
+  for (const name of MODULE_FILES) {
+    const script = `js/${name}`;
     const code = fs.readFileSync(path.join(ROOT, script), 'utf8');
     vm.runInContext(code, context, { filename: script });
   }
@@ -111,7 +115,7 @@ function evalJson(context, expression) {
 
 function runStaticTests() {
   const group = 'Pliki i spójność';
-  const required = ['index.html', 'style.css', 'app.js', 'manifest.json', 'service-worker.js', 'app-version.json', 'cennik.json', 'material-prices.json'];
+  const required = ['index.html', 'style.css', 'app.js', 'manifest.json', 'service-worker.js', 'app-version.json', 'cennik.json', 'material-prices.json', 'js/bootstrap.js', 'upload_to_github.ps1'];
   for (const name of required) assert(group, `Istnieje ${name}`, fs.existsSync(path.join(ROOT, name)));
 
   for (const name of ['manifest.json', 'app-version.json', 'cennik.json', 'material-prices.json', 'dane_uczace_transkrypcji.json']) {
@@ -126,23 +130,31 @@ function runStaticTests() {
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
   try {
-    const htmlScripts = [...html.matchAll(/<script\s+src=["']([^"']+)["']/g)].map(x => x[1]);
-    for (const script of htmlScripts) {
-      if (!script.endsWith('.js')) continue;
-      new vm.Script(fs.readFileSync(path.join(ROOT, script), 'utf8'));
+    for (const name of MODULE_FILES) {
+      new vm.Script(fs.readFileSync(path.join(ROOT, 'js', name), 'utf8'));
     }
     new vm.Script(fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8'));
-    pass(group, 'Składnia modułów JavaScript i pakietu app.js');
+    const bootstrapCheck = childProcess.spawnSync(process.execPath, ['--input-type=module', '--check'], {
+      input: fs.readFileSync(path.join(ROOT, 'js/bootstrap.js'), 'utf8'),
+      encoding: 'utf8'
+    });
+    if (bootstrapCheck.status !== 0) throw new Error(bootstrapCheck.stderr || 'Niepoprawna skladnia bootstrap.js');
+    pass(group, 'Składnia modułów JavaScript, bootstrap.js i pakietu app.js');
   } catch (error) {
-    fail(group, 'Składnia modułów JavaScript i pakietu app.js', error.message);
+    fail(group, 'Składnia modułów JavaScript, bootstrap.js i pakietu app.js', error.message);
   }
 
   const app = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
-  const version = JSON.parse(fs.readFileSync(path.join(ROOT, 'app-version.json'), 'utf8')).version;
-  const appVersionMatch = app.match(/const APP_VERSION\s*=\s*['"]([^'"]+)/);
-  const appVersion = appVersionMatch ? appVersionMatch[1] : '';
-  if (appVersion === version) pass(group, 'Jedna wersja programu we wszystkich plikach', version);
-  else warn(group, 'Jedna wersja programu we wszystkich plikach', `app-version.json: ${version}; app.js: ${appVersion || 'brak'}`);
+  const versionConfig = JSON.parse(fs.readFileSync(path.join(ROOT, 'app-version.json'), 'utf8'));
+  const version = versionConfig.version;
+  const stateCode = fs.readFileSync(path.join(ROOT, 'js/state.js'), 'utf8');
+  const swCode = fs.readFileSync(path.join(ROOT, 'service-worker.js'), 'utf8');
+  const bootstrapCode = fs.readFileSync(path.join(ROOT, 'js/bootstrap.js'), 'utf8');
+  assert(group, 'Wersja ma jedno zrodlo w app-version.json',
+    !html.includes(version) && !stateCode.includes(version) && !swCode.includes(version) && app.includes(`Wersja: ${version}`),
+    version);
+  assert(group, 'Bootstrap laduje trzy kanoniczne pliki JSON',
+    ['app-version.json','cennik.json','material-prices.json'].every(name => bootstrapCode.includes(name)));
 
   const fnNames = [...app.matchAll(/^function\s+([A-Za-z_$][\w$]*)\s*\(/gm)].map(x => x[1]);
   const counts = new Map();
@@ -165,25 +177,12 @@ function runStaticTests() {
   const missingAssets = assets.filter(name => !fs.existsSync(path.join(ROOT, name)));
   assert(group, 'Pliki cache service workera istnieją', missingAssets.length === 0, missingAssets.join(', '));
 
-  try {
-    const dataContext = { window: {} };
-    vm.createContext(dataContext);
-    vm.runInContext(fs.readFileSync(path.join(ROOT, 'pricing-data.js'), 'utf8'), dataContext);
-    const catalogJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'cennik.json'), 'utf8'));
-    assert(group, 'cennik.json jest zgodny z pricing-data.js', JSON.stringify(dataContext.window.PRICE_CATALOG) === JSON.stringify(catalogJson));
-  } catch (error) {
-    fail(group, 'cennik.json jest zgodny z pricing-data.js', error.message);
-  }
-
-  try {
-    const dataContext = { window: {} };
-    vm.createContext(dataContext);
-    vm.runInContext(fs.readFileSync(path.join(ROOT, 'material-prices.js'), 'utf8'), dataContext);
-    const materialsJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'material-prices.json'), 'utf8'));
-    assert(group, 'material-prices.json jest zgodny z material-prices.js', JSON.stringify(dataContext.window.MATERIAL_PRICE_DB) === JSON.stringify(materialsJson));
-  } catch (error) {
-    fail(group, 'material-prices.json jest zgodny z material-prices.js', error.message);
-  }
+  assert(group, 'Brak powielonego pliku pricing-data.js', !fs.existsSync(path.join(ROOT, 'pricing-data.js')));
+  assert(group, 'Brak powielonego pliku material-prices.js', !fs.existsSync(path.join(ROOT, 'material-prices.js')));
+  const catalogJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'cennik.json'), 'utf8'));
+  const materialsJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'material-prices.json'), 'utf8'));
+  assert(group, 'Kanoniczny cennik zawiera kategorie i pozycje', Object.keys(catalogJson).length > 0 && Object.values(catalogJson).some(items => Array.isArray(items) && items.length > 0));
+  assert(group, 'Kanoniczna baza materialow zawiera pozycje', Array.isArray(materialsJson.items) && materialsJson.items.length > 0);
 }
 
 function runCalculationTests(context) {

@@ -1,6 +1,6 @@
 /* Globalne stałe i bieżący stan aplikacji. */
 
-const APP_VERSION = '3.7 - 1605261805 AI Prosta';
+const APP_VERSION = String(window.APP_CONFIG?.version || window.APP_VERSION || '');
 const STORAGE_KEY = 'pomocnik-instalatora-pwa-v1-quotes';
 const SETTINGS_KEY = 'pomocnik-instalatora-pwa-v1-settings';
 const PHRASE_DICTIONARY_KEY = 'pomocnik-instalatora-pwa-v1-phrase-dictionary';

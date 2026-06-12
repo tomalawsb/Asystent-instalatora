@@ -1,27 +1,18 @@
 Pomocnik Instalatora PWA
-Wersja: 3.8 - 0706261140 AI Lokalny
+Aktualna wersja programu jest zapisana w pliku app-version.json.
 
-Zmiany w tej paczce:
-- AI działa bez backendu i bez serwera pośredniego,
-- klucz OpenAI wpisujesz bezpośrednio w ustawieniach aplikacji,
-- klucz zapisuje się lokalnie w przeglądarce/PWA przez localStorage,
-- dodano wybór modelu z listy,
-- dodano test klucza OpenAI,
-- przycisk „Rozbij AI” używa zapisanego klucza i wybranego modelu,
-- parser lokalny zostaje jako tryb awaryjny/offline,
-- ceny nadal pochodzą z lokalnego cennika aplikacji.
+Etap 3 — jedno zrodlo danych i wersji:
+- numer wersji jest pobierany wylacznie z app-version.json,
+- cennik uslug jest przechowywany wylacznie w cennik.json,
+- ceny materialow sa przechowywane wylacznie w material-prices.json,
+- usunieto powielone pliki pricing-data.js oraz material-prices.js,
+- js/bootstrap.js wczytuje konfiguracje i dane przed uruchomieniem pozostalych modulow,
+- service worker tworzy nazwe cache automatycznie na podstawie app-version.json,
+- app.js nadal jest generowanym pakietem zgodnosci i nie jest glownym punktem uruchamiania,
+- dodano upload_to_github.ps1 do automatycznej synchronizacji z repozytorium.
 
-Uwaga techniczna:
-Klucz OpenAI nie jest zapisany w plikach programu ani w repozytorium GitHub. Jest zapamiętywany lokalnie w konkretnej przeglądarce/PWA. Przy takim założeniu nie ma backendu, ale osoba mająca dostęp do urządzenia albo złośliwe rozszerzenie przeglądarki mogłoby potencjalnie odczytać localStorage.
+Repozytorium:
+https://github.com/tomalawsb/Asystent-instalatora
 
-Etap 2 - 1206260716
-- rozdzielono logikę aplikacji na moduły w katalogu js,
-- index.html ładuje moduły zamiast jednego monolitycznego pliku,
-- pozostawiono app.js jako automatycznie generowany pakiet zgodności,
-- usunięto 26 nieaktywnych, wcześniejszych deklaracji funkcji,
-- dodano narzędzie tools/build-app-bundle.js do odbudowy app.js,
-- zaktualizowano cache service workera dla nowej struktury,
-- funkcjonalność i interfejs pozostawiono bez celowych zmian.
-
-Odbudowa app.js:
-node tools/build-app-bundle.js
+Uruchamianie:
+Aplikacje nalezy otwierac przez serwer HTTP/HTTPS. Tryb PWA i ladowanie plikow JSON nie dzialaja poprawnie po bezposrednim otwarciu index.html jako file://.
