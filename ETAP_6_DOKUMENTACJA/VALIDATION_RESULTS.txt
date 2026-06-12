@@ -1,0 +1,51 @@
+Wersja: 4.2 - 1206260811
+PASS: 48 | FAIL: 0
+
+PASS: Istnieje index.html
+PASS: Istnieje style.css
+PASS: Istnieje manifest.json
+PASS: Istnieje service-worker.js
+PASS: Istnieje app-version.json
+PASS: Istnieje cennik.json
+PASS: Istnieje material-prices.json
+PASS: Istnieje app.js
+PASS: Istnieje js/bootstrap.js
+PASS: Istnieje js/workflow.js
+PASS: Istnieje upload_to_github.ps1
+PASS: Etap wersji równy 6 — 6
+PASS: Wersja ma format 4.2 - DDMMRRHHMM — 4.2 - 1206260811
+PASS: Build etapu 6 — 1206260811-etap-6-mobile-ux
+PASS: Brak zduplikowanych identyfikatorów HTML
+PASS: Cztery pozycje głównej nawigacji
+PASS: Cztery etapy wyceny
+PASS: Dodano mobilny przycisk główny
+PASS: Pasek etapów przechowuje aktywny krok
+PASS: Mobilny opis kroku ma aria-live
+PASS: Zachowano jeden przycisk analizy
+PASS: Zachowano jedno menu udostępniania
+PASS: Workflow oznaczony jako etap 6
+PASS: Mobilny przycisk zapisuje na kroku 4
+PASS: Aktywny krok jest centrowany na średnich ekranach
+PASS: Obsługa klawiatury ekranowej
+PASS: Menu można zamknąć klawiszem Escape
+PASS: Otwarte mobilne menu blokuje przewijanie tła
+PASS: Mobilny pasek działań jest fixed
+PASS: Pasek uwzględnia safe-area i klawiaturę
+PASS: Etapy są siatką na małym telefonie
+PASS: Minimalne pola dotykowe 44 px
+PASS: Pola formularza mają 16 px na telefonie
+PASS: Menu mobilne ma postać dolnego panelu
+PASS: Obsłużono bardzo wąskie telefony
+PASS: Obsłużono orientację poziomą
+PASS: Uwzględniono ograniczenie animacji
+PASS: Reguła hidden pozostaje ostatnia
+PASS: Bootstrap ładuje workflow.js
+PASS: Service worker cacheuje workflow.js
+PASS: Generator pakietu uwzględnia workflow.js
+PASS: Pakiet zgodności ma aktualną wersję
+PASS: Repozytorium GitHub w PS1 jest prawidłowe
+PASS: PS1 używa automatycznego opisu commita
+PASS: Brak pricing-data.js
+PASS: Brak material-prices.js
+PASS: Składnia wszystkich plików JavaScript
+PASS: Statyczne odwołania JS mają elementy HTML

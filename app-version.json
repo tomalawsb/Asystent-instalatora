@@ -1,8 +1,8 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "4.1 - 1206260759",
-  "build": "1206260759-etap-5-action-consolidation",
-  "stage": 5,
-  "released_at": "2026-06-12T07:59:00+02:00",
-  "note": "Etap 5: konsolidacja przycisków, jeden tryb analizy, jedno menu udostępniania, automatyczne podglądy i jeden zapis ustawień."
+  "version": "4.2 - 1206260811",
+  "build": "1206260811-etap-6-mobile-ux",
+  "stage": 6,
+  "released_at": "2026-06-12T08:11:00+02:00",
+  "note": "Etap 6: dopracowany interfejs mobilny, stały pasek działań, kompaktowe etapy, większe pola dotykowe i mobilne menu typu bottom sheet."
 }

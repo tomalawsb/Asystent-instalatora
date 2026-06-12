@@ -1,0 +1,21 @@
+Zmodyfikowane pliki produkcyjne:
+- app-version.json
+- README.txt
+- index.html
+- style.css
+- js/workflow.js
+- app.js (wygenerowany ponownie z modułów)
+
+Dodane pliki dokumentacyjne:
+- ETAP_6_DOKUMENTACJA/ETAP_6_RAPORT.md
+- ETAP_6_DOKUMENTACJA/PLIKI_ZMIENIONE.txt
+- ETAP_6_DOKUMENTACJA/run_stage6_validation.py
+- ETAP_6_DOKUMENTACJA/run_stage6_ui_tests.py
+- ETAP_6_DOKUMENTACJA/VALIDATION_RESULTS.txt
+- ETAP_6_DOKUMENTACJA/validation-results.json
+- ETAP_6_DOKUMENTACJA/UI_TEST_RESULTS.txt
+- ETAP_6_DOKUMENTACJA/BASELINE_RESULTS.txt
+- ETAP_6_DOKUMENTACJA/DIFFERENTIAL_RESULTS.txt
+- ETAP_6_DOKUMENTACJA/screenshot-desktop.png
+- ETAP_6_DOKUMENTACJA/screenshot-mobile-390.png
+- ETAP_6_DOKUMENTACJA/screenshot-mobile-landscape.png

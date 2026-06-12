@@ -1,34 +1,43 @@
 /*
- * Pomocnik Instalatora PWA — etap 5: proces wyceny i skonsolidowane menu działań.
+ * Pomocnik Instalatora PWA — etap 6: proces wyceny i interfejs mobilny.
  * Ten modul nie zmienia parsera, obliczen ani zapisu danych.
  */
 
 (function () {
   'use strict';
 
+  const MOBILE_BREAKPOINT = 850;
   const STEP_META = {
     1: {
       title: 'Opis wizyty',
       counter: 'Krok 1 z 4',
       next: 'Dalej: weryfikacja',
+      mobileNext: 'Dalej',
+      mobileAria: 'Przejdź do weryfikacji danych',
       hint: 'Dodaj opis wizyty albo przejdź dalej.'
     },
     2: {
       title: 'Weryfikacja danych',
       counter: 'Krok 2 z 4',
       next: 'Dalej: wycena',
+      mobileNext: 'Dalej',
+      mobileAria: 'Przejdź do pozycji i cen',
       hint: 'Sprawdź dane klienta i zatwierdź wynik analizy.'
     },
     3: {
       title: 'Pozycje i ceny',
       counter: 'Krok 3 z 4',
       next: 'Dalej: finalizacja',
+      mobileNext: 'Finalizacja',
+      mobileAria: 'Przejdź do finalizacji wyceny',
       hint: 'Uzupełnij pozycje, ceny i koszt dojazdu.'
     },
     4: {
       title: 'Finalizacja',
       counter: 'Krok 4 z 4',
       next: 'Finalizacja',
+      mobileNext: 'Zapisz wycenę',
+      mobileAria: 'Zapisz aktualną wycenę',
       hint: 'Sprawdź dokumenty i zapisz wycenę.'
     }
   };
@@ -37,6 +46,10 @@
 
   function getElement(id) {
     return document.getElementById(id);
+  }
+
+  function isMobileLayout() {
+    return window.matchMedia?.(`(max-width: ${MOBILE_BREAKPOINT}px)`).matches ?? window.innerWidth <= MOBILE_BREAKPOINT;
   }
 
   function serviceCount() {
@@ -97,6 +110,44 @@
     if (waiting) waiting.hidden = parserIsVisible();
   }
 
+  function centerActiveWorkflowStep(activeButton) {
+    const container = document.querySelector('.workflow-steps');
+    if (!container || !activeButton || container.scrollWidth <= container.clientWidth) return;
+
+    const targetLeft = activeButton.offsetLeft - ((container.clientWidth - activeButton.offsetWidth) / 2);
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    container.scrollTo({ left: Math.max(0, targetLeft), behavior: reduceMotion ? 'auto' : 'smooth' });
+  }
+
+  function updateWorkflowActionBar(meta, normalized) {
+    const actions = getElement('workflowActions');
+    const next = getElement('workflowNextBtn');
+    const mobilePrimary = getElement('mobileWorkflowPrimaryBtn');
+    const prev = getElement('workflowPrevBtn');
+    const hint = getElement('workflowActionHint');
+    const mobileLabel = getElement('mobileWorkflowStepLabel');
+
+    if (actions) {
+      actions.dataset.step = String(normalized);
+      actions.classList.toggle('is-final-step', normalized === 4);
+    }
+    if (hint) hint.textContent = meta.hint;
+    if (mobileLabel) mobileLabel.textContent = meta.counter;
+    if (prev) {
+      prev.disabled = normalized === 1;
+      prev.setAttribute('aria-label', normalized === 1 ? 'Jesteś na pierwszym kroku' : `Wróć do kroku ${normalized - 1}`);
+    }
+    if (next) {
+      next.hidden = normalized === 4;
+      next.textContent = meta.next;
+    }
+    if (mobilePrimary) {
+      mobilePrimary.textContent = meta.mobileNext;
+      mobilePrimary.setAttribute('aria-label', meta.mobileAria);
+      mobilePrimary.dataset.action = normalized === 4 ? 'save' : 'next';
+    }
+  }
+
   function setWorkflowStep(step, options = {}) {
     const normalized = Math.max(1, Math.min(4, Number(step) || 1));
     const previous = activeWorkflowStep;
@@ -109,38 +160,42 @@
       panel.setAttribute('aria-hidden', String(!isActive));
     });
 
+    let activeButton = null;
     document.querySelectorAll('[data-workflow-target]').forEach(button => {
       const buttonStep = Number(button.dataset.workflowTarget);
       const isActive = buttonStep === normalized;
       button.classList.toggle('active', isActive);
       button.classList.toggle('completed', buttonStep < normalized);
       button.setAttribute('aria-current', isActive ? 'step' : 'false');
+      button.setAttribute('aria-label', `Krok ${buttonStep}: ${STEP_META[buttonStep].title}`);
+      if (isActive) activeButton = button;
     });
 
     const meta = STEP_META[normalized];
     const counter = getElement('workflowStepCounter');
     const title = getElement('workflowStepTitle');
-    const next = getElement('workflowNextBtn');
-    const prev = getElement('workflowPrevBtn');
-    const hint = getElement('workflowActionHint');
 
     if (counter) counter.textContent = meta.counter;
     if (title) title.textContent = meta.title;
-    if (hint) hint.textContent = meta.hint;
-    if (prev) prev.disabled = normalized === 1;
-    if (next) {
-      next.hidden = normalized === 4;
-      next.textContent = meta.next;
-    }
-
+    updateWorkflowActionBar(meta, normalized);
     updateParserWaitingState();
     updateWorkflowMirrors();
+
+    if (isMobileLayout()) centerActiveWorkflowStep(activeButton);
 
     if (options.scroll !== false && previous !== normalized) {
       const heading = document.querySelector('.workflow-steps');
       const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       heading?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
     }
+  }
+
+  function runMobilePrimaryAction() {
+    if (activeWorkflowStep === 4) {
+      getElement('saveQuoteBtn')?.click();
+      return;
+    }
+    setWorkflowStep(activeWorkflowStep + 1);
   }
 
   function initWorkflowNavigation() {
@@ -150,6 +205,7 @@
 
     getElement('workflowPrevBtn')?.addEventListener('click', () => setWorkflowStep(activeWorkflowStep - 1));
     getElement('workflowNextBtn')?.addEventListener('click', () => setWorkflowStep(activeWorkflowStep + 1));
+    getElement('mobileWorkflowPrimaryBtn')?.addEventListener('click', runMobilePrimaryAction);
 
     getElement('newQuoteBtn')?.addEventListener('click', () => {
       window.setTimeout(() => {
@@ -230,26 +286,51 @@
     activateMorePanel('settingsTab');
   }
 
+  function updateActionMenuState() {
+    const anyOpen = Boolean(document.querySelector('details.action-menu[open]'));
+    document.body.classList.toggle('action-menu-open', anyOpen && isMobileLayout());
+  }
+
   function closeOtherActionMenus(activeMenu = null) {
     document.querySelectorAll('details.action-menu[open]').forEach(menu => {
       if (menu !== activeMenu) menu.open = false;
     });
+    window.setTimeout(updateActionMenuState, 0);
   }
 
   function initActionMenus() {
     document.addEventListener('toggle', event => {
       const menu = event.target.closest?.('details.action-menu');
-      if (menu?.open) closeOtherActionMenus(menu);
+      if (!menu) return;
+      if (menu.open) {
+        closeOtherActionMenus(menu);
+        if (isMobileLayout()) {
+          window.setTimeout(() => menu.querySelector('.action-menu-content button')?.focus({ preventScroll: true }), 40);
+        }
+      }
+      window.setTimeout(updateActionMenuState, 0);
     }, true);
 
     document.addEventListener('click', event => {
       const menuButton = event.target.closest('details.action-menu button');
       if (menuButton) {
         const menu = menuButton.closest('details.action-menu');
-        window.setTimeout(() => { if (menu) menu.open = false; }, 0);
+        window.setTimeout(() => {
+          if (menu) menu.open = false;
+          updateActionMenuState();
+        }, 0);
         return;
       }
       if (!event.target.closest('details.action-menu')) closeOtherActionMenus();
+    });
+
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      const openMenu = document.querySelector('details.action-menu[open]');
+      if (!openMenu) return;
+      openMenu.open = false;
+      openMenu.querySelector('summary')?.focus();
+      updateActionMenuState();
     });
   }
 
@@ -257,6 +338,7 @@
     document.querySelectorAll('.main-navigation .tab').forEach(button => {
       button.setAttribute('aria-selected', String(button.classList.contains('active')));
       button.addEventListener('click', () => {
+        closeOtherActionMenus();
         document.querySelectorAll('.main-navigation .tab').forEach(item => {
           item.setAttribute('aria-selected', String(item === button));
         });
@@ -264,19 +346,42 @@
     });
   }
 
-  function initStage4Interface() {
+  function updateVisualViewportOffset() {
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      document.documentElement.style.setProperty('--mobile-keyboard-offset', '0px');
+      return;
+    }
+    const offset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop);
+    document.documentElement.style.setProperty('--mobile-keyboard-offset', `${Math.round(offset)}px`);
+  }
+
+  function initMobileViewportHandling() {
+    updateVisualViewportOffset();
+    window.visualViewport?.addEventListener('resize', updateVisualViewportOffset);
+    window.visualViewport?.addEventListener('scroll', updateVisualViewportOffset);
+    window.addEventListener('resize', () => {
+      updateVisualViewportOffset();
+      updateActionMenuState();
+      const activeButton = document.querySelector('[data-workflow-target].active');
+      if (isMobileLayout()) centerActiveWorkflowStep(activeButton);
+    });
+  }
+
+  function initStage6Interface() {
     initWorkflowNavigation();
     initParserObserver();
     initValueObservers();
     initMoreNavigation();
     initActionMenus();
     improveMainNavigationAccessibility();
+    initMobileViewportHandling();
     renderAnalysisModeHint(loadSettings());
     setWorkflowStep(1, { scroll: false });
     updateWorkflowMirrors();
   }
 
-  document.addEventListener('DOMContentLoaded', initStage4Interface);
+  document.addEventListener('DOMContentLoaded', initStage6Interface);
 
   window.setWorkflowStep = setWorkflowStep;
   window.getWorkflowStep = () => activeWorkflowStep;

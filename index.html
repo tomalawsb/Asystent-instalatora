@@ -339,12 +339,14 @@
             </section>
           </section>
 
-          <div id="workflowActions" class="workflow-actions" aria-label="Nawigacja po etapach">
+          <div id="workflowActions" class="workflow-actions" data-step="1" aria-label="Nawigacja po etapach">
             <button id="workflowPrevBtn" type="button" class="btn btn-ghost">Wstecz</button>
-            <div class="workflow-actions-info">
+            <div class="workflow-actions-info" aria-live="polite">
+              <strong id="mobileWorkflowStepLabel">Krok 1 z 4</strong>
               <span id="workflowActionHint">Dodaj opis wizyty albo przejdź dalej.</span>
             </div>
-            <button id="workflowNextBtn" type="button" class="btn btn-primary">Dalej: weryfikacja</button>
+            <button id="workflowNextBtn" type="button" class="btn btn-primary desktop-workflow-primary">Dalej: weryfikacja</button>
+            <button id="mobileWorkflowPrimaryBtn" type="button" class="btn btn-primary mobile-workflow-primary" aria-label="Przejdź do weryfikacji">Dalej</button>
           </div>
         </section>
 

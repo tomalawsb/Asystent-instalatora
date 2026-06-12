@@ -1,5 +1,5 @@
 Pomocnik Instalatora PWA
-Wersja: 4.1 - 1206260759
+Wersja: 4.2 - 1206260811
 
 ETAP 5 — KONSOLIDACJA FUNKCJI I PRZYCISKÓW
 
@@ -25,3 +25,12 @@ Wysyłka na GitHub:
 
 Uwaga dotycząca OpenAI:
 Klucz API jest zapisywany lokalnie w przeglądarce/PWA. Nie jest umieszczany w plikach programu ani w repozytorium GitHub.
+
+Zmiany w etapie 6:
+- dopracowano interfejs dla telefonów 360–412 px,
+- dodano stały dolny pasek Wstecz / Dalej / Zapisz,
+- cztery etapy wyceny mieszczą się na ekranie bez przewijania poziomego,
+- zwiększono pola dotykowe i rozmiar pól formularzy,
+- menu Udostępnij i Więcej działa na telefonie jako dolny panel,
+- poprawiono bezpieczne odstępy PWA i obsługę klawiatury ekranowej.
+
