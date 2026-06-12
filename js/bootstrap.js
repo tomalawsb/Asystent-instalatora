@@ -17,6 +17,7 @@ const APP_SCRIPT_FILES = [
   'js/ui.js',
   'js/state.js',
   'js/patches.js',
+  'js/final-qa.js',
   'js/ai-runtime.js',
   'js/workflow.js'
 ];

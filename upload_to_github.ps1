@@ -43,7 +43,10 @@ $RequiredFiles = @(
     "material-prices.json",
     "js\bootstrap.js",
     "js\state.js",
-    "js\workflow.js"
+    "js\workflow.js",
+    "js\final-qa.js",
+    "icon-192.png",
+    "icon-512.png"
 )
 
 foreach ($File in $RequiredFiles) {
@@ -95,12 +98,37 @@ $RoboCode = $LASTEXITCODE
 if ($RoboCode -gt 7) { Stop-WithMessage "Robocopy nie skopiowal poprawnie plikow. Kod: $RoboCode" }
 
 # Pliki usuniete w etapie 3 nie moga pozostac w repozytorium.
-$ObsoleteFiles = @("pricing-data.js", "material-prices.js")
+$ObsoleteFiles = @(
+    "pricing-data.js",
+    "material-prices.js",
+    "icon-192.svg",
+    "icon-512.svg",
+    "RAPORT_uczenia_transkrypcji.txt",
+    "slownik_bledow_transkrypcji_do_wklejenia.txt",
+    "dane_uczace_transkrypcji.json"
+)
 foreach ($File in $ObsoleteFiles) {
     $Target = Join-Path $RepoWorkPath $File
     if (Test-Path $Target) {
         Remove-Item $Target -Force
         Warn "Usunieto nieaktualne zrodlo danych: $File"
+    }
+}
+
+$ObsoleteDirectories = @(
+    "ETAP_1_TESTY",
+    "ETAP_2_DOKUMENTACJA",
+    "ETAP_3_DOKUMENTACJA",
+    "ETAP_4_DOKUMENTACJA",
+    "ETAP_5_DOKUMENTACJA",
+    "ETAP_6_DOKUMENTACJA",
+    "ETAP_7_DOKUMENTACJA"
+)
+foreach ($Directory in $ObsoleteDirectories) {
+    $Target = Join-Path $RepoWorkPath $Directory
+    if (Test-Path $Target) {
+        Remove-Item $Target -Recurse -Force
+        Warn "Usunieto stary katalog roboczy: $Directory"
     }
 }
 

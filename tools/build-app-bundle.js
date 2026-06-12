@@ -14,6 +14,7 @@ const files = [
   'ui.js',
   'state.js',
   'patches.js',
+  'final-qa.js',
   'ai-runtime.js',
   'workflow.js'
 ];

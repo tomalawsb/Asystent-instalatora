@@ -106,7 +106,7 @@ function normalizeQuoteRecord(quote) {
   clean.updatedAt = clean.updatedAt || clean.createdAt || now;
   clean.deletedAt = clean.deletedAt || null;
   clean.deviceId = clean.deviceId || getDeviceId();
-  clean.version = number(clean.version, 1);
+  clean.version = Math.max(1, number(clean.version, 1));
   clean.services = Array.isArray(clean.services) ? clean.services : [];
   return clean;
 }

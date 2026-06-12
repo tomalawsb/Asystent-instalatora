@@ -1,36 +1,33 @@
 Pomocnik Instalatora PWA
-Wersja: 4.2 - 1206260811
+Wersja: 4.3 - 1206260820
 
-ETAP 5 — KONSOLIDACJA FUNKCJI I PRZYCISKÓW
+WERSJA KOŃCOWA PO PRZEBUDOWIE INTERFEJSU
 
-Najważniejsze zmiany:
-- jeden przycisk „Analizuj wizytę”; program używa trybu lokalnego albo AI wybranego w ustawieniach,
-- jedno menu „Udostępnij” zawierające SMS, opis wyceny, TXT, PDF, drukowanie, materiały i raport analizy,
-- podgląd wiadomości oraz lista materiałów aktualizują się automatycznie — usunięto ręczne przyciski „Odśwież”,
-- zapisane wyceny mają tylko przycisk „Otwórz” i menu „Więcej”,
-- cennik, baza materiałów i Dropbox mają najczęstsze działanie na wierzchu, a operacje dodatkowe w menu „Więcej”,
-- wszystkie ustawienia zapisuje jeden przycisk „Zapisz wszystkie ustawienia”,
-- zmiana motywu daje podgląd, ale zapis następuje dopiero po użyciu wspólnego przycisku,
-- usunięto powielony nagłówek „Więcej opcji”,
-- nie zmieniano parsera lokalnego, reguł AI, obliczeń, formatu danych ani synchronizacji wycen.
+Najważniejsze funkcje:
+- czteroetapowy proces: opis wizyty, weryfikacja danych, wycena i finalizacja,
+- jeden przycisk „Analizuj wizytę” dla parsera lokalnego lub AI,
+- jedno menu „Udostępnij” z SMS, opisem, TXT, PDF, drukowaniem, materiałami i raportem,
+- zapisane wyceny, własny cennik, baza materiałów i synchronizacja Dropbox,
+- interfejs dostosowany do telefonu, tabletu i komputera,
+- działanie PWA i praca offline po pierwszym pełnym uruchomieniu online.
+
+Końcowe poprawki wersji 4.3:
+- usunięto fałszywe dodawanie podglądu zdalnego po samym słowie „telefon”,
+- poprawiono rozpoznawanie bezpłatnych kilometrów i stawki za dojazd,
+- poprawiono rozpoznawanie klienta oraz adresu w naturalnym zapisie,
+- dodano pewne rozpoznawanie konfiguracji routera i testu Wi-Fi,
+- usunięto stare raporty, testy, zrzuty ekranów i nieużywane pliki szkoleniowe,
+- dodano ikony PNG 192×192 i 512×512 dla instalacji PWA.
 
 Uruchomienie lokalne:
-- aplikację należy otwierać przez serwer HTTP, a nie bezpośrednio jako plik file://,
-- przykładowo: python -m http.server 8000
-- następnie: http://localhost:8000
+1. Otwórz terminal w folderze programu.
+2. Uruchom: python -m http.server 8000
+3. Otwórz: http://localhost:8000
 
 Wysyłka na GitHub:
-- uruchom plik upload_to_github.ps1 w głównym katalogu programu,
+- uruchom upload_to_github.ps1 w głównym folderze programu,
+- skrypt automatycznie pobierze repozytorium, wyczyści stare pliki, utworzy commit i wykona push,
 - repozytorium: https://github.com/tomalawsb/Asystent-instalatora.git
 
-Uwaga dotycząca OpenAI:
-Klucz API jest zapisywany lokalnie w przeglądarce/PWA. Nie jest umieszczany w plikach programu ani w repozytorium GitHub.
-
-Zmiany w etapie 6:
-- dopracowano interfejs dla telefonów 360–412 px,
-- dodano stały dolny pasek Wstecz / Dalej / Zapisz,
-- cztery etapy wyceny mieszczą się na ekranie bez przewijania poziomego,
-- zwiększono pola dotykowe i rozmiar pól formularzy,
-- menu Udostępnij i Więcej działa na telefonie jako dolny panel,
-- poprawiono bezpieczne odstępy PWA i obsługę klawiatury ekranowej.
-
+Bezpieczeństwo:
+Klucze OpenAI i Dropbox są przechowywane wyłącznie lokalnie w przeglądarce/PWA. Nie są zapisane w paczce ani wysyłane do repozytorium przez skrypt.

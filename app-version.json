@@ -1,8 +1,8 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "4.2 - 1206260811",
-  "build": "1206260811-etap-6-mobile-ux",
-  "stage": 6,
-  "released_at": "2026-06-12T08:11:00+02:00",
-  "note": "Etap 6: dopracowany interfejs mobilny, stały pasek działań, kompaktowe etapy, większe pola dotykowe i mobilne menu typu bottom sheet."
+  "version": "4.3 - 1206260820",
+  "build": "1206260820-etap-7-final-qa",
+  "stage": 7,
+  "released_at": "2026-06-12T08:20:00+02:00",
+  "note": "Etap 7: końcowa walidacja PWA, naprawa potwierdzonych regresji parsera, testy zgodności danych oraz oczyszczenie paczki produkcyjnej."
 }

@@ -15,15 +15,15 @@ const STATIC_FILES = [
   './js/ui.js',
   './js/state.js',
   './js/patches.js',
+  './js/final-qa.js',
   './js/ai-runtime.js',
   './js/workflow.js',
-  './dane_uczace_transkrypcji.json',
   './cennik.json',
   './material-prices.json',
   './manifest.json',
   './app-version.json',
-  './icon-192.svg',
-  './icon-512.svg'
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 function normalizeCachePart(value) {
