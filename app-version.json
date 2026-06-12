@@ -1,8 +1,8 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "4.4 - 1206260836",
-  "build": "1206260836-startup-hotfix",
+  "version": "4.5 - 1206260915",
+  "build": "1206260915-mobile-fix-icon",
   "stage": "7-hotfix",
   "released_at": "2026-06-12T08:36:00+02:00",
-  "note": "Poprawka krytyczna uruchamiania: statyczny pakiet produkcyjny działa po wdrożeniu oraz po bezpośrednim otwarciu index.html z dysku."
+  "note": "Poprawki mobilnej obsługi, przewijania i nowa ikona aplikacji."
 }

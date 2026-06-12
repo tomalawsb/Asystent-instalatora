@@ -1,5 +1,5 @@
 Pomocnik Instalatora PWA
-Wersja: 4.4 - 1206260836
+Wersja: 4.5 - 1206260915
 
 Poprawka krytyczna uruchamiania:
 - naprawiono brak reakcji przycisków i funkcji,

@@ -298,6 +298,12 @@
     window.setTimeout(updateActionMenuState, 0);
   }
 
+  function forceRestorePageScroll() {
+    document.body.classList.remove('action-menu-open');
+    document.documentElement.style.removeProperty('--mobile-keyboard-offset');
+    window.setTimeout(updateActionMenuState, 0);
+  }
+
   function initActionMenus() {
     document.addEventListener('toggle', event => {
       const menu = event.target.closest?.('details.action-menu');
@@ -339,6 +345,7 @@
       button.setAttribute('aria-selected', String(button.classList.contains('active')));
       button.addEventListener('click', () => {
         closeOtherActionMenus();
+        forceRestorePageScroll();
         document.querySelectorAll('.main-navigation .tab').forEach(item => {
           item.setAttribute('aria-selected', String(item === button));
         });
@@ -365,6 +372,10 @@
       updateActionMenuState();
       const activeButton = document.querySelector('[data-workflow-target].active');
       if (isMobileLayout()) centerActiveWorkflowStep(activeButton);
+    });
+    window.addEventListener('pageshow', forceRestorePageScroll);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) forceRestorePageScroll();
     });
   }
 

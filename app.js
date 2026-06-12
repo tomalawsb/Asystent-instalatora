@@ -1,6 +1,6 @@
 /*
  * PLIK GENEROWANY — nie edytowac recznie.
- * Wersja: 4.4 - 1206260836
+ * Wersja: 4.5 - 1206260915
  * Zrodla kodu: katalog js/.
  * Zrodla danych: app-version.json, cennik.json, material-prices.json.
  * Odbudowa: node tools/build-app-bundle.js
@@ -8210,6 +8210,12 @@ analyzeVoiceCommandFromField = function() {
     window.setTimeout(updateActionMenuState, 0);
   }
 
+  function forceRestorePageScroll() {
+    document.body.classList.remove('action-menu-open');
+    document.documentElement.style.removeProperty('--mobile-keyboard-offset');
+    window.setTimeout(updateActionMenuState, 0);
+  }
+
   function initActionMenus() {
     document.addEventListener('toggle', event => {
       const menu = event.target.closest?.('details.action-menu');
@@ -8251,6 +8257,7 @@ analyzeVoiceCommandFromField = function() {
       button.setAttribute('aria-selected', String(button.classList.contains('active')));
       button.addEventListener('click', () => {
         closeOtherActionMenus();
+        forceRestorePageScroll();
         document.querySelectorAll('.main-navigation .tab').forEach(item => {
           item.setAttribute('aria-selected', String(item === button));
         });
@@ -8277,6 +8284,10 @@ analyzeVoiceCommandFromField = function() {
       updateActionMenuState();
       const activeButton = document.querySelector('[data-workflow-target].active');
       if (isMobileLayout()) centerActiveWorkflowStep(activeButton);
+    });
+    window.addEventListener('pageshow', forceRestorePageScroll);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) forceRestorePageScroll();
     });
   }
 

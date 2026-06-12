@@ -3086,3 +3086,140 @@ button,
 }
 
 [hidden] { display: none !important; }
+
+/* =========================================================
+   ETAP 8 — poprawki mobilnej obsługi i nowa ikona programu
+   ========================================================= */
+.brand-mark {
+  font-size: 0;
+  color: transparent;
+  background-image: url("icon-192.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 8px 18px rgba(24, 94, 168, .18);
+}
+
+@media (max-width: 850px) {
+  html,
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body {
+    overscroll-behavior-y: auto;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  .topbar {
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .brand-block {
+    align-items: center;
+  }
+
+  .top-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .top-actions .btn,
+  .top-actions #newQuoteBtn {
+    width: 100%;
+  }
+
+  .main-content,
+  .tab-panel,
+  .workflow-panel,
+  .workflow-grid,
+  .card,
+  .app-layout,
+  .app-shell {
+    overflow: visible;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  .workspace-heading {
+    margin-bottom: 8px;
+  }
+
+  .workflow-steps {
+    position: relative;
+    z-index: 1;
+  }
+
+  .workflow-actions {
+    position: sticky;
+    left: auto;
+    right: auto;
+    bottom: calc(var(--mobile-bottom-nav-height) + env(safe-area-inset-bottom) + 6px);
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  .parser-decision-row,
+  .analysis-choice .action-row,
+  .voice-main-actions,
+  .secondary-action-group,
+  .saved-actions,
+  .final-primary-actions,
+  .final-secondary-actions {
+    align-items: stretch;
+  }
+
+  .parser-decision-row .btn,
+  .analysis-choice .btn,
+  .voice-main-actions .btn,
+  .secondary-action-group .btn,
+  .saved-actions .btn,
+  .final-primary-actions .btn,
+  .final-secondary-actions .btn {
+    min-height: 46px;
+  }
+
+  .action-menu-content {
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 620px) {
+  .topbar {
+    min-height: auto;
+    padding: 10px;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+  }
+
+  .workspace-heading {
+    gap: 8px;
+  }
+
+  .workflow-steps {
+    margin-bottom: 10px;
+  }
+
+  .workflow-actions {
+    padding: 8px;
+    border-radius: 14px;
+  }
+
+  .workflow-actions .btn {
+    min-height: 44px;
+  }
+}
+@media (max-width: 850px) {
+  body.action-menu-open {
+    overflow-y: auto;
+  }
+}
