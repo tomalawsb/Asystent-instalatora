@@ -1,0 +1,7 @@
+PASS: 44 | FAIL: 4 | WARN: 2
+WARN: [Zapis i synchronizacja danych] Połączenie z prawdziwym Dropbox — Nie wykonano bez tokenu użytkownika. Procedura ręczna jest w MANUAL_TEST_CHECKLIST.md.
+FAIL: [Parser lokalny] CCTV_01: Pełne dane klienta, dwie kamery, przewód i dojazd — bezpłatne km: null; błędnie dodano „Uruchomienie podglądu zdalnego”
+FAIL: [Parser lokalny] CCTV_02: Naturalna forma z etykietą Klient i osobnymi materiałami — klient: oczekiwano „Jan Kowalski”, jest „-”; stawka/km: null; bezpłatne km: null; błędnie dodano „Uruchomienie podglądu zdalnego”
+FAIL: [Parser lokalny] ANTENA_01: Antena, przewód RG6 i złącza F — adres nie zawiera „12”: Anna Nowak Telefon 600700800, Czermin; błędnie dodano „Uruchomienie podglądu zdalnego”
+FAIL: [Parser lokalny] WIFI_01: Konfiguracja routera bez elementów CCTV — klient: oczekiwano „Piotr Test”, jest „-”; brak pozycji „router” × 1; brak pozycji „Wi-Fi” × 1; błędnie dodano „Uruchomienie podglądu zdalnego”
+WARN: [Parser AI] Rzeczywiste zapytanie do OpenAI — Nie wykonano bez klucza API i świadomego użycia płatnego zapytania. Procedura ręczna jest w MANUAL_TEST_CHECKLIST.md.

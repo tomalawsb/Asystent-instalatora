@@ -320,12 +320,14 @@ function saveSettingsFromForm() {
   applyTheme(settings.uiTheme);
   renderSummary();
   renderDropboxStatus();
-  showInfo('Ustawienia zapisane.');
+  renderAiParserStatus();
+  renderAnalysisModeHint(settings);
+  showInfo('Zapisano wszystkie ustawienia aplikacji.');
 }
 
 function savePhraseDictionaryFromForm() {
   savePhraseDictionaryText($('phraseDictionary').value);
-  showInfo('Zapisano słownik własnych zwrotów. Nowe zasady będą używane przy kolejnym „Rozbij tekst”.');
+  showInfo('Zapisano słownik własnych zwrotów. Nowe zasady będą używane przy kolejnej analizie wizyty.');
 }
 
 function resetPhraseDictionary() {

@@ -1,0 +1,26 @@
+PASS | Brak błędów uruchomienia
+PASS | Jeden przycisk analizy
+PASS | Przycisk ma nazwę Analizuj wizytę
+PASS | Domyślny opis trybu lokalnego
+PASS | Jeden przycisk uruchamia parser lokalny
+PASS | Analiza otwiera etap weryfikacji
+PASS | Zatwierdzenie otwiera etap wyceny
+PASS | Pozycje zostały dodane
+PASS | Wiadomość odświeża się automatycznie
+PASS | Brak ręcznych przycisków Odśwież
+PASS | Lista materiałów jest widoczna
+PASS | Jedno menu Udostępnij
+PASS | Menu Udostępnij otwiera się
+PASS | Menu zawiera siedem działań
+PASS | Brak powielonych starych akcji
+PASS | Menu zamyka się po wybraniu działania
+PASS | Jeden przycisk zapisu ustawień
+PASS | Brak osobnego zapisu AI i Dropbox
+PASS | Wspólny zapis zapisuje ustawienia | Firma Etap 5
+PASS | Zapisana wycena ma przycisk Otwórz
+PASS | Zapisana wycena ma jedno menu Więcej
+PASS | Akcje zapisanej wyceny są schowane w menu
+PASS | Mobilne menu udostępniania jest stałe | fixed
+PASS | Brak poziomego przepełnienia 390 px
+PASS | Brak błędów mobilnych
+SUMMARY 25/25

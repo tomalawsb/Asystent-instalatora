@@ -113,11 +113,10 @@
               <div class="analysis-choice">
                 <div>
                   <h3>Przeanalizuj opis</h3>
-                  <p>Możesz użyć parsera lokalnego albo OpenAI. Wynik zawsze sprawdzisz przed zatwierdzeniem.</p>
+                  <p id="analysisModeHint">Program użyje trybu wybranego w ustawieniach analizy tekstu. Wynik zawsze sprawdzisz przed zatwierdzeniem.</p>
                 </div>
                 <div class="action-row">
-                  <button id="analyzeVoiceBtn" class="btn btn-soft">Analizuj lokalnie</button>
-                  <button id="analyzeVoiceAiBtn" class="btn btn-primary">Analizuj przez AI</button>
+                  <button id="analyzeVoiceBtn" class="btn btn-primary">Analizuj wizytę</button>
                 </div>
               </div>
             </section>
@@ -185,9 +184,7 @@
                 </details>
 
                 <div class="action-row">
-                  <button id="suggestBtn" class="btn btn-soft">Podpowiedz z notatek</button>
                   <button id="undoParseBtn" class="btn btn-ghost" hidden>Cofnij rozbicie</button>
-                  <button id="copyReportBtn" class="btn btn-ghost">Kopiuj raport</button>
                 </div>
               </section>
             </div>
@@ -290,30 +287,22 @@
                 <div class="section-head">
                   <div>
                     <h2>Wiadomość do klienta</h2>
-                    <p>Gotowy tekst tworzony na podstawie bieżącej wyceny.</p>
+                    <p>Podgląd aktualizuje się automatycznie po każdej zmianie wyceny.</p>
                   </div>
-                  <button id="refreshClientMessageBtn" class="btn btn-ghost">Odśwież</button>
+                  <span class="auto-update-chip">Aktualizacja automatyczna</span>
                 </div>
                 <textarea id="clientMessagePreview" rows="8" readonly></textarea>
-                <div class="action-row">
-                  <button id="copyClientSmsPreviewBtn" class="btn btn-primary">Kopiuj SMS</button>
-                  <button id="copyClientDescriptionBtn" class="btn btn-soft">Kopiuj opis wyceny</button>
-                  <button id="offerPdfPreviewBtn" class="btn btn-soft">Generuj ofertę PDF</button>
-                </div>
               </section>
 
               <section id="materialsCard" class="card materials-card workflow-card">
                 <div class="section-head">
                   <div>
                     <h2>Materiały do zabrania</h2>
-                    <p>Lista wynikająca z pozycji dodanych do wyceny.</p>
+                    <p>Lista aktualizuje się automatycznie na podstawie bieżących pozycji.</p>
                   </div>
-                  <button id="refreshMaterialsBtn" class="btn btn-ghost">Odśwież</button>
+                  <span class="auto-update-chip">Aktualizacja automatyczna</span>
                 </div>
                 <div id="materialsPreview" class="materials-preview"></div>
-                <div class="action-row">
-                  <button id="copyMaterialsBtn" class="btn btn-primary">Kopiuj listę materiałów</button>
-                </div>
               </section>
             </div>
 
@@ -329,17 +318,23 @@
 
             <section class="card final-actions-card">
               <div>
-                <h2>Zapis i dokumenty</h2>
+                <h2>Zapis i udostępnianie</h2>
                 <p id="finalClientMirror">Aktualna wycena</p>
               </div>
               <div class="final-primary-actions">
                 <button id="saveQuoteBtn" class="btn btn-primary">Zapisz wycenę</button>
-                <button id="offerPdfBtn" class="btn btn-soft">Oferta PDF</button>
-                <button id="copyClientSmsBtn" class="btn btn-soft">Kopiuj SMS</button>
-              </div>
-              <div class="final-secondary-actions">
-                <button id="exportTxtBtn" class="btn btn-ghost">Eksport TXT</button>
-                <button id="printBtn" class="btn btn-ghost">Drukuj widok</button>
+                <details id="shareMenu" class="action-menu share-menu">
+                  <summary class="btn btn-soft">Udostępnij</summary>
+                  <div class="action-menu-content" role="menu" aria-label="Sposoby udostępniania wyceny">
+                    <button id="shareSmsBtn" class="btn btn-soft" role="menuitem">Kopiuj SMS</button>
+                    <button id="shareDescriptionBtn" class="btn btn-soft" role="menuitem">Kopiuj opis wyceny</button>
+                    <button id="shareTxtBtn" class="btn btn-soft" role="menuitem">Pobierz TXT</button>
+                    <button id="sharePdfBtn" class="btn btn-soft" role="menuitem">Oferta PDF</button>
+                    <button id="sharePrintBtn" class="btn btn-soft" role="menuitem">Drukuj widok</button>
+                    <button id="shareMaterialsBtn" class="btn btn-soft" role="menuitem">Kopiuj materiały</button>
+                    <button id="shareReportBtn" class="btn btn-ghost" role="menuitem">Kopiuj raport analizy</button>
+                  </div>
+                </details>
               </div>
             </section>
           </section>
@@ -410,9 +405,14 @@
               <div class="action-row">
                 <button id="saveCatalogItemBtn" class="btn btn-primary">Zapisz pozycję</button>
                 <button id="clearCatalogEditorBtn" class="btn btn-ghost">Wyczyść formularz</button>
-                <button id="exportCatalogBtn" class="btn btn-soft">Eksport cennika</button>
-                <button id="importCatalogBtn" class="btn btn-soft">Import cennika</button>
-                <button id="resetCatalogBtn" class="btn btn-danger">Przywróć domyślny</button>
+                <details class="action-menu compact-action-menu">
+                  <summary class="btn btn-soft">Więcej</summary>
+                  <div class="action-menu-content" role="menu" aria-label="Dodatkowe operacje cennika">
+                    <button id="exportCatalogBtn" class="btn btn-soft" role="menuitem">Eksport cennika</button>
+                    <button id="importCatalogBtn" class="btn btn-soft" role="menuitem">Import cennika</button>
+                    <button id="resetCatalogBtn" class="btn btn-danger" role="menuitem">Przywróć domyślny</button>
+                  </div>
+                </details>
                 <input id="importCatalogFile" type="file" accept="application/json,.json" hidden>
               </div>
               <div id="catalogEditInfo" class="catalog-edit-info" hidden></div>
@@ -433,8 +433,13 @@
               <div class="action-row">
                 <button id="applyMaterialPricesBtn" class="btn btn-primary">Uzupełnij cennik cenami materiałów</button>
                 <button id="refreshMaterialPricesBtn" class="btn btn-soft">Pobierz najnowszą bazę</button>
-                <button id="exportMaterialPricesBtn" class="btn btn-soft">Eksport bazy</button>
-                <button id="importMaterialPricesBtn" class="btn btn-soft">Import bazy</button>
+                <details class="action-menu compact-action-menu">
+                  <summary class="btn btn-ghost">Więcej</summary>
+                  <div class="action-menu-content" role="menu" aria-label="Dodatkowe operacje bazy materiałów">
+                    <button id="exportMaterialPricesBtn" class="btn btn-soft" role="menuitem">Eksport bazy</button>
+                    <button id="importMaterialPricesBtn" class="btn btn-soft" role="menuitem">Import bazy</button>
+                  </div>
+                </details>
                 <input id="importMaterialPricesFile" type="file" accept="application/json,.json" hidden>
               </div>
             </details>
@@ -452,13 +457,16 @@
             </div>
           </div>
 
-          <nav class="more-navigation" aria-label="Sekcje dodatkowe">
-            <button type="button" class="more-nav-button active" data-more-target="settingsTab">Podstawowe</button>
-            <button type="button" class="more-nav-button" data-more-target="aiSettingsPanel">Analiza tekstu</button>
-            <button type="button" class="more-nav-button" data-more-target="syncSettingsPanel">Synchronizacja</button>
-            <button type="button" class="more-nav-button" data-more-target="advancedSettingsPanel">Zaawansowane</button>
-            <button type="button" class="more-nav-button" data-more-target="helpTab">Pomoc</button>
-          </nav>
+          <div class="settings-navigation-row">
+            <nav class="more-navigation" aria-label="Sekcje dodatkowe">
+              <button type="button" class="more-nav-button active" data-more-target="settingsTab">Podstawowe</button>
+              <button type="button" class="more-nav-button" data-more-target="aiSettingsPanel">Analiza tekstu</button>
+              <button type="button" class="more-nav-button" data-more-target="syncSettingsPanel">Synchronizacja</button>
+              <button type="button" class="more-nav-button" data-more-target="advancedSettingsPanel">Zaawansowane</button>
+              <button type="button" class="more-nav-button" data-more-target="helpTab">Pomoc</button>
+            </nav>
+            <button id="saveSettingsBtn" class="btn btn-primary settings-save-button">Zapisz wszystkie ustawienia</button>
+          </div>
 
           <section id="settingsTab" class="more-panel active">
             <section class="card settings-section-card">
@@ -485,9 +493,7 @@
                   </select>
                 </label>
               </div>
-              <div class="action-row">
-                <button id="saveSettingsBtn" class="btn btn-primary">Zapisz ustawienia</button>
-              </div>
+
             </section>
           </section>
 
@@ -519,7 +525,6 @@
                 </label>
               </div>
               <div class="action-row">
-                <button id="saveAiSettingsBtn" class="btn btn-primary">Zapisz ustawienia AI</button>
                 <button id="aiTestBtn" class="btn btn-soft">Test klucza</button>
               </div>
               <div id="aiParserStatus" class="dropbox-status">Parser lokalny — AI wyłączone.</div>
@@ -553,11 +558,15 @@
                 </label>
               </div>
               <div class="action-row">
-                <button id="saveDropboxSettingsBtn" class="btn btn-primary">Zapisz Dropbox</button>
-                <button id="dropboxSyncBtn" class="btn btn-soft">Synchronizuj teraz</button>
-                <button id="dropboxPullBtn" class="btn btn-soft">Pobierz i scal</button>
-                <button id="dropboxPushBtn" class="btn btn-soft">Wyślij lokalne</button>
-                <button id="dropboxTestBtn" class="btn btn-ghost">Test połączenia</button>
+                <button id="dropboxSyncBtn" class="btn btn-primary">Synchronizuj teraz</button>
+                <details class="action-menu compact-action-menu">
+                  <summary class="btn btn-soft">Więcej</summary>
+                  <div class="action-menu-content" role="menu" aria-label="Zaawansowane operacje Dropbox">
+                    <button id="dropboxPullBtn" class="btn btn-soft" role="menuitem">Pobierz i scal</button>
+                    <button id="dropboxPushBtn" class="btn btn-soft" role="menuitem">Wyślij lokalne</button>
+                    <button id="dropboxTestBtn" class="btn btn-ghost" role="menuitem">Test połączenia</button>
+                  </div>
+                </details>
               </div>
               <div id="dropboxStatus" class="dropbox-status">Tryb lokalny — Dropbox wyłączony.</div>
             </section>
@@ -669,12 +678,17 @@
         <p></p>
       </div>
       <div class="saved-actions">
-        <button class="btn btn-primary load">Wczytaj</button>
-        <button class="btn btn-soft txt">TXT</button>
-        <button class="btn btn-soft sms">SMS</button>
-        <button class="btn btn-soft pdf">PDF</button>
-        <button class="btn btn-soft materials">Materiały</button>
-        <button class="btn btn-danger delete">Usuń</button>
+        <button class="btn btn-primary load">Otwórz</button>
+        <details class="action-menu saved-more-menu">
+          <summary class="btn btn-soft">Więcej</summary>
+          <div class="action-menu-content" role="menu" aria-label="Dodatkowe operacje zapisanej wyceny">
+            <button class="btn btn-soft txt" role="menuitem">Pobierz TXT</button>
+            <button class="btn btn-soft sms" role="menuitem">Kopiuj SMS</button>
+            <button class="btn btn-soft pdf" role="menuitem">Oferta PDF</button>
+            <button class="btn btn-soft materials" role="menuitem">Kopiuj materiały</button>
+            <button class="btn btn-danger delete" role="menuitem">Usuń wycenę</button>
+          </div>
+        </details>
       </div>
     </article>
   </template>

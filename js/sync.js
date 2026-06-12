@@ -4,11 +4,6 @@
  * Plik wygenerowany podczas etapu 2 z ostatnich aktywnych definicji funkcji.
  */
 
-function saveDropboxSettingsFromForm() {
-  saveSettings(readSettingsFromForm());
-  renderDropboxStatus();
-  showDropboxStatus('Zapisano ustawienia Dropbox.');
-}
 
 function normalizeDropboxPath(path) {
   const clean = String(path || '/pomocnik_instalatora_data.json').trim() || '/pomocnik_instalatora_data.json';
@@ -74,8 +69,7 @@ function scheduleAutoDropboxSync() {
 }
 
 async function testDropboxConnection() {
-  saveSettings(readSettingsFromForm());
-  const settings = loadSettings();
+  const settings = readSettingsFromForm();
   if (!requireDropboxSettings(settings)) return;
   showDropboxStatus('Sprawdzam połączenie z Dropbox...');
   try {
@@ -88,7 +82,7 @@ async function testDropboxConnection() {
 
 function requireDropboxSettings(settings = loadSettings()) {
   if (settings.storageMode !== 'dropbox') {
-    showDropboxStatus('Najpierw wybierz tryb Dropbox i zapisz ustawienia.', true);
+    showDropboxStatus('Najpierw wybierz tryb Dropbox.', true);
     return false;
   }
   if (!settings.dropboxAccessToken) {
@@ -103,8 +97,7 @@ function requireDropboxSettings(settings = loadSettings()) {
 }
 
 async function syncDropbox(mode = 'merge', silent = false) {
-  saveSettings(readSettingsFromForm());
-  const settings = loadSettings();
+  const settings = silent ? loadSettings() : readSettingsFromForm();
   if (!requireDropboxSettings(settings)) return;
   if (!silent) showDropboxStatus('Synchronizacja Dropbox w toku...');
 
@@ -133,12 +126,11 @@ async function syncDropbox(mode = 'merge', silent = false) {
     }
 
     await uploadDropboxPayload(settings, buildSyncPayload(finalRecords));
-    const updatedSettings = { ...settings, lastDropboxSyncAt: new Date().toISOString() };
-    saveSettings(updatedSettings);
+    const persistedSettings = loadSettings();
+    saveSettings({ ...persistedSettings, lastDropboxSyncAt: new Date().toISOString() });
     renderSavedQuotes();
     renderCatalog();
-    renderDropboxStatus();
-    if (!silent) showDropboxStatus(`Synchronizacja zakończona. Aktywne wyceny: ${loadQuotes().length}. Rekordy z usuniętymi: ${loadQuoteRecords().length}.`);
+    if (!silent) showDropboxStatus(`Synchronizacja zakończona. Aktywne wyceny: ${loadQuotes().length}. Rekordy z usuniętymi: ${loadQuoteRecords().length}. Konfigurację zapisuje przycisk „Zapisz wszystkie ustawienia”.`);
   } catch (error) {
     showDropboxStatus(`Błąd synchronizacji Dropbox: ${error.message}`, true);
   }

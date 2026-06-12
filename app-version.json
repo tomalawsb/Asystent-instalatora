@@ -1,8 +1,8 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "4.0 - 1206260737",
-  "build": "1206260737-etap-4-workflow-interface",
-  "stage": 4,
-  "released_at": "2026-06-12T07:37:00+02:00",
-  "note": "Etap 4: nowa nawigacja i czteroetapowy proces wyceny bez zmian w parserze, obliczeniach i zapisie danych."
+  "version": "4.1 - 1206260759",
+  "build": "1206260759-etap-5-action-consolidation",
+  "stage": 5,
+  "released_at": "2026-06-12T07:59:00+02:00",
+  "note": "Etap 5: konsolidacja przycisków, jeden tryb analizy, jedno menu udostępniania, automatyczne podglądy i jeden zapis ustawień."
 }

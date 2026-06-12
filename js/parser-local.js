@@ -164,7 +164,7 @@ function importVoiceTextFile(event) {
     }
     rejectParserPreview(false);
     updateVoiceSelectionActions();
-    showInfo(`Wczytano plik TXT: ${file.name}. Kliknij „Rozbij tekst”, żeby przygotować wycenę.`);
+    showInfo(`Wczytano plik TXT: ${file.name}. Kliknij „Analizuj wizytę”, żeby przygotować wycenę.`);
   };
   reader.onerror = () => showInfo('Nie udało się wczytać pliku TXT.');
   reader.readAsText(file, 'utf-8');
@@ -922,7 +922,7 @@ function addPendingPreviewItem() {
 
 function acceptParserPreview() {
   if (!pendingParse) {
-    showInfo('Nie ma rozbicia do zatwierdzenia. Najpierw kliknij „Rozbij tekst”.');
+    showInfo('Nie ma rozbicia do zatwierdzenia. Najpierw kliknij „Analizuj wizytę”.');
     return;
   }
   syncFromForm();

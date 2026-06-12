@@ -80,20 +80,15 @@ function initEvents() {
   $('categorySelect').addEventListener('change', updateServiceSelect);
   $('serviceSelect').addEventListener('change', syncSelectedServicePrice);
   $('addServiceBtn').addEventListener('click', addSelectedService);
-  $('suggestBtn').addEventListener('click', suggestFromNotes);
   $('saveQuoteBtn').addEventListener('click', saveCurrentQuote);
+  $('shareSmsBtn').addEventListener('click', () => runShareAction(() => copyTextToClipboard(buildClientSms(state), 'SMS do klienta skopiowany do schowka.')));
+  $('shareDescriptionBtn').addEventListener('click', () => runShareAction(() => copyTextToClipboard(buildClientDescription(state), 'Opis wyceny skopiowany do schowka.')));
+  $('shareTxtBtn').addEventListener('click', () => runShareAction(() => downloadTxt(state)));
+  $('sharePdfBtn').addEventListener('click', () => runShareAction(() => generateOfferPdf(state)));
+  $('sharePrintBtn').addEventListener('click', () => runShareAction(() => window.print()));
+  $('shareMaterialsBtn').addEventListener('click', () => runShareAction(() => copyMaterialsList(state)));
+  $('shareReportBtn').addEventListener('click', () => runShareAction(copyReport));
   $('newQuoteBtn').addEventListener('click', newQuote);
-  $('exportTxtBtn').addEventListener('click', () => downloadTxt(state));
-  $('printBtn').addEventListener('click', () => window.print());
-  $('copyClientSmsBtn').addEventListener('click', () => copyTextToClipboard(buildClientSms(state), 'SMS do klienta skopiowany do schowka.'));
-  $('offerPdfBtn').addEventListener('click', () => generateOfferPdf(state));
-  $('refreshClientMessageBtn').addEventListener('click', renderClientMessagePreview);
-  $('copyClientSmsPreviewBtn').addEventListener('click', () => copyTextToClipboard(buildClientSms(state), 'SMS do klienta skopiowany do schowka.'));
-  $('copyClientDescriptionBtn').addEventListener('click', () => copyTextToClipboard(buildClientDescription(state), 'Opis wyceny skopiowany do schowka.'));
-  $('offerPdfPreviewBtn').addEventListener('click', () => generateOfferPdf(state));
-  $('refreshMaterialsBtn').addEventListener('click', renderMaterialsPreview);
-  $('copyMaterialsBtn').addEventListener('click', () => copyMaterialsList(state));
-  $('copyReportBtn').addEventListener('click', copyReport);
   $('catalogSearch').addEventListener('input', renderCatalog);
   $('saveCatalogItemBtn').addEventListener('click', saveCatalogItemFromForm);
   $('clearCatalogEditorBtn').addEventListener('click', clearCatalogEditor);
@@ -103,11 +98,11 @@ function initEvents() {
   $('resetCatalogBtn').addEventListener('click', resetCatalogToDefault);
   $('saveSettingsBtn').addEventListener('click', saveSettingsFromForm);
   if ($('uiTheme')) $('uiTheme').addEventListener('change', () => {
-    const settings = readSettingsFromForm();
-    saveSettings(settings);
-    applyTheme(settings.uiTheme);
-    showInfo('Zmieniono motyw interfejsu.');
+    applyTheme($('uiTheme').value);
+    showInfo('Podgląd motywu zmieniony. Kliknij „Zapisz wszystkie ustawienia”, aby zachować zmianę.');
   });
+  if ($('aiParserMode')) $('aiParserMode').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
+  if ($('aiModel')) $('aiModel').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
   $('clearDataBtn').addEventListener('click', clearLocalData);
   $('exportBackupBtn').addEventListener('click', exportBackup);
   $('importBackupBtn').addEventListener('click', () => $('importBackupFile').click());
@@ -118,17 +113,14 @@ function initEvents() {
   $('clearLearnedRulesBtn').addEventListener('click', clearLearnedRules);
   $('runParserTestBtn').addEventListener('click', runParserTest);
   $('fillExampleParserTestBtn').addEventListener('click', fillExampleParserTest);
-  $('saveDropboxSettingsBtn').addEventListener('click', saveDropboxSettingsFromForm);
   $('dropboxSyncBtn').addEventListener('click', () => syncDropbox('merge'));
   $('dropboxPullBtn').addEventListener('click', () => syncDropbox('pull'));
   $('dropboxPushBtn').addEventListener('click', () => syncDropbox('push'));
   $('dropboxTestBtn').addEventListener('click', testDropboxConnection);
-  if ($('saveAiSettingsBtn')) $('saveAiSettingsBtn').addEventListener('click', saveAiSettingsFromForm);
   if ($('aiTestBtn')) $('aiTestBtn').addEventListener('click', testOpenAiKeyConnection);
-  if ($('analyzeVoiceAiBtn')) $('analyzeVoiceAiBtn').addEventListener('click', analyzeVoiceCommandWithAiFromField);
   $('installBtn').addEventListener('click', installPwa);
   $('voiceBtn').addEventListener('click', startDictation);
-  $('analyzeVoiceBtn').addEventListener('click', analyzeVoiceCommandFromField);
+  $('analyzeVoiceBtn').addEventListener('click', analyzeVoiceCommandUsingSelectedMode);
   $('loadTextFileBtn').addEventListener('click', () => $('voiceTextFile').click());
   $('voiceTextFile').addEventListener('change', importVoiceTextFile);
   $('selectVoiceBtn').addEventListener('click', selectAllVoiceText);
@@ -140,6 +132,21 @@ function initEvents() {
   $('rejectParserBtn').addEventListener('click', rejectParserPreview);
   $('undoParseBtn').addEventListener('click', undoLastBreakdown);
   $('clearVoiceBtn').addEventListener('click', () => { $('voiceCommand').value = ''; rejectParserPreview(false); updateVoiceSelectionActions(); });
+}
+
+
+function runShareAction(action) {
+  try {
+    const result = action();
+    if (result && typeof result.catch === 'function') {
+      result.catch(error => showInfo(`Nie udało się wykonać operacji: ${error.message}`));
+    }
+  } catch (error) {
+    showInfo(`Nie udało się wykonać operacji: ${error.message}`);
+  } finally {
+    const menu = $('shareMenu');
+    if (menu) menu.open = false;
+  }
 }
 
 function renderAll() {

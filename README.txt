@@ -1,21 +1,18 @@
 Pomocnik Instalatora PWA
-Wersja: 4.0 - 1206260737
+Wersja: 4.1 - 1206260759
 
-ETAP 4 — NOWY INTERFEJS PROCESOWY
+ETAP 5 — KONSOLIDACJA FUNKCJI I PRZYCISKÓW
 
 Najważniejsze zmiany:
-- nowa główna nawigacja: Wycena, Zapisane, Cennik, Więcej,
-- na telefonie główna nawigacja znajduje się na dole ekranu,
-- na komputerze główna nawigacja znajduje się w bocznym panelu,
-- tworzenie wyceny podzielono na cztery etapy:
-  1. Opis wizyty,
-  2. Weryfikacja danych,
-  3. Pozycje i ceny,
-  4. Finalizacja,
-- ustawienia podzielono na: Podstawowe, Analiza tekstu, Synchronizacja, Zaawansowane i Pomoc,
-- cennik oraz zarządzanie bazami otrzymały czytelniejszy układ,
-- zachowano wszystkie funkcje, identyfikatory pól i zgodność z danymi z wersji 3.9,
-- nie zmieniano parsera lokalnego, parsera AI, obliczeń, zapisu wycen ani synchronizacji Dropbox.
+- jeden przycisk „Analizuj wizytę”; program używa trybu lokalnego albo AI wybranego w ustawieniach,
+- jedno menu „Udostępnij” zawierające SMS, opis wyceny, TXT, PDF, drukowanie, materiały i raport analizy,
+- podgląd wiadomości oraz lista materiałów aktualizują się automatycznie — usunięto ręczne przyciski „Odśwież”,
+- zapisane wyceny mają tylko przycisk „Otwórz” i menu „Więcej”,
+- cennik, baza materiałów i Dropbox mają najczęstsze działanie na wierzchu, a operacje dodatkowe w menu „Więcej”,
+- wszystkie ustawienia zapisuje jeden przycisk „Zapisz wszystkie ustawienia”,
+- zmiana motywu daje podgląd, ale zapis następuje dopiero po użyciu wspólnego przycisku,
+- usunięto powielony nagłówek „Więcej opcji”,
+- nie zmieniano parsera lokalnego, reguł AI, obliczeń, formatu danych ani synchronizacji wycen.
 
 Uruchomienie lokalne:
 - aplikację należy otwierać przez serwer HTTP, a nie bezpośrednio jako plik file://,

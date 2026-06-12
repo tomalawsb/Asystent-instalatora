@@ -1,6 +1,6 @@
 /*
  * PLIK GENEROWANY — nie edytowac recznie.
- * Wersja: 4.0 - 1206260737
+ * Wersja: 4.1 - 1206260759
  * Zrodla kodu: katalog js/.
  * Zrodla danych: app-version.json, cennik.json, material-prices.json.
  * Odbudowa: node tools/build-app-bundle.js
@@ -328,12 +328,14 @@ function saveSettingsFromForm() {
   applyTheme(settings.uiTheme);
   renderSummary();
   renderDropboxStatus();
-  showInfo('Ustawienia zapisane.');
+  renderAiParserStatus();
+  renderAnalysisModeHint(settings);
+  showInfo('Zapisano wszystkie ustawienia aplikacji.');
 }
 
 function savePhraseDictionaryFromForm() {
   savePhraseDictionaryText($('phraseDictionary').value);
-  showInfo('Zapisano słownik własnych zwrotów. Nowe zasady będą używane przy kolejnym „Rozbij tekst”.');
+  showInfo('Zapisano słownik własnych zwrotów. Nowe zasady będą używane przy kolejnej analizie wizyty.');
 }
 
 function resetPhraseDictionary() {
@@ -1012,45 +1014,6 @@ function updateLine(id, field, value, learnCorrection = false) {
   if (learnCorrection && String(previous) !== String(row[field])) rememberParserCorrection(row);
 }
 
-function suggestFromNotes() {
-  syncFromForm();
-  const detected = detectTypes(state.notes);
-  const types = detected.length ? detected : [state.jobType];
-
-  if (detected[0]) {
-    state.jobType = detected[0];
-    syncToForm();
-  }
-
-  if (state.services.length > 0) {
-    showInfo(`Wykryto typ: ${types.join(', ')}. Nie dodano typowych pozycji z cennika, bo wycena ma już pozycje z tekstu. Dzięki temu program nie dolicza automatycznie rejestratora, podglądu, okablowania ani dodatkowego montażu kamery.`);
-    renderAll();
-    return;
-  }
-
-  const before = state.services.length;
-  for (const type of types) {
-    for (const serviceName of TYPE_HINTS[type] || []) {
-      const service = findServiceByName(serviceName);
-      if (!service) continue;
-      const exists = state.services.some(row => row.name === service.name);
-      if (!exists) {
-        state.services.push({
-          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-          category: service.category,
-          name: service.name,
-          unit: service.unit,
-          quantity: 1,
-          priceNet: number(service.price_net)
-        });
-      }
-    }
-  }
-
-  const added = state.services.length - before;
-  showInfo(added ? `Dodano ${added} typowe pozycje z cennika. Wykryte typy: ${types.join(', ')}.` : 'Nie dodano nowych pozycji — podobne usługi już są w wycenie.');
-  renderAll();
-}
 
 function calculateTotals(quote = state) {
   const settings = loadSettings();
@@ -1319,7 +1282,7 @@ function importVoiceTextFile(event) {
     }
     rejectParserPreview(false);
     updateVoiceSelectionActions();
-    showInfo(`Wczytano plik TXT: ${file.name}. Kliknij „Rozbij tekst”, żeby przygotować wycenę.`);
+    showInfo(`Wczytano plik TXT: ${file.name}. Kliknij „Analizuj wizytę”, żeby przygotować wycenę.`);
   };
   reader.onerror = () => showInfo('Nie udało się wczytać pliku TXT.');
   reader.readAsText(file, 'utf-8');
@@ -2077,7 +2040,7 @@ function addPendingPreviewItem() {
 
 function acceptParserPreview() {
   if (!pendingParse) {
-    showInfo('Nie ma rozbicia do zatwierdzenia. Najpierw kliknij „Rozbij tekst”.');
+    showInfo('Nie ma rozbicia do zatwierdzenia. Najpierw kliknij „Analizuj wizytę”.');
     return;
   }
   syncFromForm();
@@ -4278,6 +4241,37 @@ function normalizeAiParserMode(value) {
   return String(value || '').toLowerCase() === 'ai' ? 'ai' : 'local';
 }
 
+function renderAnalysisModeHint(settings = readSettingsFromForm()) {
+  const hint = $('analysisModeHint');
+  const button = $('analyzeVoiceBtn');
+  const mode = normalizeAiParserMode(settings.aiParserMode);
+  const isAi = mode === 'ai';
+  if (hint) {
+    hint.textContent = isAi
+      ? `Tryb aktywny: AI OpenAI (${normalizeAiModel(settings.aiModel)}). Wynik zawsze sprawdzisz przed zatwierdzeniem.`
+      : 'Tryb aktywny: parser lokalny — działa bez internetu. Wynik zawsze sprawdzisz przed zatwierdzeniem.';
+  }
+  if (button && !button.disabled) button.textContent = 'Analizuj wizytę';
+}
+
+async function analyzeVoiceCommandUsingSelectedMode() {
+  const voiceField = $('voiceCommand');
+  const notesText = String($('notes')?.value || '').trim();
+  if (!String(voiceField?.value || '').trim() && notesText) {
+    voiceField.value = notesText;
+    updateVoiceSelectionActions();
+    showInfo('Użyto notatek z wizyty jako tekstu do analizy.');
+  }
+
+  const settings = readSettingsFromForm();
+  renderAnalysisModeHint(settings);
+  if (normalizeAiParserMode(settings.aiParserMode) === 'ai') {
+    await analyzeVoiceCommandWithAiFromField();
+    return;
+  }
+  analyzeVoiceCommandFromField();
+}
+
 function normalizeAiModel(value) {
   const model = String(value || '').trim();
   return model || 'gpt-4o-mini';
@@ -4338,12 +4332,6 @@ function renderAiParserStatus(text = '') {
   box.classList.add('ok');
 }
 
-function saveAiSettingsFromForm() {
-  const settings = readSettingsFromForm();
-  saveSettings(settings);
-  renderAiParserStatus('Zapisano ustawienia AI w tej przeglądarce/PWA.');
-  showInfo('Zapisano ustawienia AI. Klucz nie trafia do GitHuba — jest zapisany lokalnie w tej przeglądarce/PWA.');
-}
 
 function aiReadSettingsFromFormPatch(settings) {
   return {
@@ -4385,7 +4373,7 @@ function extractOpenAiOutputText(data) {
 
 async function callOpenAiParser(raw, settings) {
   const key = String(settings.aiOpenAiKey || '').trim();
-  if (!key) throw new Error('Brakuje klucza OpenAI. Wklej go w Ustawieniach AI i kliknij „Zapisz AI”.');
+  if (!key) throw new Error('Brakuje klucza OpenAI. Wklej go w Ustawieniach AI i kliknij „Zapisz wszystkie ustawienia”.');
   if (raw.length > 12000) throw new Error('Tekst jest za długi. Skróć transkrypcję.');
 
   const payload = {
@@ -4448,7 +4436,7 @@ async function testOpenAiKeyConnection() {
   const settings = readSettingsFromForm();
   const key = String(settings.aiOpenAiKey || '').trim();
   if (!key) {
-    renderAiParserStatus('Wklej klucz OpenAI i kliknij „Zapisz AI”.');
+    renderAiParserStatus('Wklej klucz OpenAI i kliknij „Zapisz wszystkie ustawienia”.');
     $('aiParserStatus')?.classList.add('error');
     showInfo('Wklej klucz OpenAI w ustawieniach AI.');
     return;
@@ -4456,11 +4444,11 @@ async function testOpenAiKeyConnection() {
   renderAiParserStatus('Testuję OpenAI...');
   try {
     const testData = await callOpenAiParser('Test: Jan Kowalski, Warszawa, montaż jednej kamery IP.', settings);
-    const updated = { ...settings, aiParserMode: 'ai', aiLastTestAt: new Date().toISOString() };
-    saveSettings(updated);
-    if ($('aiParserMode')) $('aiParserMode').value = updated.aiParserMode;
-    renderAiParserStatus(`Połączenie z OpenAI działa. Model: ${testData.model || normalizeAiModel(updated.aiModel)}.`);
-    showInfo('Połączenie z OpenAI działa.');
+    const testedSettings = { ...settings, aiParserMode: 'ai', aiLastTestAt: new Date().toISOString() };
+    if ($('aiParserMode')) $('aiParserMode').value = testedSettings.aiParserMode;
+    renderAnalysisModeHint(testedSettings);
+    renderAiParserStatus(`Połączenie z OpenAI działa. Model: ${testData.model || normalizeAiModel(testedSettings.aiModel)}. Kliknij „Zapisz wszystkie ustawienia”, aby zachować konfigurację.`);
+    showInfo('Połączenie z OpenAI działa. Konfiguracja nie została jeszcze zapisana.');
   } catch (error) {
     renderAiParserStatus(`Błąd OpenAI: ${error.message}`);
     $('aiParserStatus')?.classList.add('error');
@@ -4471,24 +4459,22 @@ async function testOpenAiKeyConnection() {
 async function analyzeVoiceCommandWithAiFromField() {
   const raw = $('voiceCommand').value.trim();
   if (!raw) {
-    showInfo('Wpisz albo podyktuj treść wizyty, potem kliknij „Rozbij AI”.');
+    showInfo('Wpisz albo podyktuj treść wizyty, potem kliknij „Analizuj wizytę”.');
     return;
   }
   syncFromForm();
   const settings = readSettingsFromForm();
   if (!String(settings.aiOpenAiKey || '').trim()) {
-    showInfo('Brakuje klucza OpenAI. Wklej go w Ustawieniach AI i kliknij „Zapisz AI”.');
+    showInfo('Brakuje klucza OpenAI. Wklej go w Ustawieniach AI i kliknij „Zapisz wszystkie ustawienia”.');
     renderAiParserStatus('Brakuje klucza OpenAI.');
     $('aiParserStatus')?.classList.add('error');
     return;
   }
 
-  const aiBtn = $('analyzeVoiceAiBtn');
-  const localBtn = $('analyzeVoiceBtn');
-  const oldAiText = aiBtn?.textContent;
+  const analyzeBtn = $('analyzeVoiceBtn');
+  const oldAnalyzeText = analyzeBtn?.textContent;
   try {
-    if (aiBtn) { aiBtn.disabled = true; aiBtn.textContent = 'AI analizuje...'; }
-    if (localBtn) localBtn.disabled = true;
+    if (analyzeBtn) { analyzeBtn.disabled = true; analyzeBtn.textContent = 'AI analizuje...'; }
     showInfo('AI analizuje opis wizyty. Po chwili pokaże podgląd do zatwierdzenia.');
 
     const data = await callOpenAiParser(raw, settings);
@@ -4504,12 +4490,12 @@ async function analyzeVoiceCommandWithAiFromField() {
         : 'AI nie znalazło pewnych pozycji do wyceny. Sprawdź fragmenty niepewne albo rozbij tekst ręcznie.'
     );
   } catch (error) {
-    showInfo(`Nie udało się użyć AI: ${error.message}. Możesz użyć zwykłego „Rozbij tekst”.`);
+    showInfo(`Nie udało się użyć AI: ${error.message}. Możesz przełączyć tryb na parser lokalny w ustawieniach.`);
     renderAiParserStatus(`Błąd AI: ${error.message}`);
     $('aiParserStatus')?.classList.add('error');
   } finally {
-    if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = oldAiText || 'Rozbij AI'; }
-    if (localBtn) localBtn.disabled = false;
+    if (analyzeBtn) { analyzeBtn.disabled = false; analyzeBtn.textContent = oldAnalyzeText || 'Analizuj wizytę'; }
+    renderAnalysisModeHint(settings);
   }
 }
 
@@ -4757,11 +4743,6 @@ function convertAiParseToAppResult(raw, ai, envelope = {}) {
  * Plik wygenerowany podczas etapu 2 z ostatnich aktywnych definicji funkcji.
  */
 
-function saveDropboxSettingsFromForm() {
-  saveSettings(readSettingsFromForm());
-  renderDropboxStatus();
-  showDropboxStatus('Zapisano ustawienia Dropbox.');
-}
 
 function normalizeDropboxPath(path) {
   const clean = String(path || '/pomocnik_instalatora_data.json').trim() || '/pomocnik_instalatora_data.json';
@@ -4827,8 +4808,7 @@ function scheduleAutoDropboxSync() {
 }
 
 async function testDropboxConnection() {
-  saveSettings(readSettingsFromForm());
-  const settings = loadSettings();
+  const settings = readSettingsFromForm();
   if (!requireDropboxSettings(settings)) return;
   showDropboxStatus('Sprawdzam połączenie z Dropbox...');
   try {
@@ -4841,7 +4821,7 @@ async function testDropboxConnection() {
 
 function requireDropboxSettings(settings = loadSettings()) {
   if (settings.storageMode !== 'dropbox') {
-    showDropboxStatus('Najpierw wybierz tryb Dropbox i zapisz ustawienia.', true);
+    showDropboxStatus('Najpierw wybierz tryb Dropbox.', true);
     return false;
   }
   if (!settings.dropboxAccessToken) {
@@ -4856,8 +4836,7 @@ function requireDropboxSettings(settings = loadSettings()) {
 }
 
 async function syncDropbox(mode = 'merge', silent = false) {
-  saveSettings(readSettingsFromForm());
-  const settings = loadSettings();
+  const settings = silent ? loadSettings() : readSettingsFromForm();
   if (!requireDropboxSettings(settings)) return;
   if (!silent) showDropboxStatus('Synchronizacja Dropbox w toku...');
 
@@ -4886,12 +4865,11 @@ async function syncDropbox(mode = 'merge', silent = false) {
     }
 
     await uploadDropboxPayload(settings, buildSyncPayload(finalRecords));
-    const updatedSettings = { ...settings, lastDropboxSyncAt: new Date().toISOString() };
-    saveSettings(updatedSettings);
+    const persistedSettings = loadSettings();
+    saveSettings({ ...persistedSettings, lastDropboxSyncAt: new Date().toISOString() });
     renderSavedQuotes();
     renderCatalog();
-    renderDropboxStatus();
-    if (!silent) showDropboxStatus(`Synchronizacja zakończona. Aktywne wyceny: ${loadQuotes().length}. Rekordy z usuniętymi: ${loadQuoteRecords().length}.`);
+    if (!silent) showDropboxStatus(`Synchronizacja zakończona. Aktywne wyceny: ${loadQuotes().length}. Rekordy z usuniętymi: ${loadQuoteRecords().length}. Konfigurację zapisuje przycisk „Zapisz wszystkie ustawienia”.`);
   } catch (error) {
     showDropboxStatus(`Błąd synchronizacji Dropbox: ${error.message}`, true);
   }
@@ -5407,20 +5385,15 @@ function initEvents() {
   $('categorySelect').addEventListener('change', updateServiceSelect);
   $('serviceSelect').addEventListener('change', syncSelectedServicePrice);
   $('addServiceBtn').addEventListener('click', addSelectedService);
-  $('suggestBtn').addEventListener('click', suggestFromNotes);
   $('saveQuoteBtn').addEventListener('click', saveCurrentQuote);
+  $('shareSmsBtn').addEventListener('click', () => runShareAction(() => copyTextToClipboard(buildClientSms(state), 'SMS do klienta skopiowany do schowka.')));
+  $('shareDescriptionBtn').addEventListener('click', () => runShareAction(() => copyTextToClipboard(buildClientDescription(state), 'Opis wyceny skopiowany do schowka.')));
+  $('shareTxtBtn').addEventListener('click', () => runShareAction(() => downloadTxt(state)));
+  $('sharePdfBtn').addEventListener('click', () => runShareAction(() => generateOfferPdf(state)));
+  $('sharePrintBtn').addEventListener('click', () => runShareAction(() => window.print()));
+  $('shareMaterialsBtn').addEventListener('click', () => runShareAction(() => copyMaterialsList(state)));
+  $('shareReportBtn').addEventListener('click', () => runShareAction(copyReport));
   $('newQuoteBtn').addEventListener('click', newQuote);
-  $('exportTxtBtn').addEventListener('click', () => downloadTxt(state));
-  $('printBtn').addEventListener('click', () => window.print());
-  $('copyClientSmsBtn').addEventListener('click', () => copyTextToClipboard(buildClientSms(state), 'SMS do klienta skopiowany do schowka.'));
-  $('offerPdfBtn').addEventListener('click', () => generateOfferPdf(state));
-  $('refreshClientMessageBtn').addEventListener('click', renderClientMessagePreview);
-  $('copyClientSmsPreviewBtn').addEventListener('click', () => copyTextToClipboard(buildClientSms(state), 'SMS do klienta skopiowany do schowka.'));
-  $('copyClientDescriptionBtn').addEventListener('click', () => copyTextToClipboard(buildClientDescription(state), 'Opis wyceny skopiowany do schowka.'));
-  $('offerPdfPreviewBtn').addEventListener('click', () => generateOfferPdf(state));
-  $('refreshMaterialsBtn').addEventListener('click', renderMaterialsPreview);
-  $('copyMaterialsBtn').addEventListener('click', () => copyMaterialsList(state));
-  $('copyReportBtn').addEventListener('click', copyReport);
   $('catalogSearch').addEventListener('input', renderCatalog);
   $('saveCatalogItemBtn').addEventListener('click', saveCatalogItemFromForm);
   $('clearCatalogEditorBtn').addEventListener('click', clearCatalogEditor);
@@ -5430,11 +5403,11 @@ function initEvents() {
   $('resetCatalogBtn').addEventListener('click', resetCatalogToDefault);
   $('saveSettingsBtn').addEventListener('click', saveSettingsFromForm);
   if ($('uiTheme')) $('uiTheme').addEventListener('change', () => {
-    const settings = readSettingsFromForm();
-    saveSettings(settings);
-    applyTheme(settings.uiTheme);
-    showInfo('Zmieniono motyw interfejsu.');
+    applyTheme($('uiTheme').value);
+    showInfo('Podgląd motywu zmieniony. Kliknij „Zapisz wszystkie ustawienia”, aby zachować zmianę.');
   });
+  if ($('aiParserMode')) $('aiParserMode').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
+  if ($('aiModel')) $('aiModel').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
   $('clearDataBtn').addEventListener('click', clearLocalData);
   $('exportBackupBtn').addEventListener('click', exportBackup);
   $('importBackupBtn').addEventListener('click', () => $('importBackupFile').click());
@@ -5445,17 +5418,14 @@ function initEvents() {
   $('clearLearnedRulesBtn').addEventListener('click', clearLearnedRules);
   $('runParserTestBtn').addEventListener('click', runParserTest);
   $('fillExampleParserTestBtn').addEventListener('click', fillExampleParserTest);
-  $('saveDropboxSettingsBtn').addEventListener('click', saveDropboxSettingsFromForm);
   $('dropboxSyncBtn').addEventListener('click', () => syncDropbox('merge'));
   $('dropboxPullBtn').addEventListener('click', () => syncDropbox('pull'));
   $('dropboxPushBtn').addEventListener('click', () => syncDropbox('push'));
   $('dropboxTestBtn').addEventListener('click', testDropboxConnection);
-  if ($('saveAiSettingsBtn')) $('saveAiSettingsBtn').addEventListener('click', saveAiSettingsFromForm);
   if ($('aiTestBtn')) $('aiTestBtn').addEventListener('click', testOpenAiKeyConnection);
-  if ($('analyzeVoiceAiBtn')) $('analyzeVoiceAiBtn').addEventListener('click', analyzeVoiceCommandWithAiFromField);
   $('installBtn').addEventListener('click', installPwa);
   $('voiceBtn').addEventListener('click', startDictation);
-  $('analyzeVoiceBtn').addEventListener('click', analyzeVoiceCommandFromField);
+  $('analyzeVoiceBtn').addEventListener('click', analyzeVoiceCommandUsingSelectedMode);
   $('loadTextFileBtn').addEventListener('click', () => $('voiceTextFile').click());
   $('voiceTextFile').addEventListener('change', importVoiceTextFile);
   $('selectVoiceBtn').addEventListener('click', selectAllVoiceText);
@@ -5467,6 +5437,21 @@ function initEvents() {
   $('rejectParserBtn').addEventListener('click', rejectParserPreview);
   $('undoParseBtn').addEventListener('click', undoLastBreakdown);
   $('clearVoiceBtn').addEventListener('click', () => { $('voiceCommand').value = ''; rejectParserPreview(false); updateVoiceSelectionActions(); });
+}
+
+
+function runShareAction(action) {
+  try {
+    const result = action();
+    if (result && typeof result.catch === 'function') {
+      result.catch(error => showInfo(`Nie udało się wykonać operacji: ${error.message}`));
+    }
+  } catch (error) {
+    showInfo(`Nie udało się wykonać operacji: ${error.message}`);
+  } finally {
+    const menu = $('shareMenu');
+    if (menu) menu.open = false;
+  }
 }
 
 function renderAll() {
@@ -7789,7 +7774,7 @@ analyzeVoiceCommandFromField = function() {
 
 
 /*
- * Pomocnik Instalatora PWA — etap 4: sterowanie interfejsem procesowym.
+ * Pomocnik Instalatora PWA — etap 5: proces wyceny i skonsolidowane menu działań.
  * Ten modul nie zmienia parsera, obliczen ani zapisu danych.
  */
 
@@ -8020,6 +8005,29 @@ analyzeVoiceCommandFromField = function() {
     activateMorePanel('settingsTab');
   }
 
+  function closeOtherActionMenus(activeMenu = null) {
+    document.querySelectorAll('details.action-menu[open]').forEach(menu => {
+      if (menu !== activeMenu) menu.open = false;
+    });
+  }
+
+  function initActionMenus() {
+    document.addEventListener('toggle', event => {
+      const menu = event.target.closest?.('details.action-menu');
+      if (menu?.open) closeOtherActionMenus(menu);
+    }, true);
+
+    document.addEventListener('click', event => {
+      const menuButton = event.target.closest('details.action-menu button');
+      if (menuButton) {
+        const menu = menuButton.closest('details.action-menu');
+        window.setTimeout(() => { if (menu) menu.open = false; }, 0);
+        return;
+      }
+      if (!event.target.closest('details.action-menu')) closeOtherActionMenus();
+    });
+  }
+
   function improveMainNavigationAccessibility() {
     document.querySelectorAll('.main-navigation .tab').forEach(button => {
       button.setAttribute('aria-selected', String(button.classList.contains('active')));
@@ -8036,7 +8044,9 @@ analyzeVoiceCommandFromField = function() {
     initParserObserver();
     initValueObservers();
     initMoreNavigation();
+    initActionMenus();
     improveMainNavigationAccessibility();
+    renderAnalysisModeHint(loadSettings());
     setWorkflowStep(1, { scroll: false });
     updateWorkflowMirrors();
   }

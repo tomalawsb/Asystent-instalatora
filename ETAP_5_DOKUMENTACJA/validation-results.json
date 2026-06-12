@@ -1,0 +1,352 @@
+{
+  "version": "4.1 - 1206260759",
+  "pass": 69,
+  "fail": 0,
+  "results": [
+    {
+      "name": "Istnieje index.html",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Istnieje style.css",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Istnieje manifest.json",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Istnieje service-worker.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Istnieje app-version.json",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Istnieje cennik.json",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Istnieje material-prices.json",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Istnieje app.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Istnieje js/bootstrap.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Istnieje js/workflow.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Istnieje upload_to_github.ps1",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Etap wersji równy 5",
+      "status": "PASS",
+      "details": "5"
+    },
+    {
+      "name": "Wersja ma format 4.1 - DDMMRRHHMM",
+      "status": "PASS",
+      "details": "4.1 - 1206260759"
+    },
+    {
+      "name": "Build etapu 5",
+      "status": "PASS",
+      "details": "1206260759-etap-5-action-consolidation"
+    },
+    {
+      "name": "Brak zduplikowanych identyfikatorów HTML",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Cztery pozycje głównej nawigacji",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Cztery etapy wyceny",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Jeden przycisk analizy wizyty",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Jedno menu udostępniania",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Akcja udostępniania shareSmsBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Akcja udostępniania shareDescriptionBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Akcja udostępniania shareTxtBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Akcja udostępniania sharePdfBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Akcja udostępniania sharePrintBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Akcja udostępniania shareMaterialsBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Akcja udostępniania shareReportBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element refreshClientMessageBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element refreshMaterialsBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element copyClientSmsPreviewBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element copyClientSmsBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element offerPdfPreviewBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element offerPdfBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element exportTxtBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element printBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element copyClientDescriptionBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element copyMaterialsBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element copyReportBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element saveAiSettingsBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element saveDropboxSettingsBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto powielony element suggestBtn",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Jeden przycisk zapisu ustawień",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Zapisane wyceny mają Otwórz i Więcej",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Brak podwójnego nagłówka Więcej opcji",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Podglądy oznaczone jako automatyczne",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Bootstrap ładuje workflow.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Service worker cacheuje workflow.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Generator pakietu uwzględnia workflow.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Pakiet zgodności ma aktualną wersję",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Jeden handler analizuje według ustawień",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Tryb analizy wybiera lokalny lub AI",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Notatki mogą być użyte przez wspólną analizę",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Wspólny zapis odświeża AI i Dropbox",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Podglądy są aktualizowane w renderSummary",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Menu działa również dla dynamicznych wycen",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "CSS ma skonsolidowane menu działań",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Mobilne menu działań jest stałe",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Reguła hidden pozostaje ostatnia",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Repozytorium GitHub w PS1 jest prawidłowe",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "PS1 używa automatycznego opisu commita",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "PS1 wymaga workflow.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Brak pricing-data.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Brak material-prices.js",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Jedynym źródłem cennika jest cennik.json",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Jedynym źródłem cen materiałów jest material-prices.json",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Składnia wszystkich plików JavaScript",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Statyczne odwołania JS mają elementy HTML",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto nieużywaną funkcję saveAiSettingsFromForm",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto nieużywaną funkcję saveDropboxSettingsFromForm",
+      "status": "PASS",
+      "details": ""
+    },
+    {
+      "name": "Usunięto nieużywaną funkcję suggestFromNotes",
+      "status": "PASS",
+      "details": ""
+    }
+  ]
+}

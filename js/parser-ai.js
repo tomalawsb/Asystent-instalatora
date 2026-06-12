@@ -8,6 +8,37 @@ function normalizeAiParserMode(value) {
   return String(value || '').toLowerCase() === 'ai' ? 'ai' : 'local';
 }
 
+function renderAnalysisModeHint(settings = readSettingsFromForm()) {
+  const hint = $('analysisModeHint');
+  const button = $('analyzeVoiceBtn');
+  const mode = normalizeAiParserMode(settings.aiParserMode);
+  const isAi = mode === 'ai';
+  if (hint) {
+    hint.textContent = isAi
+      ? `Tryb aktywny: AI OpenAI (${normalizeAiModel(settings.aiModel)}). Wynik zawsze sprawdzisz przed zatwierdzeniem.`
+      : 'Tryb aktywny: parser lokalny — działa bez internetu. Wynik zawsze sprawdzisz przed zatwierdzeniem.';
+  }
+  if (button && !button.disabled) button.textContent = 'Analizuj wizytę';
+}
+
+async function analyzeVoiceCommandUsingSelectedMode() {
+  const voiceField = $('voiceCommand');
+  const notesText = String($('notes')?.value || '').trim();
+  if (!String(voiceField?.value || '').trim() && notesText) {
+    voiceField.value = notesText;
+    updateVoiceSelectionActions();
+    showInfo('Użyto notatek z wizyty jako tekstu do analizy.');
+  }
+
+  const settings = readSettingsFromForm();
+  renderAnalysisModeHint(settings);
+  if (normalizeAiParserMode(settings.aiParserMode) === 'ai') {
+    await analyzeVoiceCommandWithAiFromField();
+    return;
+  }
+  analyzeVoiceCommandFromField();
+}
+
 function normalizeAiModel(value) {
   const model = String(value || '').trim();
   return model || 'gpt-4o-mini';
@@ -68,12 +99,6 @@ function renderAiParserStatus(text = '') {
   box.classList.add('ok');
 }
 
-function saveAiSettingsFromForm() {
-  const settings = readSettingsFromForm();
-  saveSettings(settings);
-  renderAiParserStatus('Zapisano ustawienia AI w tej przeglądarce/PWA.');
-  showInfo('Zapisano ustawienia AI. Klucz nie trafia do GitHuba — jest zapisany lokalnie w tej przeglądarce/PWA.');
-}
 
 function aiReadSettingsFromFormPatch(settings) {
   return {
@@ -115,7 +140,7 @@ function extractOpenAiOutputText(data) {
 
 async function callOpenAiParser(raw, settings) {
   const key = String(settings.aiOpenAiKey || '').trim();
-  if (!key) throw new Error('Brakuje klucza OpenAI. Wklej go w Ustawieniach AI i kliknij „Zapisz AI”.');
+  if (!key) throw new Error('Brakuje klucza OpenAI. Wklej go w Ustawieniach AI i kliknij „Zapisz wszystkie ustawienia”.');
   if (raw.length > 12000) throw new Error('Tekst jest za długi. Skróć transkrypcję.');
 
   const payload = {
@@ -178,7 +203,7 @@ async function testOpenAiKeyConnection() {
   const settings = readSettingsFromForm();
   const key = String(settings.aiOpenAiKey || '').trim();
   if (!key) {
-    renderAiParserStatus('Wklej klucz OpenAI i kliknij „Zapisz AI”.');
+    renderAiParserStatus('Wklej klucz OpenAI i kliknij „Zapisz wszystkie ustawienia”.');
     $('aiParserStatus')?.classList.add('error');
     showInfo('Wklej klucz OpenAI w ustawieniach AI.');
     return;
@@ -186,11 +211,11 @@ async function testOpenAiKeyConnection() {
   renderAiParserStatus('Testuję OpenAI...');
   try {
     const testData = await callOpenAiParser('Test: Jan Kowalski, Warszawa, montaż jednej kamery IP.', settings);
-    const updated = { ...settings, aiParserMode: 'ai', aiLastTestAt: new Date().toISOString() };
-    saveSettings(updated);
-    if ($('aiParserMode')) $('aiParserMode').value = updated.aiParserMode;
-    renderAiParserStatus(`Połączenie z OpenAI działa. Model: ${testData.model || normalizeAiModel(updated.aiModel)}.`);
-    showInfo('Połączenie z OpenAI działa.');
+    const testedSettings = { ...settings, aiParserMode: 'ai', aiLastTestAt: new Date().toISOString() };
+    if ($('aiParserMode')) $('aiParserMode').value = testedSettings.aiParserMode;
+    renderAnalysisModeHint(testedSettings);
+    renderAiParserStatus(`Połączenie z OpenAI działa. Model: ${testData.model || normalizeAiModel(testedSettings.aiModel)}. Kliknij „Zapisz wszystkie ustawienia”, aby zachować konfigurację.`);
+    showInfo('Połączenie z OpenAI działa. Konfiguracja nie została jeszcze zapisana.');
   } catch (error) {
     renderAiParserStatus(`Błąd OpenAI: ${error.message}`);
     $('aiParserStatus')?.classList.add('error');
@@ -201,24 +226,22 @@ async function testOpenAiKeyConnection() {
 async function analyzeVoiceCommandWithAiFromField() {
   const raw = $('voiceCommand').value.trim();
   if (!raw) {
-    showInfo('Wpisz albo podyktuj treść wizyty, potem kliknij „Rozbij AI”.');
+    showInfo('Wpisz albo podyktuj treść wizyty, potem kliknij „Analizuj wizytę”.');
     return;
   }
   syncFromForm();
   const settings = readSettingsFromForm();
   if (!String(settings.aiOpenAiKey || '').trim()) {
-    showInfo('Brakuje klucza OpenAI. Wklej go w Ustawieniach AI i kliknij „Zapisz AI”.');
+    showInfo('Brakuje klucza OpenAI. Wklej go w Ustawieniach AI i kliknij „Zapisz wszystkie ustawienia”.');
     renderAiParserStatus('Brakuje klucza OpenAI.');
     $('aiParserStatus')?.classList.add('error');
     return;
   }
 
-  const aiBtn = $('analyzeVoiceAiBtn');
-  const localBtn = $('analyzeVoiceBtn');
-  const oldAiText = aiBtn?.textContent;
+  const analyzeBtn = $('analyzeVoiceBtn');
+  const oldAnalyzeText = analyzeBtn?.textContent;
   try {
-    if (aiBtn) { aiBtn.disabled = true; aiBtn.textContent = 'AI analizuje...'; }
-    if (localBtn) localBtn.disabled = true;
+    if (analyzeBtn) { analyzeBtn.disabled = true; analyzeBtn.textContent = 'AI analizuje...'; }
     showInfo('AI analizuje opis wizyty. Po chwili pokaże podgląd do zatwierdzenia.');
 
     const data = await callOpenAiParser(raw, settings);
@@ -234,12 +257,12 @@ async function analyzeVoiceCommandWithAiFromField() {
         : 'AI nie znalazło pewnych pozycji do wyceny. Sprawdź fragmenty niepewne albo rozbij tekst ręcznie.'
     );
   } catch (error) {
-    showInfo(`Nie udało się użyć AI: ${error.message}. Możesz użyć zwykłego „Rozbij tekst”.`);
+    showInfo(`Nie udało się użyć AI: ${error.message}. Możesz przełączyć tryb na parser lokalny w ustawieniach.`);
     renderAiParserStatus(`Błąd AI: ${error.message}`);
     $('aiParserStatus')?.classList.add('error');
   } finally {
-    if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = oldAiText || 'Rozbij AI'; }
-    if (localBtn) localBtn.disabled = false;
+    if (analyzeBtn) { analyzeBtn.disabled = false; analyzeBtn.textContent = oldAnalyzeText || 'Analizuj wizytę'; }
+    renderAnalysisModeHint(settings);
   }
 }
 

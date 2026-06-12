@@ -1,5 +1,5 @@
 /*
- * Pomocnik Instalatora PWA — etap 4: sterowanie interfejsem procesowym.
+ * Pomocnik Instalatora PWA — etap 5: proces wyceny i skonsolidowane menu działań.
  * Ten modul nie zmienia parsera, obliczen ani zapisu danych.
  */
 
@@ -230,6 +230,29 @@
     activateMorePanel('settingsTab');
   }
 
+  function closeOtherActionMenus(activeMenu = null) {
+    document.querySelectorAll('details.action-menu[open]').forEach(menu => {
+      if (menu !== activeMenu) menu.open = false;
+    });
+  }
+
+  function initActionMenus() {
+    document.addEventListener('toggle', event => {
+      const menu = event.target.closest?.('details.action-menu');
+      if (menu?.open) closeOtherActionMenus(menu);
+    }, true);
+
+    document.addEventListener('click', event => {
+      const menuButton = event.target.closest('details.action-menu button');
+      if (menuButton) {
+        const menu = menuButton.closest('details.action-menu');
+        window.setTimeout(() => { if (menu) menu.open = false; }, 0);
+        return;
+      }
+      if (!event.target.closest('details.action-menu')) closeOtherActionMenus();
+    });
+  }
+
   function improveMainNavigationAccessibility() {
     document.querySelectorAll('.main-navigation .tab').forEach(button => {
       button.setAttribute('aria-selected', String(button.classList.contains('active')));
@@ -246,7 +269,9 @@
     initParserObserver();
     initValueObservers();
     initMoreNavigation();
+    initActionMenus();
     improveMainNavigationAccessibility();
+    renderAnalysisModeHint(loadSettings());
     setWorkflowStep(1, { scroll: false });
     updateWorkflowMirrors();
   }

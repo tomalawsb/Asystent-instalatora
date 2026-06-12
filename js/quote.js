@@ -99,45 +99,6 @@ function updateLine(id, field, value, learnCorrection = false) {
   if (learnCorrection && String(previous) !== String(row[field])) rememberParserCorrection(row);
 }
 
-function suggestFromNotes() {
-  syncFromForm();
-  const detected = detectTypes(state.notes);
-  const types = detected.length ? detected : [state.jobType];
-
-  if (detected[0]) {
-    state.jobType = detected[0];
-    syncToForm();
-  }
-
-  if (state.services.length > 0) {
-    showInfo(`Wykryto typ: ${types.join(', ')}. Nie dodano typowych pozycji z cennika, bo wycena ma już pozycje z tekstu. Dzięki temu program nie dolicza automatycznie rejestratora, podglądu, okablowania ani dodatkowego montażu kamery.`);
-    renderAll();
-    return;
-  }
-
-  const before = state.services.length;
-  for (const type of types) {
-    for (const serviceName of TYPE_HINTS[type] || []) {
-      const service = findServiceByName(serviceName);
-      if (!service) continue;
-      const exists = state.services.some(row => row.name === service.name);
-      if (!exists) {
-        state.services.push({
-          id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
-          category: service.category,
-          name: service.name,
-          unit: service.unit,
-          quantity: 1,
-          priceNet: number(service.price_net)
-        });
-      }
-    }
-  }
-
-  const added = state.services.length - before;
-  showInfo(added ? `Dodano ${added} typowe pozycje z cennika. Wykryte typy: ${types.join(', ')}.` : 'Nie dodano nowych pozycji — podobne usługi już są w wycenie.');
-  renderAll();
-}
 
 function calculateTotals(quote = state) {
   const settings = loadSettings();
