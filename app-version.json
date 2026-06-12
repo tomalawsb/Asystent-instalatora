@@ -1,8 +1,8 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "4.6 - 1206260917",
-  "build": "1206260917-skins-layouts",
+  "version": "4.7 - 1206261049",
+  "build": "1206261049-ai-first-web-prices",
   "stage": "7-hotfix",
   "released_at": "2026-06-12T08:36:00+02:00",
-  "note": "Dodano sześć skórek interfejsu, niezależną kolorystykę i alternatywne układy aplikacji."
+  "note": "AI jako główny silnik analizy, parser lokalny tylko awaryjnie, web_search cen i opcjonalny zapis cen AI do cennika."
 }

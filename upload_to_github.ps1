@@ -53,6 +53,8 @@ $RequiredFiles = @(
     "material-prices.json",
     "runtime-data.js",
     "js\state.js",
+    "js\parser-ai.js",
+    "js\ai-runtime.js",
     "js\workflow.js",
     "js\final-qa.js",
     "icon-192.png",

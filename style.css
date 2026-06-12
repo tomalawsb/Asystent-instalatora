@@ -3577,3 +3577,71 @@ body[data-skin="minimal"] .section-kicker { letter-spacing: .04em; }
   body[data-skin="compact"] .topbar h1 { font-size: 17px; }
   body[data-skin="compact"] .eyebrow { font-size: 8px; }
 }
+
+/* =========================================================
+   v4.7 — AI-first, źródła cen i warianty oferty
+   ========================================================= */
+.ai-variant-selector {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #b8d7ff;
+  border-radius: 14px;
+  background: #f5f9ff;
+}
+.ai-variant-selector small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+}
+.ai-variant-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.item-badge.ai-price-source.web {
+  border-color: #9bd0ba;
+  background: #ecfdf3;
+  color: #067647;
+}
+.item-badge.ai-price-source.input_text {
+  border-color: #b8d7ff;
+  background: #edf5ff;
+  color: #174a82;
+}
+.item-badge.ai-price-source.estimate,
+.item-badge.ai-price-source.none {
+  border-color: #f4d27b;
+  background: #fff8e5;
+  color: #664400;
+}
+.item-badge.ai-price-link {
+  border-color: #cfd9e8;
+  background: #fff;
+  color: var(--accent);
+  text-decoration: none;
+}
+.ai-parser-panel small {
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1.35;
+}
+@media (max-width: 620px) {
+  .ai-variant-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .ai-variant-buttons .btn {
+    width: 100%;
+  }
+}
+body[data-theme="dark"] .ai-variant-selector {
+  border-color: #3d6790;
+  background: #152b45;
+}
+body[data-theme="dark"] .item-badge.ai-price-link {
+  background: #172033;
+  border-color: #496884;
+  color: #b9dcff;
+}

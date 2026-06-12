@@ -1,6 +1,6 @@
 /*
  * PLIK GENEROWANY — nie edytowac recznie.
- * Wersja: 4.6 - 1206260917
+ * Wersja: 4.7 - 1206261049
  * Zrodla kodu: katalog js/.
  * Zrodla danych: app-version.json, cennik.json, material-prices.json.
  * Odbudowa: node tools/build-app-bundle.js
@@ -23,9 +23,11 @@ function defaultSettings() {
     lastDropboxSyncAt: '',
     uiTheme: 'light',
     uiSkin: 'standard',
-    aiParserMode: 'local',
+    aiParserMode: 'ai',
     aiOpenAiKey: '',
-    aiModel: 'gpt-4o-mini',
+    aiModel: 'gpt-4.1-mini',
+    aiUseWebSearch: true,
+    aiCatalogPriceImport: 'after_accept',
     aiLastTestAt: ''
   };
 }
@@ -249,10 +251,12 @@ function refreshFormAfterBackupImport() {
   if ($('dropboxAutoSync')) $('dropboxAutoSync').checked = !!settings.dropboxAutoSync;
   if ($('uiTheme')) $('uiTheme').value = normalizeTheme(settings.uiTheme || 'light');
   if ($('uiSkin')) $('uiSkin').value = normalizeSkin(settings.uiSkin || 'standard');
-  if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
+  if ($('aiParserMode')) $('aiParserMode').value = 'ai';
   if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
   fillAiModelSelect();
-  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4o-mini');
+  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4.1-mini');
+  if ($('aiUseWebSearch')) $('aiUseWebSearch').checked = settings.aiUseWebSearch !== false;
+  if ($('aiCatalogPriceImport')) $('aiCatalogPriceImport').value = normalizeAiCatalogPriceImport(settings.aiCatalogPriceImport);
   renderAiParserStatus();
   if ($('phraseDictionary')) $('phraseDictionary').value = loadPhraseDictionaryText();
   fillSelect($('jobType'), CATEGORIES);
@@ -331,9 +335,11 @@ function readSettingsFromForm() {
     dropboxAutoSync: !!$('dropboxAutoSync')?.checked,
     uiTheme: normalizeTheme($('uiTheme')?.value || current.uiTheme || 'light'),
     uiSkin: normalizeSkin($('uiSkin')?.value || current.uiSkin || 'standard'),
-    aiParserMode: normalizeAiParserMode($('aiParserMode')?.value || current.aiParserMode || 'local'),
+    aiParserMode: 'ai',
     aiOpenAiKey: $('aiOpenAiKey')?.value.trim() || current.aiOpenAiKey || '',
-    aiModel: getSelectedAiModel(current.aiModel)
+    aiModel: getSelectedAiModel(current.aiModel || 'gpt-4.1-mini'),
+    aiUseWebSearch: $('aiUseWebSearch') ? !!$('aiUseWebSearch').checked : current.aiUseWebSearch !== false,
+    aiCatalogPriceImport: normalizeAiCatalogPriceImport($('aiCatalogPriceImport')?.value || current.aiCatalogPriceImport)
   };
 }
 
@@ -4463,7 +4469,7 @@ async function testOpenAiKeyConnection() {
   }
   renderAiParserStatus('Testuję OpenAI...');
   try {
-    const testData = await callOpenAiParser('Test: Jan Kowalski, Warszawa, montaż jednej kamery IP.', settings);
+    const testData = await callOpenAiParser('Test: Jan Kowalski, Warszawa, montaż jednej kamery IP.', { ...settings, aiUseWebSearch: false });
     const testedSettings = { ...settings, aiParserMode: 'ai', aiLastTestAt: new Date().toISOString() };
     if ($('aiParserMode')) $('aiParserMode').value = testedSettings.aiParserMode;
     renderAnalysisModeHint(testedSettings);
@@ -4612,7 +4618,7 @@ function aiCableLaborName(item, raw) {
 }
 
 function aiBuildItem({ category, name, unit = 'szt', quantity = 1, fallbackPrice = 0, kind = '', key = '' }) {
-  const catalog = aiFindCatalogService(category, name);
+  const catalog = aiFindExactCatalogService(category, name);
   const finalCategory = catalog?.category || category || 'Serwis';
   const finalName = catalog?.name || name;
   const finalUnit = catalog?.unit || unit || 'szt';
@@ -4756,6 +4762,482 @@ function convertAiParseToAppResult(raw, ai, envelope = {}) {
   return result;
 }
 
+
+/* =========================================================
+   v4.7 — AI-first, web search cen i zapis cen do cennika
+   ========================================================= */
+
+normalizeAiParserMode = function() {
+  return 'ai';
+};
+
+normalizeAiModel = function(value) {
+  const model = String(value || '').trim();
+  return model || 'gpt-4.1-mini';
+};
+
+renderAnalysisModeHint = function(settings = readSettingsFromForm()) {
+  const hint = $('analysisModeHint');
+  const button = $('analyzeVoiceBtn');
+  const web = settings.aiUseWebSearch !== false;
+  if (hint) {
+    hint.textContent = `Tryb aktywny: AI OpenAI (${normalizeAiModel(settings.aiModel)})${web ? ' z wyszukiwaniem brakujących cen w internecie' : ''}. Parser lokalny uruchomi się tylko awaryjnie.`;
+  }
+  if (button && !button.disabled) button.textContent = 'Analizuj wizytę przez AI';
+};
+
+analyzeVoiceCommandUsingSelectedMode = async function() {
+  const voiceField = $('voiceCommand');
+  const notesText = String($('notes')?.value || '').trim();
+  if (!String(voiceField?.value || '').trim() && notesText) {
+    voiceField.value = notesText;
+    updateVoiceSelectionActions();
+    showInfo('Użyto notatek z wizyty jako tekstu do analizy.');
+  }
+  renderAnalysisModeHint(readSettingsFromForm());
+  await analyzeVoiceCommandWithAiFromField();
+};
+
+fillAiModelSelect = function() {
+  const select = $('aiModel');
+  if (!select) return;
+  const current = normalizeAiModel(loadSettings().aiModel || select.value || 'gpt-4.1-mini');
+  select.innerHTML = AI_MODEL_OPTIONS.map(model => `<option value="${escapeAttr(model.value)}">${escapeHtml(model.label)}</option>`).join('');
+  const known = AI_MODEL_OPTIONS.some(model => model.value === current);
+  if (!known) {
+    const option = document.createElement('option');
+    option.value = current;
+    option.textContent = `${current} — zapisany wcześniej`;
+    select.appendChild(option);
+  }
+  select.value = current;
+  select.dataset.ready = '1';
+};
+
+aiReadSettingsFromFormPatch = function(settings) {
+  return {
+    ...settings,
+    aiParserMode: 'ai',
+    aiOpenAiKey: $('aiOpenAiKey') ? $('aiOpenAiKey').value.trim() : (settings.aiOpenAiKey || ''),
+    aiModel: getSelectedAiModel(settings.aiModel || 'gpt-4.1-mini'),
+    aiUseWebSearch: $('aiUseWebSearch') ? !!$('aiUseWebSearch').checked : settings.aiUseWebSearch !== false,
+    aiCatalogPriceImport: normalizeAiCatalogPriceImport($('aiCatalogPriceImport')?.value || settings.aiCatalogPriceImport)
+  };
+};
+
+renderAiParserStatus = function(text = '') {
+  const box = $('aiParserStatus');
+  if (!box) return;
+  const settings = loadSettings();
+  const key = String(settings.aiOpenAiKey || '').trim();
+  const model = normalizeAiModel(settings.aiModel);
+  const web = settings.aiUseWebSearch !== false ? 'Internetowe ceny: włączone.' : 'Internetowe ceny: wyłączone.';
+  const importMode = normalizeAiCatalogPriceImport(settings.aiCatalogPriceImport);
+  const importLabel = importMode === 'automatic' ? 'Ceny są dopisywane automatycznie.' : importMode === 'after_accept' ? 'Ceny są dopisywane po zatwierdzeniu.' : 'Ceny nie są dopisywane do cennika.';
+  const last = settings.aiLastTestAt ? ` Ostatni test: ${formatDateTime(settings.aiLastTestAt)}.` : '';
+  box.classList.remove('ok', 'error');
+  if (text) {
+    box.textContent = text;
+    return;
+  }
+  if (!key) {
+    box.textContent = `Brakuje klucza OpenAI. Do czasu jego zapisania zadziała wyłącznie awaryjny parser lokalny. ${web}`;
+    box.classList.add('error');
+    return;
+  }
+  box.textContent = `AI-first — model: ${model}, klucz: ${maskAiKey(key)}. ${web} ${importLabel}${last}`;
+  box.classList.add('ok');
+};
+
+buildAiCatalogHints = function() {
+  const important = [];
+  for (const category of CATEGORIES) {
+    const rows = (CATALOG[category] || []).slice(0, 100).map(item => ({
+      name: item.name,
+      unit: item.unit,
+      priceNet: number(item.price_net, 0)
+    }));
+    if (rows.length) important.push({ category, items: rows });
+  }
+  return important;
+};
+
+buildAiPrompt = function(text, catalogHints, settings = loadSettings()) {
+  return [
+    'TEKST DO ANALIZY:',
+    text,
+    '',
+    `VAT używany w programie: ${number(settings.vatRate, 23)}%.`,
+    `Wyszukiwanie internetowe cen: ${settings.aiUseWebSearch !== false ? 'DOZWOLONE' : 'NIEDOZWOLONE'}.`,
+    '',
+    'AKTUALNY CENNIK LOKALNY PROGRAMU (ceny netto):',
+    JSON.stringify(Array.isArray(catalogHints) ? catalogHints : []).slice(0, 45000)
+  ].join('\n');
+};
+
+callOpenAiParser = async function(raw, settings) {
+  const key = String(settings.aiOpenAiKey || '').trim();
+  if (!key) throw new Error('Brakuje klucza OpenAI.');
+  if (raw.length > 30000) throw new Error('Tekst jest za długi. Skróć go do najważniejszych informacji.');
+
+  const vatRate = number(settings.vatRate, 23);
+  const webEnabled = settings.aiUseWebSearch !== false;
+  const systemPrompt = [
+    'Jesteś głównym silnikiem analizy ofert i wizyt instalatora w Polsce. Nie jesteś prostym parserem słów kluczowych.',
+    'Masz zrozumieć cały dokument, jego kontekst, korekty, negacje, warianty, powtórzenia i kolejność ważności informacji.',
+    'Zwróć wyłącznie dane zgodne ze schematem JSON.',
+    'Najpierw rozpoznaj typ dokumentu: surowa wizyta, istniejąca wycena, recenzja błędnej wyceny, nowa propozycja albo dokument mieszany.',
+    'Jeżeli tekst opisuje starą niepełną wycenę, a później podaje poprawioną kompletną wycenę, NIE dodawaj starych pozycji do nowej oferty. Traktuj je wyłącznie jako kontekst lub wykluczenia.',
+    'Jeżeli fragment został wklejony dwa razy, deduplikuj go.',
+    'Jeżeli są warianty, nadaj im krótkie identyfikatory i przypisz każdej pozycji variantId. Pozycje wspólne dla wszystkich wariantów mają pusty variantId.',
+    'W recommendedVariantId wskaż wariant najbardziej racjonalny technicznie; nie musi być najtańszy.',
+    'Rozróżniaj: wymagane, opcjonalne, istniejące, wykluczone i wymagające potwierdzenia. Pozycji istniejących lub wykluczonych nie dodawaj do items z includeInQuote=true.',
+    'CENY: najpierw używaj dokładnej pozycji z lokalnego cennika. Ustaw priceSource=local_catalog.',
+    'Jeżeli tekst jawnie podaje końcową cenę konkretnej pozycji, użyj jej i ustaw priceSource=input_text.',
+    webEnabled
+      ? 'Jeżeli brak ceny lokalnej i ceny w tekście, użyj web_search, sprawdź aktualne ceny w Polsce i podaj rozsądną cenę netto. Dla materiału preferuj cenę rynkową z wiarygodnego sklepu lub producenta. Dla robocizny podaj ostrożną średnią rynkową. Ustaw priceSource=web, prawdziwy URL źródła i nazwę źródła. Nie wymyślaj adresów URL.'
+      : 'Jeżeli brak ceny lokalnej i ceny w tekście, ustaw cenę 0, priceSource=none i dodaj pozycję do uncertain.',
+    `Jeżeli źródło podaje wyłącznie cenę brutto, oblicz cenę netto przy VAT ${vatRate}%.`,
+    'priceConfidence podawaj od 0 do 1. Cena orientacyjna lub szeroki przedział powinny mieć niższą pewność.',
+    'Dla mostu bezprzewodowego używaj przewodu Ethernet/skrętki i PoE. RG6 dodawaj tylko wtedy, gdy potwierdzono osobną antenę LTE lub TV. Negacja RG6 ma pierwszeństwo.',
+    'Prędkość sieci zapisuj w Mb/s, nie MB.',
+    'Jeżeli oczekiwano ponad 100 Mb/s, ostrzeż urządzenia z portami 10/100 Mb/s.',
+    'Nie przypisuj prędkości, ilości, ceny ani modelu urządzenia do pola adresu.',
+    'Wszystkie ceny pozycji w items mają być cenami jednostkowymi netto.'
+  ].join(' ');
+
+  const payload = {
+    model: normalizeAiModel(settings.aiModel),
+    store: false,
+    max_output_tokens: 7000,
+    input: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: buildAiPrompt(raw, buildAiCatalogHints(), settings) }
+    ],
+    text: {
+      format: {
+        type: 'json_schema',
+        name: 'installer_visit_ai_analysis',
+        strict: true,
+        schema: AI_PARSE_SCHEMA
+      }
+    }
+  };
+
+  if (webEnabled) {
+    payload.tools = [{
+      type: 'web_search',
+      search_context_size: 'low',
+      user_location: { type: 'approximate', country: 'PL' }
+    }];
+    payload.tool_choice = 'auto';
+  }
+
+  const response = await fetch(OPENAI_RESPONSES_URL, {
+    method: 'POST',
+    headers: openAiHeaders(settings),
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data?.error?.message || `OpenAI HTTP ${response.status}`);
+  const outputText = extractOpenAiOutputText(data);
+  let parsed;
+  try {
+    parsed = JSON.parse(outputText);
+  } catch {
+    throw new Error('OpenAI nie zwróciło poprawnych danych strukturalnych.');
+  }
+  return { ok: true, model: data.model || payload.model, usage: data.usage || null, result: parsed };
+};
+
+
+function aiFindExactCatalogService(category, name) {
+  const wanted = aiNormText(name);
+  if (!wanted) return null;
+  const categories = category && CATALOG[category] ? [category] : CATEGORIES;
+  for (const cat of categories) {
+    const exact = (CATALOG[cat] || []).find(item => aiNormText(item.name) === wanted);
+    if (exact) return { ...exact, category: cat };
+  }
+  return null;
+}
+
+function aiPriceNetFromSource(sourceItem, settings = loadSettings()) {
+  const explicitNet = aiNumber(sourceItem?.priceNet, 0);
+  if (explicitNet > 0) return explicitNet;
+  const gross = aiNumber(sourceItem?.priceGross, 0);
+  if (gross <= 0) return 0;
+  const vat = Math.max(0, aiNumber(settings.vatRate, 23));
+  return round2(gross / (1 + vat / 100));
+}
+
+aiBuildItem = function({
+  category, name, unit = 'szt', quantity = 1, fallbackPrice = 0,
+  kind = '', key = '', sourceItem = null
+}) {
+  const catalog = aiFindCatalogService(category, name);
+  const finalCategory = catalog?.category || category || 'Serwis';
+  const finalName = catalog?.name || name;
+  const finalUnit = catalog?.unit || unit || 'szt';
+  const aiPrice = aiPriceNetFromSource(sourceItem);
+  let price = catalog ? number(catalog.price_net, 0) : aiPrice;
+  let source = catalog ? 'local_catalog' : String(sourceItem?.priceSource || (aiPrice > 0 ? 'estimate' : 'none'));
+  let sourceLabel = catalog ? 'Cennik lokalny programu' : String(sourceItem?.priceSourceLabel || '');
+  let sourceUrl = catalog ? '' : String(sourceItem?.priceSourceUrl || '');
+
+  if (!catalog && price <= 0 && kind === 'material') {
+    const suggested = getSuggestedMaterialPrice(finalName, finalCategory);
+    if (suggested !== null) {
+      price = suggested;
+      source = 'local_catalog';
+      sourceLabel = 'Lokalna baza cen materiałów';
+    }
+  }
+  if (!catalog && price <= 0) price = number(fallbackPrice, 0);
+
+  const built = buildVoiceItem({
+    category: finalCategory,
+    name: finalName,
+    unit: finalUnit,
+    quantity,
+    priceNet: round2(price),
+    key: key || `ai_${aiNormText(finalName).slice(0, 50)}`
+  });
+  if (kind) built.itemKind = kind;
+  built.parserSource = 'ai';
+  built.parserKey = key || finalName;
+  built.learningSignature = `ai|${aiNormText(finalName)}|${finalUnit}|${number(price, 0)}`;
+  built.aiPriceSource = source;
+  built.aiPriceSourceLabel = sourceLabel;
+  built.aiPriceSourceUrl = sourceUrl;
+  built.aiPriceConfidence = aiNumber(sourceItem?.priceConfidence, source === 'local_catalog' ? 1 : 0);
+  built.aiCatalogMissing = !catalog && price > 0;
+  built.aiVariantId = String(sourceItem?.variantId || '');
+  if (built.aiCatalogMissing) built.suggestedPrice = true;
+  return built;
+};
+
+function aiBuildMappedItem(sourceItem, defaults) {
+  return aiBuildItem({ ...defaults, sourceItem, fallbackPrice: 0 });
+}
+
+aiMapOneItem = function(raw, item) {
+  if (!item || item.includeInQuote === false) return null;
+  const type = String(item.type || '').toLowerCase();
+  const qty = aiCleanQuantity(item.quantity, 1);
+  const rawName = String(item.name || '').trim();
+  const categoryHint = String(item.category || '').trim();
+  const unitHint = String(item.unit || '').trim() || 'szt';
+
+  if (type === 'other_material') return aiBuildMappedItem(item, { category: categoryHint || 'Serwis', name: rawName || 'Materiał dodatkowy', unit: unitHint, quantity: qty, kind: 'material', key: 'ai_other_material' });
+  if (type === 'other_labor') return aiBuildMappedItem(item, { category: categoryHint || 'Serwis', name: rawName || 'Dodatkowa praca instalacyjna', unit: unitHint, quantity: qty, kind: 'labor', key: 'ai_other_labor' });
+
+  switch (type) {
+    case 'camera_mount': return aiBuildMappedItem(item, { category: 'Kamery CCTV', name: rawName || aiCameraMountName(item), unit: 'szt', quantity: qty, kind: 'labor', key: 'ai_camera_mount' });
+    case 'camera_material': return aiBuildMappedItem(item, { category: 'Kamery CCTV', name: rawName || aiCameraMaterialName(item), unit: 'szt', quantity: qty, kind: 'material', key: 'ai_camera_material' });
+    case 'camera_config': return aiBuildMappedItem(item, { category: 'Kamery CCTV', name: rawName || 'Konfiguracja kamery z aplikacją', unit: 'usł', quantity: qty, kind: 'labor', key: 'ai_camera_config' });
+    case 'junction_box': return aiBuildMappedItem(item, { category: 'Kamery CCTV', name: rawName || 'Puszka montażowa pod kamerę', unit: 'szt', quantity: qty, kind: 'material', key: 'ai_camera_box' });
+    case 'cable': return aiBuildMappedItem(item, { category: 'Przewody / Okablowanie', name: rawName || aiCableName(item, ''), unit: unitHint === 'szt' ? 'mb' : unitHint, quantity: qty, kind: 'material', key: 'ai_cable' });
+    case 'cable_labor': return aiBuildMappedItem(item, { category: 'Przewody / Okablowanie', name: rawName || aiCableLaborName(item, ''), unit: unitHint === 'szt' ? 'mb' : unitHint, quantity: qty, kind: 'labor', key: 'ai_cable_labor' });
+    case 'drilling': return aiBuildMappedItem(item, { category: 'Przewody / Okablowanie', name: rawName || 'Przewiert przez ścianę pod przewód', unit: 'szt', quantity: qty, kind: 'labor', key: 'ai_drilling' });
+    case 'remote_view': return aiBuildMappedItem(item, { category: 'Kamery CCTV', name: rawName || 'Uruchomienie podglądu zdalnego', unit: 'usł', quantity: qty, kind: 'labor', key: 'ai_remote_view' });
+    case 'switch_poe': return aiBuildMappedItem(item, { category: 'Kamery CCTV', name: rawName || aiSwitchName(item, ''), unit: 'szt', quantity: qty, kind: 'material', key: 'ai_switch_poe' });
+    case 'recorder': return aiBuildMappedItem(item, { category: 'Kamery CCTV', name: rawName || aiRecorderName(item, ''), unit: 'szt', quantity: qty, kind: 'material', key: 'ai_recorder' });
+    case 'disk': return aiBuildMappedItem(item, { category: 'Kamery CCTV', name: rawName || 'Dysk do rejestratora', unit: 'szt', quantity: qty, kind: 'material', key: 'ai_disk' });
+    case 'rj45_material': return aiBuildMappedItem(item, { category: 'Złącza / Akcesoria', name: rawName || 'Wtyk RJ45 Cat 6 UTP', unit: 'szt', quantity: qty, kind: 'material', key: 'ai_rj45_material' });
+    case 'rj45_labor': return aiBuildMappedItem(item, { category: 'Złącza / Akcesoria', name: rawName || 'Zarabianie wtyku RJ45', unit: 'szt', quantity: qty, kind: 'labor', key: 'ai_rj45_labor' });
+    case 'wifi_extender': return aiBuildMappedItem(item, { category: 'Sieć / Wi‑Fi', name: rawName || 'Wzmacniacz Wi‑Fi', unit: 'szt', quantity: qty, kind: 'material', key: 'ai_wifi_extender' });
+    case 'router_config': return aiBuildMappedItem(item, { category: 'Sieć / Wi‑Fi', name: rawName || 'Konfiguracja routera', unit: 'usł', quantity: qty, kind: 'labor', key: 'ai_router_config' });
+    case 'wifi_config': return aiBuildMappedItem(item, { category: 'Sieć / Wi‑Fi', name: rawName || 'Konfiguracja Wi-Fi w domu', unit: 'usł', quantity: qty, kind: 'labor', key: 'ai_wifi_config' });
+    case 'router_material': return aiBuildMappedItem(item, { category: 'Sieć / Wi‑Fi', name: rawName || 'Router Wi‑Fi', unit: 'szt', quantity: qty, kind: 'material', key: 'ai_router_material' });
+    case 'network_device': return aiBuildMappedItem(item, { category: categoryHint || 'Sieć / Wi‑Fi', name: rawName || 'Urządzenie sieciowe', unit: unitHint, quantity: qty, kind: 'material', key: 'ai_network_device' });
+    case 'wireless_bridge': return aiBuildMappedItem(item, { category: 'Sieć / Wi‑Fi', name: rawName || 'Zestaw mostu bezprzewodowego', unit: unitHint || 'kpl', quantity: qty, kind: 'material', key: 'ai_wireless_bridge' });
+    case 'bridge_config': return aiBuildMappedItem(item, { category: 'Sieć / Wi‑Fi', name: rawName || 'Konfiguracja mostu bezprzewodowego', unit: 'usł', quantity: qty, kind: 'labor', key: 'ai_bridge_config' });
+    case 'mount_material': return aiBuildMappedItem(item, { category: 'Anteny / Sygnał', name: rawName || 'Uchwyt antenowy', unit: 'szt', quantity: qty, kind: 'material', key: 'ai_mount_material' });
+    case 'mount_labor_roof': return aiBuildMappedItem(item, { category: 'Dopłaty / Trudne warunki', name: rawName || 'Montaż urządzenia na kominie — praca na wysokości', unit: 'usł', quantity: qty, kind: 'labor', key: 'ai_mount_roof' });
+    case 'mount_labor_wall': return aiBuildMappedItem(item, { category: 'Anteny / Sygnał', name: rawName || 'Montaż uchwytu i urządzenia na budynku', unit: 'usł', quantity: qty, kind: 'labor', key: 'ai_mount_wall' });
+    case 'auxiliary_materials': return aiBuildMappedItem(item, { category: categoryHint || 'Złącza / Akcesoria', name: rawName || 'Materiały pomocnicze', unit: unitHint || 'kpl', quantity: qty, kind: 'material', key: 'ai_auxiliary_materials' });
+    case 'surge_protection': return aiBuildMappedItem(item, { category: 'Sieć / Wi‑Fi', name: rawName || 'Zabezpieczenie przeciwprzepięciowe Ethernet', unit: unitHint || 'kpl', quantity: qty, kind: 'material', key: 'ai_surge_protection' });
+    case 'network_test': return aiBuildMappedItem(item, { category: 'Sieć / Wi‑Fi', name: rawName || 'Pomiar i test połączenia sieciowego', unit: 'usł', quantity: qty, kind: 'labor', key: 'ai_network_test' });
+    default:
+      if (rawName) return aiBuildMappedItem(item, { category: categoryHint || 'Serwis', name: rawName, unit: unitHint, quantity: qty, kind: '', key: 'ai_fallback' });
+      return null;
+  }
+};
+
+function aiMapItemsForVariant(raw, rawItems, variantId) {
+  const skipped = [];
+  const selectedRaw = (rawItems || []).filter(item => {
+    if (item?.includeInQuote === false) return false;
+    const id = String(item?.variantId || '');
+    return !id || !variantId || id === variantId;
+  });
+  const mapped = selectedRaw.map(item => {
+    const row = aiMapOneItem(raw, item);
+    if (!row) skipped.push(item?.name || item?.type || 'nieznana pozycja');
+    return row;
+  }).filter(Boolean);
+  const merged = mergeParserItems(mapped);
+  installerV35MarkKinds({ items: merged });
+  return { items: merged, skipped };
+}
+
+convertAiParseToAppResult = function(raw, ai, envelope = {}) {
+  const client = ai?.client || {};
+  const warnings = Array.isArray(ai?.warnings) ? ai.warnings : [];
+  const excluded = Array.isArray(ai?.excluded) ? ai.excluded : [];
+  const uncertain = Array.isArray(ai?.uncertain) ? ai.uncertain : [];
+  const rawItems = Array.isArray(ai?.items) ? ai.items : [];
+  const variantsMeta = Array.isArray(ai?.variants) ? ai.variants.filter(v => v?.id) : [];
+  const recommendedId = String(ai?.recommendedVariantId || variantsMeta.find(v => v.recommended)?.id || variantsMeta[0]?.id || '');
+  const mappedVariants = variantsMeta.map(meta => {
+    const mapped = aiMapItemsForVariant(raw, rawItems, String(meta.id));
+    return {
+      id: String(meta.id),
+      name: String(meta.name || meta.id),
+      description: String(meta.description || ''),
+      recommended: String(meta.id) === recommendedId || !!meta.recommended,
+      totalNet: aiNumber(meta.totalNet, 0),
+      totalGross: aiNumber(meta.totalGross, 0),
+      items: mapped.items
+    };
+  });
+  const selectedVariant = mappedVariants.find(v => v.id === recommendedId) || mappedVariants[0] || null;
+  const mappedBase = selectedVariant ? { items: selectedVariant.items, skipped: [] } : aiMapItemsForVariant(raw, rawItems, '');
+  const mergedItems = mappedBase.items;
+  const detectedType = ai?.detectedType && CATALOG[ai.detectedType] ? ai.detectedType : (mergedItems[0]?.category || 'Serwis');
+  const variantOptions = mappedVariants.map(v => `${v.recommended ? 'Rekomendowany: ' : ''}${v.name}${v.description ? ` — ${v.description}` : ''}${v.totalNet > 0 ? ` (${money(v.totalNet)} netto)` : ''}`);
+  const priceWarnings = mergedItems
+    .filter(item => item.aiCatalogMissing)
+    .map(item => `${item.name}: cena ${item.aiPriceSource === 'web' ? 'znaleziona w internecie' : 'spoza cennika'} — ${money(item.priceNet)} netto${item.aiPriceSourceLabel ? `, źródło: ${item.aiPriceSourceLabel}` : ''}`);
+
+  const result = {
+    client: {
+      name: String(client.name || '').trim(),
+      phone: String(client.phone || '').trim(),
+      address: String(client.address || '').trim()
+    },
+    items: mergedItems,
+    aiVariants: mappedVariants,
+    selectedAiVariantId: selectedVariant?.id || '',
+    detectedType,
+    distanceKm: aiNumber(ai?.distanceKm, 0) > 0 ? aiNumber(ai.distanceKm, 0) : null,
+    distanceRate: aiNumber(ai?.distanceRate, 0) > 0 ? aiNumber(ai.distanceRate, 0) : null,
+    freeKm: aiNumber(ai?.freeKm, -1) >= 0 ? aiNumber(ai.freeKm, 0) : null,
+    unknown: [...uncertain],
+    learnedApplied: [
+      `Analiza wykonana przez OpenAI (${envelope.model || normalizeAiModel(loadSettings().aiModel)}).`,
+      ai?.priceResearchUsed ? 'AI użyło wyszukiwania internetowego do uzupełnienia brakujących cen.' : 'AI nie użyło wyszukiwania internetowego cen.'
+    ],
+    missingData: [],
+    surchargeSuggestions: [],
+    parserReport: {
+      parser: `OpenAI / ${envelope.model || normalizeAiModel(loadSettings().aiModel)}`,
+      parsersAvailable: ['AI reasoning', 'web_search cen', 'awaryjny parser lokalny'],
+      warnings: [String(ai?.analysisSummary || '')].filter(Boolean).concat(warnings, excluded.map(x => `Wykluczono: ${x}`), priceWarnings),
+      items: mergedItems.length,
+      materialsNet: mergedItems.filter(x => x.itemKind === 'material').reduce((sum, x) => sum + number(x.quantity, 0) * number(x.priceNet, 0), 0),
+      laborNet: mergedItems.filter(x => x.itemKind === 'labor').reduce((sum, x) => sum + number(x.quantity, 0) * number(x.priceNet, 0), 0),
+      totalNet: mergedItems.reduce((sum, x) => sum + number(x.quantity, 0) * number(x.priceNet, 0), 0)
+    },
+    transcriptInfo: {
+      isTranscript: true,
+      findings: [String(ai?.analysisSummary || '')].filter(Boolean).concat(Array.isArray(ai?.facts) ? ai.facts : []),
+      options: variantOptions.concat(Array.isArray(ai?.options) ? ai.options : []),
+      rejected: excluded,
+      followUps: [...uncertain, ...warnings]
+    }
+  };
+  result.missingData = detectMissingData(raw, result);
+  return result;
+};
+
+function saveAiPricesToCatalog(items) {
+  const candidates = (items || []).filter(item =>
+    item?.aiCatalogMissing &&
+    number(item.priceNet, 0) > 0 &&
+    ['web', 'input_text', 'estimate'].includes(String(item.aiPriceSource || ''))
+  );
+  if (!candidates.length) return 0;
+  const catalog = structuredCloneSafe(CATALOG);
+  let saved = 0;
+  for (const item of candidates) {
+    const category = String(item.category || 'Serwis').trim() || 'Serwis';
+    const name = String(item.name || '').trim();
+    if (!name) continue;
+    if (!catalog[category]) catalog[category] = [];
+    const idx = catalog[category].findIndex(row => aiNormText(row.name) === aiNormText(name));
+    const record = { name, unit: String(item.unit || 'szt'), price_net: round2(item.priceNet) };
+    if (idx >= 0) catalog[category][idx] = record;
+    else catalog[category].push(record);
+    saved += 1;
+    item.aiCatalogMissing = false;
+    item.aiPriceSource = 'local_catalog';
+    item.aiPriceSourceLabel = 'Cennik lokalny — cena zapisana z analizy AI';
+  }
+  if (saved > 0) {
+    saveCatalog(catalog);
+    refreshCatalogControls();
+    renderCatalog();
+  }
+  return saved;
+}
+
+function runLocalParserFallback(reason) {
+  const message = reason ? `AI nie zadziałało (${reason}). Uruchomiono awaryjny parser lokalny.` : 'Uruchomiono awaryjny parser lokalny.';
+  if (typeof analyzeVoiceCommandFromField_local_fallback === 'function') {
+    analyzeVoiceCommandFromField_local_fallback();
+  }
+  window.setTimeout(() => showInfo(message), 0);
+}
+
+analyzeVoiceCommandWithAiFromField = async function() {
+  const raw = $('voiceCommand').value.trim();
+  if (!raw) {
+    showInfo('Wpisz albo podyktuj treść wizyty, potem kliknij „Analizuj wizytę przez AI”.');
+    return;
+  }
+  syncFromForm();
+  const settings = readSettingsFromForm();
+  if (!String(settings.aiOpenAiKey || '').trim()) {
+    renderAiParserStatus('Brakuje klucza OpenAI — użyto awaryjnego parsera lokalnego.');
+    $('aiParserStatus')?.classList.add('error');
+    runLocalParserFallback('brak klucza OpenAI');
+    return;
+  }
+
+  const analyzeBtn = $('analyzeVoiceBtn');
+  const oldText = analyzeBtn?.textContent;
+  try {
+    if (analyzeBtn) {
+      analyzeBtn.disabled = true;
+      analyzeBtn.textContent = settings.aiUseWebSearch !== false ? 'AI analizuje i sprawdza ceny...' : 'AI analizuje...';
+    }
+    showInfo(settings.aiUseWebSearch !== false ? 'AI analizuje tekst i może wyszukać brakujące ceny w internecie.' : 'AI analizuje tekst bez wyszukiwania internetowego.');
+    const data = await callOpenAiParser(raw, settings);
+    const result = convertAiParseToAppResult(raw, data.result || data, data);
+    const importMode = normalizeAiCatalogPriceImport(settings.aiCatalogPriceImport);
+    if (importMode === 'automatic') {
+      const saved = saveAiPricesToCatalog(result.items || []);
+      if (saved > 0) result.learnedApplied.push(`Automatycznie dopisano do cennika ${saved} cen.`);
+    }
+    pendingParse = { raw, result };
+    renderParserPreview(raw, result);
+    const variants = result.aiVariants?.length || 0;
+    const missingPrices = result.items.filter(item => number(item.priceNet, 0) <= 0).length;
+    showInfo(`AI przygotowało analizę do zatwierdzenia. Pozycji: ${result.items.length}${variants > 1 ? `, wariantów: ${variants}` : ''}${missingPrices ? `, bez ceny: ${missingPrices}` : ''}.`);
+  } catch (error) {
+    renderAiParserStatus(`Błąd AI: ${error.message}. Uruchomiono parser lokalny.`);
+    $('aiParserStatus')?.classList.add('error');
+    runLocalParserFallback(error.message);
+  } finally {
+    if (analyzeBtn) {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = oldText || 'Analizuj wizytę przez AI';
+    }
+    renderAnalysisModeHint(settings);
+  }
+};
 
 /*
  * Pomocnik Instalatora PWA — moduł: sync.js
@@ -5382,10 +5864,12 @@ function initForm() {
   if ($('dropboxToken')) $('dropboxToken').value = settings.dropboxAccessToken || '';
   if ($('dropboxPath')) $('dropboxPath').value = settings.dropboxPath || '/pomocnik_instalatora_data.json';
   if ($('dropboxAutoSync')) $('dropboxAutoSync').checked = !!settings.dropboxAutoSync;
-  if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
+  if ($('aiParserMode')) $('aiParserMode').value = 'ai';
   if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
   fillAiModelSelect();
-  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4o-mini');
+  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4.1-mini');
+  if ($('aiUseWebSearch')) $('aiUseWebSearch').checked = settings.aiUseWebSearch !== false;
+  if ($('aiCatalogPriceImport')) $('aiCatalogPriceImport').value = normalizeAiCatalogPriceImport(settings.aiCatalogPriceImport);
   renderAiParserStatus();
   $('phraseDictionary').value = loadPhraseDictionaryText();
   fillSelect($('jobType'), CATEGORIES);
@@ -5451,6 +5935,8 @@ function initEvents() {
   });
   if ($('aiParserMode')) $('aiParserMode').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
   if ($('aiModel')) $('aiModel').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
+  if ($('aiUseWebSearch')) $('aiUseWebSearch').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
+  if ($('aiCatalogPriceImport')) $('aiCatalogPriceImport').addEventListener('change', () => renderAiParserStatus('Kliknij „Zapisz wszystkie ustawienia”, aby zachować sposób zapisywania cen AI.'));
   $('clearDataBtn').addEventListener('click', clearLocalData);
   $('exportBackupBtn').addEventListener('click', exportBackup);
   $('importBackupBtn').addEventListener('click', () => $('importBackupFile').click());
@@ -7842,16 +8328,70 @@ parseSmartCommand = function(rawText) {
   return result;
 };
 
-/* Konfiguracja i podpięcie trybu AI, wykonywane po lokalnych poprawkach. */
+/*
+ * Pomocnik Instalatora — konfiguracja AI-first.
+ * AI jest podstawowym silnikiem analizy. Parser lokalny działa tylko awaryjnie.
+ */
 
-/* AI bez backendu: klucz OpenAI zapisywany lokalnie, test klucza i wybór modelu. */
 const OPENAI_RESPONSES_URL = 'https://api.openai.com/v1/responses';
+
+const AI_ITEM_TYPES = [
+  'camera_mount', 'camera_material', 'camera_config', 'junction_box',
+  'cable', 'cable_labor', 'drilling', 'remote_view',
+  'switch_poe', 'recorder', 'disk', 'rj45_material', 'rj45_labor',
+  'wifi_extender', 'router_config', 'wifi_config', 'router_material',
+  'network_device', 'wireless_bridge', 'bridge_config', 'mount_material',
+  'mount_labor_roof', 'mount_labor_wall', 'auxiliary_materials',
+  'surge_protection', 'network_test', 'other_labor', 'other_material', 'unknown'
+];
+
+const AI_ITEM_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: [
+    'type', 'name', 'category', 'quantity', 'unit', 'cameraType', 'connectivity',
+    'difficulty', 'includeInQuote', 'confidence', 'notes', 'variantId',
+    'priceNet', 'priceGross', 'priceCurrency', 'priceSource',
+    'priceSourceLabel', 'priceSourceUrl', 'priceConfidence'
+  ],
+  properties: {
+    type: { type: 'string', enum: AI_ITEM_TYPES },
+    name: { type: 'string' },
+    category: { type: 'string' },
+    quantity: { type: 'number' },
+    unit: { type: 'string' },
+    cameraType: { type: 'string', enum: ['tube', 'dome', 'ptz', 'generic', 'none'] },
+    connectivity: { type: 'string', enum: ['poe', 'wifi', 'lte', 'wired', 'wireless_bridge', 'unknown', 'none'] },
+    difficulty: { type: 'string', enum: ['easy', 'standard', 'hard', 'unknown'] },
+    includeInQuote: { type: 'boolean' },
+    confidence: { type: 'number' },
+    notes: { type: 'string' },
+    variantId: { type: 'string' },
+    priceNet: { type: 'number' },
+    priceGross: { type: 'number' },
+    priceCurrency: { type: 'string' },
+    priceSource: { type: 'string', enum: ['local_catalog', 'input_text', 'web', 'estimate', 'none'] },
+    priceSourceLabel: { type: 'string' },
+    priceSourceUrl: { type: 'string' },
+    priceConfidence: { type: 'number' }
+  }
+};
 
 const AI_PARSE_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['client', 'detectedType', 'distanceKm', 'distanceRate', 'freeKm', 'dateHint', 'items', 'excluded', 'uncertain', 'warnings', 'facts', 'options'],
+  required: [
+    'documentType', 'analysisSummary', 'client', 'detectedType', 'distanceKm',
+    'distanceRate', 'freeKm', 'dateHint', 'items', 'excluded', 'uncertain',
+    'warnings', 'facts', 'options', 'variants', 'recommendedVariantId',
+    'priceResearchUsed'
+  ],
   properties: {
+    documentType: {
+      type: 'string',
+      enum: ['visit_transcript', 'existing_quote', 'quote_review', 'new_quote_proposal', 'mixed_document']
+    },
+    analysisSummary: { type: 'string' },
     client: {
       type: 'object',
       additionalProperties: false,
@@ -7870,107 +8410,148 @@ const AI_PARSE_SCHEMA = {
     distanceRate: { type: 'number' },
     freeKm: { type: 'number' },
     dateHint: { type: 'string' },
-    items: {
+    items: { type: 'array', maxItems: 80, items: AI_ITEM_SCHEMA },
+    excluded: { type: 'array', maxItems: 30, items: { type: 'string' } },
+    uncertain: { type: 'array', maxItems: 40, items: { type: 'string' } },
+    warnings: { type: 'array', maxItems: 40, items: { type: 'string' } },
+    facts: { type: 'array', maxItems: 40, items: { type: 'string' } },
+    options: { type: 'array', maxItems: 30, items: { type: 'string' } },
+    variants: {
       type: 'array',
-      maxItems: 40,
+      maxItems: 10,
       items: {
         type: 'object',
         additionalProperties: false,
-        required: ['type', 'name', 'category', 'quantity', 'unit', 'cameraType', 'connectivity', 'difficulty', 'includeInQuote', 'confidence', 'notes'],
+        required: ['id', 'name', 'description', 'recommended', 'totalNet', 'totalGross'],
         properties: {
-          type: {
-            type: 'string',
-            enum: ['camera_mount', 'camera_material', 'junction_box', 'cable', 'cable_labor', 'drilling', 'remote_view', 'switch_poe', 'recorder', 'disk', 'rj45_material', 'rj45_labor', 'wifi_extender', 'router_config', 'network_device', 'other_labor', 'other_material', 'unknown']
-          },
+          id: { type: 'string' },
           name: { type: 'string' },
-          category: { type: 'string' },
-          quantity: { type: 'number' },
-          unit: { type: 'string' },
-          cameraType: { type: 'string', enum: ['tube', 'dome', 'ptz', 'generic', 'none'] },
-          connectivity: { type: 'string', enum: ['poe', 'wifi', 'lte', 'wired', 'unknown', 'none'] },
-          difficulty: { type: 'string', enum: ['easy', 'standard', 'hard', 'unknown'] },
-          includeInQuote: { type: 'boolean' },
-          confidence: { type: 'number' },
-          notes: { type: 'string' }
+          description: { type: 'string' },
+          recommended: { type: 'boolean' },
+          totalNet: { type: 'number' },
+          totalGross: { type: 'number' }
         }
       }
     },
-    excluded: { type: 'array', maxItems: 20, items: { type: 'string' } },
-    uncertain: { type: 'array', maxItems: 30, items: { type: 'string' } },
-    warnings: { type: 'array', maxItems: 30, items: { type: 'string' } },
-    facts: { type: 'array', maxItems: 30, items: { type: 'string' } },
-    options: { type: 'array', maxItems: 20, items: { type: 'string' } }
+    recommendedVariantId: { type: 'string' },
+    priceResearchUsed: { type: 'boolean' }
   }
 };
 
-
 const AI_MODEL_OPTIONS = [
-  { value: 'gpt-4o-mini', label: 'gpt-4o-mini — tańszy / szybki' },
-  { value: 'gpt-4o', label: 'gpt-4o — dokładniejszy' },
-  { value: 'gpt-4.1-mini', label: 'gpt-4.1-mini — nowszy mały model' },
-  { value: 'gpt-4.1', label: 'gpt-4.1 — mocniejszy model' }
+  { value: 'gpt-4.1-mini', label: 'gpt-4.1-mini — szybki i dokładny' },
+  { value: 'gpt-4.1', label: 'gpt-4.1 — dokładniejszy' },
+  { value: 'gpt-5.5', label: 'gpt-5.5 — najmocniejszy' }
 ];
 
+function normalizeAiCatalogPriceImport(value) {
+  const allowed = new Set(['quote_only', 'after_accept', 'automatic']);
+  return allowed.has(String(value || '')) ? String(value) : 'after_accept';
+}
 
+function fillAiExtraSettings(settings = loadSettings()) {
+  if ($('aiParserMode')) $('aiParserMode').value = 'ai';
+  if ($('aiUseWebSearch')) $('aiUseWebSearch').checked = settings.aiUseWebSearch !== false;
+  if ($('aiCatalogPriceImport')) $('aiCatalogPriceImport').value = normalizeAiCatalogPriceImport(settings.aiCatalogPriceImport);
+}
 
-
-
-
-
-
-const readSettingsFromForm_v37_before_ai = readSettingsFromForm;
-readSettingsFromForm = function() {
-  return aiReadSettingsFromFormPatch(readSettingsFromForm_v37_before_ai());
-};
-
-const initForm_v37_before_ai = initForm;
+const initForm_before_ai_first = initForm;
 initForm = function() {
-  initForm_v37_before_ai();
-  const settings = loadSettings();
-  if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
-  if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
-  fillAiModelSelect();
-  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4o-mini');
+  initForm_before_ai_first();
+  fillAiExtraSettings(loadSettings());
   renderAiParserStatus();
 };
 
-const refreshFormAfterBackupImport_v37_before_ai = refreshFormAfterBackupImport;
+const refreshFormAfterBackupImport_before_ai_first = refreshFormAfterBackupImport;
 refreshFormAfterBackupImport = function() {
-  refreshFormAfterBackupImport_v37_before_ai();
-  const settings = loadSettings();
-  if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
-  if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
-  fillAiModelSelect();
-  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4o-mini');
+  refreshFormAfterBackupImport_before_ai_first();
+  fillAiExtraSettings(loadSettings());
   renderAiParserStatus();
 };
 
-
-
-
-
-
-
-const analyzeVoiceCommandFromField_v37_local = analyzeVoiceCommandFromField;
-analyzeVoiceCommandFromField = function() {
-  const settings = loadSettings();
-  if (normalizeAiParserMode(settings.aiParserMode) === 'ai') return analyzeVoiceCommandWithAiFromField();
-  return analyzeVoiceCommandFromField_v37_local();
+const acceptParserPreview_before_ai_prices = acceptParserPreview;
+acceptParserPreview = function() {
+  if (pendingParse?.result?.parserReport?.parser?.startsWith('OpenAI')) {
+    const settings = loadSettings();
+    if (normalizeAiCatalogPriceImport(settings.aiCatalogPriceImport) === 'after_accept') {
+      const saved = saveAiPricesToCatalog(pendingParse.result.items || []);
+      if (saved > 0) pendingParse.result.learnedApplied = [
+        ...(pendingParse.result.learnedApplied || []),
+        `Do cennika dopisano ${saved} cen rozpoznanych przez AI.`
+      ];
+    }
+  }
+  return acceptParserPreview_before_ai_prices();
 };
 
+/* Bezpośrednie wywołanie starej funkcji analizy również przechodzi przez AI-first. */
+const analyzeVoiceCommandFromField_local_fallback = analyzeVoiceCommandFromField;
+analyzeVoiceCommandFromField = function() {
+  return analyzeVoiceCommandWithAiFromField();
+};
 
+function aiSafeHttpUrl(value) {
+  try {
+    const url = new URL(String(value || ''), location.href);
+    return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+  } catch {
+    return '';
+  }
+}
 
+const quoteItemBadgesHtml_before_ai_sources = quoteItemBadgesHtml;
+quoteItemBadgesHtml = function(item) {
+  const base = quoteItemBadgesHtml_before_ai_sources(item);
+  if (item?.parserSource !== 'ai') return base;
+  const labels = {
+    local_catalog: 'cena: cennik lokalny',
+    input_text: 'cena: z tekstu',
+    web: 'cena: internet',
+    estimate: 'cena: szacunek AI',
+    none: 'brak ceny'
+  };
+  const source = String(item.aiPriceSource || 'none');
+  const sourceLabel = labels[source] || labels.none;
+  const title = String(item.aiPriceSourceLabel || '').trim();
+  const link = aiSafeHttpUrl(item.aiPriceSourceUrl);
+  const extra = `<span class="item-badge ai-price-source ${escapeAttr(source)}" title="${escapeAttr(title)}">${escapeHtml(sourceLabel)}</span>` +
+    (link ? `<a class="item-badge ai-price-link" href="${escapeAttr(link)}" target="_blank" rel="noopener noreferrer">źródło</a>` : '');
+  return base.replace('</div>', `${extra}</div>`);
+};
 
-
-
-
-
-
-
-
-
-
-
+const renderParserPreview_before_ai_variants = renderParserPreview;
+renderParserPreview = function(raw, result) {
+  renderParserPreview_before_ai_variants(raw, result);
+  const variants = Array.isArray(result?.aiVariants) ? result.aiVariants : [];
+  if (variants.length < 2) return;
+  const content = $('parserPreviewContent');
+  if (!content) return;
+  const selector = document.createElement('section');
+  selector.className = 'ai-variant-selector';
+  selector.innerHTML = `
+    <div>
+      <strong>Wariant wyceny</strong>
+      <small>AI wykryło kilka logicznych wersji oferty. Wybierz wariant przed zatwierdzeniem.</small>
+    </div>
+    <div class="ai-variant-buttons">
+      ${variants.map(variant => `
+        <button type="button" class="btn ${variant.id === result.selectedAiVariantId ? 'btn-primary' : 'btn-soft'}" data-ai-variant="${escapeAttr(variant.id)}">
+          ${escapeHtml(variant.name)}${variant.recommended ? ' — rekomendowany' : ''}
+        </button>`).join('')}
+    </div>`;
+  content.prepend(selector);
+  selector.querySelectorAll('[data-ai-variant]').forEach(button => {
+    button.addEventListener('click', () => {
+      if (!pendingParse) return;
+      const chosen = pendingParse.result.aiVariants.find(row => row.id === button.dataset.aiVariant);
+      if (!chosen) return;
+      pendingParse.result.selectedAiVariantId = chosen.id;
+      pendingParse.result.items = structuredCloneSafe(chosen.items || []);
+      renderParserPreview(pendingParse.raw, pendingParse.result);
+      showInfo(`Wybrano wariant: ${chosen.name}. Sprawdź pozycje i ceny przed zatwierdzeniem.`);
+    });
+  });
+};
 
 /*
  * Pomocnik Instalatora PWA — etap 6: proces wyceny i interfejs mobilny.

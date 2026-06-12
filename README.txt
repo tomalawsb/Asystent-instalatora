@@ -1,5 +1,5 @@
 Pomocnik Instalatora PWA
-Wersja: 4.6 - 1206260917
+Wersja: 4.7 - 1206261049
 
 Poprawka krytyczna uruchamiania:
 - naprawiono brak reakcji przycisków i funkcji,
@@ -17,3 +17,10 @@ Zmiany 4.6:
 - kolorystyka i układ są wybierane niezależnie,
 - skórki mogą zmieniać położenie nawigacji i etapów pracy,
 - wybór zapisuje się w ustawieniach i kopii danych.
+
+
+Zmiany 4.7:
+- AI OpenAI jest głównym silnikiem analizy; parser lokalny działa wyłącznie awaryjnie.
+- opcjonalne wyszukiwanie brakujących cen w internecie przez web_search.
+- ceny AI mogą pozostać tylko w wycenie, zostać zapisane po zatwierdzeniu albo automatycznie.
+- obsługa wariantów ofert i źródeł cen.

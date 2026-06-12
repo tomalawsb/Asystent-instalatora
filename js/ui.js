@@ -57,10 +57,12 @@ function initForm() {
   if ($('dropboxToken')) $('dropboxToken').value = settings.dropboxAccessToken || '';
   if ($('dropboxPath')) $('dropboxPath').value = settings.dropboxPath || '/pomocnik_instalatora_data.json';
   if ($('dropboxAutoSync')) $('dropboxAutoSync').checked = !!settings.dropboxAutoSync;
-  if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
+  if ($('aiParserMode')) $('aiParserMode').value = 'ai';
   if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
   fillAiModelSelect();
-  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4o-mini');
+  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4.1-mini');
+  if ($('aiUseWebSearch')) $('aiUseWebSearch').checked = settings.aiUseWebSearch !== false;
+  if ($('aiCatalogPriceImport')) $('aiCatalogPriceImport').value = normalizeAiCatalogPriceImport(settings.aiCatalogPriceImport);
   renderAiParserStatus();
   $('phraseDictionary').value = loadPhraseDictionaryText();
   fillSelect($('jobType'), CATEGORIES);
@@ -126,6 +128,8 @@ function initEvents() {
   });
   if ($('aiParserMode')) $('aiParserMode').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
   if ($('aiModel')) $('aiModel').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
+  if ($('aiUseWebSearch')) $('aiUseWebSearch').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
+  if ($('aiCatalogPriceImport')) $('aiCatalogPriceImport').addEventListener('change', () => renderAiParserStatus('Kliknij „Zapisz wszystkie ustawienia”, aby zachować sposób zapisywania cen AI.'));
   $('clearDataBtn').addEventListener('click', clearLocalData);
   $('exportBackupBtn').addEventListener('click', exportBackup);
   $('importBackupBtn').addEventListener('click', () => $('importBackupFile').click());

@@ -15,9 +15,11 @@ function defaultSettings() {
     lastDropboxSyncAt: '',
     uiTheme: 'light',
     uiSkin: 'standard',
-    aiParserMode: 'local',
+    aiParserMode: 'ai',
     aiOpenAiKey: '',
-    aiModel: 'gpt-4o-mini',
+    aiModel: 'gpt-4.1-mini',
+    aiUseWebSearch: true,
+    aiCatalogPriceImport: 'after_accept',
     aiLastTestAt: ''
   };
 }
@@ -241,10 +243,12 @@ function refreshFormAfterBackupImport() {
   if ($('dropboxAutoSync')) $('dropboxAutoSync').checked = !!settings.dropboxAutoSync;
   if ($('uiTheme')) $('uiTheme').value = normalizeTheme(settings.uiTheme || 'light');
   if ($('uiSkin')) $('uiSkin').value = normalizeSkin(settings.uiSkin || 'standard');
-  if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
+  if ($('aiParserMode')) $('aiParserMode').value = 'ai';
   if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
   fillAiModelSelect();
-  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4o-mini');
+  if ($('aiModel')) $('aiModel').value = normalizeAiModel(settings.aiModel || 'gpt-4.1-mini');
+  if ($('aiUseWebSearch')) $('aiUseWebSearch').checked = settings.aiUseWebSearch !== false;
+  if ($('aiCatalogPriceImport')) $('aiCatalogPriceImport').value = normalizeAiCatalogPriceImport(settings.aiCatalogPriceImport);
   renderAiParserStatus();
   if ($('phraseDictionary')) $('phraseDictionary').value = loadPhraseDictionaryText();
   fillSelect($('jobType'), CATEGORIES);
@@ -323,9 +327,11 @@ function readSettingsFromForm() {
     dropboxAutoSync: !!$('dropboxAutoSync')?.checked,
     uiTheme: normalizeTheme($('uiTheme')?.value || current.uiTheme || 'light'),
     uiSkin: normalizeSkin($('uiSkin')?.value || current.uiSkin || 'standard'),
-    aiParserMode: normalizeAiParserMode($('aiParserMode')?.value || current.aiParserMode || 'local'),
+    aiParserMode: 'ai',
     aiOpenAiKey: $('aiOpenAiKey')?.value.trim() || current.aiOpenAiKey || '',
-    aiModel: getSelectedAiModel(current.aiModel)
+    aiModel: getSelectedAiModel(current.aiModel || 'gpt-4.1-mini'),
+    aiUseWebSearch: $('aiUseWebSearch') ? !!$('aiUseWebSearch').checked : current.aiUseWebSearch !== false,
+    aiCatalogPriceImport: normalizeAiCatalogPriceImport($('aiCatalogPriceImport')?.value || current.aiCatalogPriceImport)
   };
 }
 

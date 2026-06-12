@@ -519,22 +519,33 @@
                 </div>
               </div>
               <div class="form-grid">
-                <label>Domyślny tryb rozbijania
+                <label>Tryb analizy
                   <select id="aiParserMode">
-                    <option value="local">Parser lokalny</option>
-                    <option value="ai">AI OpenAI</option>
+                    <option value="ai">AI OpenAI + awaryjny parser lokalny</option>
                   </select>
+                  <small>Parser lokalny uruchomi się wyłącznie wtedy, gdy AI nie odpowie, zabraknie klucza albo nie będzie internetu.</small>
                 </label>
                 <label>Model OpenAI
                   <select id="aiModel">
-                    <option value="gpt-4o-mini">gpt-4o-mini — tańszy / szybki</option>
-                    <option value="gpt-4o">gpt-4o — dokładniejszy</option>
-                    <option value="gpt-4.1-mini">gpt-4.1-mini — nowszy mały model</option>
-                    <option value="gpt-4.1">gpt-4.1 — mocniejszy model</option>
+                    <option value="gpt-4.1-mini">gpt-4.1-mini — szybki i dokładny</option>
+                    <option value="gpt-4.1">gpt-4.1 — dokładniejszy</option>
+                    <option value="gpt-5.5">gpt-5.5 — najmocniejszy</option>
                   </select>
                 </label>
                 <label class="span-2">Klucz OpenAI API
                   <input id="aiOpenAiKey" type="password" autocomplete="off" placeholder="sk-...">
+                </label>
+                <label class="checkbox-row span-2">
+                  <input id="aiUseWebSearch" type="checkbox">
+                  <span>Zezwalaj AI na wyszukiwanie brakujących cen w internecie</span>
+                </label>
+                <label class="span-2">Ceny znalezione przez AI, których nie ma w cenniku
+                  <select id="aiCatalogPriceImport">
+                    <option value="quote_only">Użyj tylko w aktualnej wycenie</option>
+                    <option value="after_accept">Po zatwierdzeniu dopisz do cennika</option>
+                    <option value="automatic">Automatycznie dopisz po analizie</option>
+                  </select>
+                  <small>Program zapisuje cenę netto wraz z nazwą i jednostką. Źródło ceny jest widoczne w podglądzie analizy.</small>
                 </label>
               </div>
               <div class="action-row">
