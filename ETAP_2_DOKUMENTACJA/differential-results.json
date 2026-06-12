@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-06-12T05:19:26.692Z",
+  "original": "app.js z pakietu etapu 1 (porównanie wykonane przed utworzeniem paczki)",
+  "summary": {
+    "pass": 8,
+    "fail": 0
+  },
+  "results": [
+    {
+      "name": "parser:CCTV_01",
+      "status": "PASS"
+    },
+    {
+      "name": "parser:CCTV_02",
+      "status": "PASS"
+    },
+    {
+      "name": "parser:ANTENA_01",
+      "status": "PASS"
+    },
+    {
+      "name": "parser:WIFI_01",
+      "status": "PASS"
+    },
+    {
+      "name": "calculateTotals",
+      "status": "PASS"
+    },
+    {
+      "name": "mergeCatalogs",
+      "status": "PASS"
+    },
+    {
+      "name": "buildClientSms",
+      "status": "PASS"
+    },
+    {
+      "name": "buildReport",
+      "status": "PASS"
+    }
+  ]
+}

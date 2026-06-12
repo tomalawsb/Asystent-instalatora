@@ -1,0 +1,91 @@
+{
+  "detectTypes": [
+    744,
+    3285
+  ],
+  "renderLearnedRules": [
+    1904,
+    3859
+  ],
+  "rememberParserCorrection": [
+    1925,
+    3807
+  ],
+  "applyLearnedCorrections": [
+    1945,
+    3830
+  ],
+  "createQuoteFromParsedResult": [
+    2040,
+    4327
+  ],
+  "acceptParserPreview": [
+    2226,
+    3779
+  ],
+  "applyParsedResult": [
+    2277,
+    4303
+  ],
+  "renderParserPreview": [
+    2289,
+    3680,
+    4269
+  ],
+  "parseSmartCommand": [
+    2331,
+    3388,
+    4122
+  ],
+  "detectMissingData": [
+    2394,
+    3651,
+    4231
+  ],
+  "extractSpecialVoiceItems": [
+    2494,
+    3462
+  ],
+  "looksLikeAccessoryClause": [
+    2622,
+    3935
+  ],
+  "parseCableVoiceItems": [
+    2657,
+    3570
+  ],
+  "splitCableClauses": [
+    2710,
+    3941
+  ],
+  "detectCableMaterialType": [
+    2735,
+    3619
+  ],
+  "parseClientName": [
+    2873,
+    3304,
+    3876
+  ],
+  "parseClientAddress": [
+    2928,
+    3349,
+    4086
+  ],
+  "parseCameraTypeBreakdown": [
+    3535,
+    4192
+  ],
+  "parseBoxMaterialLoose": [
+    3551,
+    3951
+  ],
+  "splitCableClausesEnhanced": [
+    3609,
+    3925
+  ],
+  "parseListwaVoiceItems": [
+    3636,
+    4208
+  ]
+}

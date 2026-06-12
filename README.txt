@@ -13,3 +13,15 @@ Zmiany w tej paczce:
 
 Uwaga techniczna:
 Klucz OpenAI nie jest zapisany w plikach programu ani w repozytorium GitHub. Jest zapamiętywany lokalnie w konkretnej przeglądarce/PWA. Przy takim założeniu nie ma backendu, ale osoba mająca dostęp do urządzenia albo złośliwe rozszerzenie przeglądarki mogłoby potencjalnie odczytać localStorage.
+
+Etap 2 - 1206260716
+- rozdzielono logikę aplikacji na moduły w katalogu js,
+- index.html ładuje moduły zamiast jednego monolitycznego pliku,
+- pozostawiono app.js jako automatycznie generowany pakiet zgodności,
+- usunięto 26 nieaktywnych, wcześniejszych deklaracji funkcji,
+- dodano narzędzie tools/build-app-bundle.js do odbudowy app.js,
+- zaktualizowano cache service workera dla nowej struktury,
+- funkcjonalność i interfejs pozostawiono bez celowych zmian.
+
+Odbudowa app.js:
+node tools/build-app-bundle.js

@@ -91,8 +91,14 @@ function createAppContext() {
   };
   context.globalThis = context;
   vm.createContext(context);
-  const appCode = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
-  vm.runInContext(appCode, context, { filename: 'app.js' });
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const scripts = [...html.matchAll(/<script\s+src=["']([^"']+)["']/g)]
+    .map(match => match[1])
+    .filter(src => src.startsWith('js/'));
+  for (const script of scripts) {
+    const code = fs.readFileSync(path.join(ROOT, script), 'utf8');
+    vm.runInContext(code, context, { filename: script });
+  }
   return { context, storageMap };
 }
 
@@ -117,15 +123,21 @@ function runStaticTests() {
     }
   }
 
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+
   try {
+    const htmlScripts = [...html.matchAll(/<script\s+src=["']([^"']+)["']/g)].map(x => x[1]);
+    for (const script of htmlScripts) {
+      if (!script.endsWith('.js')) continue;
+      new vm.Script(fs.readFileSync(path.join(ROOT, script), 'utf8'));
+    }
     new vm.Script(fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8'));
-    pass(group, 'Składnia JavaScript app.js');
+    pass(group, 'Składnia modułów JavaScript i pakietu app.js');
   } catch (error) {
-    fail(group, 'Składnia JavaScript app.js', error.message);
+    fail(group, 'Składnia modułów JavaScript i pakietu app.js', error.message);
   }
 
   const app = fs.readFileSync(path.join(ROOT, 'app.js'), 'utf8');
-  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const version = JSON.parse(fs.readFileSync(path.join(ROOT, 'app-version.json'), 'utf8')).version;
   const appVersionMatch = app.match(/const APP_VERSION\s*=\s*['"]([^'"]+)/);
   const appVersion = appVersionMatch ? appVersionMatch[1] : '';

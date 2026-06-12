@@ -1,10 +1,21 @@
 const CACHE_PREFIX = 'pomocnik-instalatora-pwa-';
-const CACHE_NAME = 'pomocnik-instalatora-pwa-3-8-0706261140-ai-local-key-model-select';
+const CACHE_NAME = 'pomocnik-instalatora-pwa-3-8-etap-2-moduly-1206260710';
 const FILES = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './js/storage.js',
+  './js/catalog.js',
+  './js/quote.js',
+  './js/parser-local.js',
+  './js/parser-ai.js',
+  './js/sync.js',
+  './js/export.js',
+  './js/ui.js',
+  './js/state.js',
+  './js/patches.js',
+  './js/ai-runtime.js',
   './pricing-data.js',
   './material-prices.js',
   './material-prices.json',

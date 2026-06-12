@@ -1,0 +1,13 @@
+[
+  "storage.js",
+  "catalog.js",
+  "quote.js",
+  "parser-local.js",
+  "parser-ai.js",
+  "sync.js",
+  "export.js",
+  "ui.js",
+  "state.js",
+  "patches.js",
+  "ai-runtime.js"
+]

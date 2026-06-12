@@ -1,10 +1,10 @@
 # Wyniki automatycznych testów bazowych
 
-Data UTC: 2026-06-12T05:04:38.746Z
+Data UTC: 2026-06-12T05:19:31.147Z
 
-- PASS: 37
+- PASS: 38
 - FAIL: 4
-- WARN: 4
+- WARN: 3
 
 ## Pliki i spójność
 
@@ -21,9 +21,9 @@ Data UTC: 2026-06-12T05:04:38.746Z
 - **PASS** — Poprawny JSON: cennik.json
 - **PASS** — Poprawny JSON: material-prices.json
 - **PASS** — Poprawny JSON: dane_uczace_transkrypcji.json
-- **PASS** — Składnia JavaScript app.js
+- **PASS** — Składnia modułów JavaScript i pakietu app.js
 - **WARN** — Jedna wersja programu we wszystkich plikach — app-version.json: 3.8 - 0706261140 AI Lokalny; app.js: 3.7 - 1605261805 AI Prosta
-- **WARN** — Brak ponownych deklaracji funkcji — detectTypes ×2, renderLearnedRules ×2, rememberParserCorrection ×2, applyLearnedCorrections ×2, createQuoteFromParsedResult ×2, acceptParserPreview ×2, applyParsedResult ×2, renderParserPreview ×3, parseSmartCommand ×3, detectMissingData ×3, extractSpecialVoiceItems ×2, looksLikeAccessoryClause ×2, parseCableVoiceItems ×2, splitCableClauses ×2, detectCableMaterialType ×2, parseClientName ×3, parseClientAddress ×3, parseCameraTypeBreakdown ×2, parseBoxMaterialLoose ×2, splitCableClausesEnhanced ×2, parseListwaVoiceItems ×2
+- **PASS** — Brak ponownych deklaracji funkcji
 - **PASS** — Unikalne identyfikatory HTML
 - **PASS** — Statyczne odwołania JS mają elementy HTML
 - **PASS** — Pliki cache service workera istnieją
@@ -39,13 +39,13 @@ Data UTC: 2026-06-12T05:04:38.746Z
 - **PASS** — Zmiana VAT na 8% — {"servicesNet":100,"billedKm":0,"distanceNet":0,"net":100,"vat":8,"gross":108}
 ## Zapis i synchronizacja danych
 
-- **PASS** — Scalanie wybiera nowszą wycenę — [{"id":"q1","createdAt":"2026-01-01T10:00:00Z","clientName":"Nowa","clientPhone":"","clientAddress":"","visitDate":"","jobType":"Kamery CCTV","notes":"","distanceKm":0,"distanceRate":2,"freeKm":20,"services":[],"updatedAt":"2026-01-02T10:00:00Z","version":2,"deletedAt":null,"deviceId":"25e310b1-7511-4a66-b3de-5d630708214d"}]
-- **PASS** — Zapis i odczyt aktywnej wyceny — [{"id":"q2","createdAt":"2026-01-01T10:00:00Z","clientName":"Test","clientPhone":"","clientAddress":"","visitDate":"","jobType":"Kamery CCTV","notes":"","distanceKm":0,"distanceRate":2,"freeKm":20,"services":[],"updatedAt":"2026-01-01T10:00:00Z","version":1,"deletedAt":null,"deviceId":"25e310b1-7511-4a66-b3de-5d630708214d"}]
+- **PASS** — Scalanie wybiera nowszą wycenę — [{"id":"q1","createdAt":"2026-01-01T10:00:00Z","clientName":"Nowa","clientPhone":"","clientAddress":"","visitDate":"","jobType":"Kamery CCTV","notes":"","distanceKm":0,"distanceRate":2,"freeKm":20,"services":[],"updatedAt":"2026-01-02T10:00:00Z","version":2,"deletedAt":null,"deviceId":"11ea310b-ffee-44ce-b212-0bdb30efd804"}]
+- **PASS** — Zapis i odczyt aktywnej wyceny — [{"id":"q2","createdAt":"2026-01-01T10:00:00Z","clientName":"Test","clientPhone":"","clientAddress":"","visitDate":"","jobType":"Kamery CCTV","notes":"","distanceKm":0,"distanceRate":2,"freeKm":20,"services":[],"updatedAt":"2026-01-01T10:00:00Z","version":1,"deletedAt":null,"deviceId":"11ea310b-ffee-44ce-b212-0bdb30efd804"}]
 - **PASS** — Usunięta wycena znika z aktywnych — []
-- **PASS** — Znacznik usunięcia pozostaje do synchronizacji — [{"id":"q2","createdAt":"2026-01-01T10:00:00Z","clientName":"Test","clientPhone":"","clientAddress":"","visitDate":"","jobType":"Kamery CCTV","notes":"","distanceKm":0,"distanceRate":2,"freeKm":20,"services":[],"updatedAt":"2026-06-12T05:04:36.531Z","version":2,"deletedAt":"2026-06-12T05:04:36.531Z","deviceId":"25e310b1-7511-4a66-b3de-5d630708214d"}]
+- **PASS** — Znacznik usunięcia pozostaje do synchronizacji — [{"id":"q2","createdAt":"2026-01-01T10:00:00Z","clientName":"Test","clientPhone":"","clientAddress":"","visitDate":"","jobType":"Kamery CCTV","notes":"","distanceKm":0,"distanceRate":2,"freeKm":20,"services":[],"updatedAt":"2026-06-12T05:19:28.487Z","version":2,"deletedAt":"2026-06-12T05:19:28.487Z","deviceId":"11ea310b-ffee-44ce-b212-0bdb30efd804"}]
 - **PASS** — Normalizacja ścieżki Dropbox — /folder/dane.json
-- **PASS** — Ładunek synchronizacji ma schemat i rekordy — {"schema":2,"records":1,"deviceId":"25e310b1-7511-4a66-b3de-5d630708214d"}
-- **PASS** — Odczyt rekordów ze starszego formatu kopii — [{"id":"backup1","createdAt":"2026-01-01T10:00:00Z","clientName":"Z kopii","clientPhone":"","clientAddress":"","visitDate":"","jobType":"Kamery CCTV","notes":"","distanceKm":0,"distanceRate":2,"freeKm":20,"services":[],"updatedAt":"2026-01-01T10:00:00Z","deletedAt":null,"deviceId":"25e310b1-7511-4a66-b3de-5d630708214d","version":0}]
+- **PASS** — Ładunek synchronizacji ma schemat i rekordy — {"schema":2,"records":1,"deviceId":"11ea310b-ffee-44ce-b212-0bdb30efd804"}
+- **PASS** — Odczyt rekordów ze starszego formatu kopii — [{"id":"backup1","createdAt":"2026-01-01T10:00:00Z","clientName":"Z kopii","clientPhone":"","clientAddress":"","visitDate":"","jobType":"Kamery CCTV","notes":"","distanceKm":0,"distanceRate":2,"freeKm":20,"services":[],"updatedAt":"2026-01-01T10:00:00Z","deletedAt":null,"deviceId":"11ea310b-ffee-44ce-b212-0bdb30efd804","version":0}]
 - **PASS** — Scalanie cennika zachowuje lokalną cenę i dopisuje pozycję — [{"name":"Pozycja","unit":"szt","price_net":20},{"name":"Nowa","unit":"szt","price_net":5}]
 - **WARN** — Połączenie z prawdziwym Dropbox — Nie wykonano bez tokenu użytkownika. Procedura ręczna jest w MANUAL_TEST_CHECKLIST.md.
 ## Eksport i komunikacja
@@ -61,5 +61,5 @@ Data UTC: 2026-06-12T05:04:38.746Z
 - **FAIL** — WIFI_01: Konfiguracja routera bez elementów CCTV — klient: oczekiwano „Piotr Test”, jest „-”; brak pozycji „router” × 1; brak pozycji „Wi-Fi” × 1; błędnie dodano „Uruchomienie podglądu zdalnego”
 ## Parser AI
 
-- **PASS** — Konwersja odpowiedzi AI do formatu aplikacji — [{"id":"ed2ea81e-8a03-4107-8bce-867e306b8829","category":"Kamery CCTV","name":"Montaż kamery IP zewnętrznej","unit":"szt","quantity":2,"priceNet":260,"_voiceKey":"ai_camera_mount","itemKind":"labor","parserSource":"ai","parserKey":"ai_camera_mount","learningSignature":"ai|montaz kamery ip zewnetrznej|szt|260"}]
+- **PASS** — Konwersja odpowiedzi AI do formatu aplikacji — [{"id":"5416e4a7-1ba3-4d1a-9584-dce0578f02e2","category":"Kamery CCTV","name":"Montaż kamery IP zewnętrznej","unit":"szt","quantity":2,"priceNet":260,"_voiceKey":"ai_camera_mount","itemKind":"labor","parserSource":"ai","parserKey":"ai_camera_mount","learningSignature":"ai|montaz kamery ip zewnetrznej|szt|260"}]
 - **WARN** — Rzeczywiste zapytanie do OpenAI — Nie wykonano bez klucza API i świadomego użycia płatnego zapytania. Procedura ręczna jest w MANUAL_TEST_CHECKLIST.md.
