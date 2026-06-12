@@ -1,0 +1,71 @@
+[
+  {
+    "id": "CCTV_01",
+    "description": "Pełne dane klienta, dwie kamery, przewód i dojazd",
+    "text": "Jan Kowalski ulica Szymanowskiego 48 Mielec telefon 501222333. Trzeba zamontować 2 kamery po 200 zł netto, 30 metrów kabla po 3 zł netto. Dojazd 45 km po 2 zł, pierwsze 20 km gratis.",
+    "expect": {
+      "clientName": "Jan Kowalski",
+      "phoneDigits": "501222333",
+      "addressIncludes": ["Szymanowskiego 48", "Mielec"],
+      "distanceKm": 45,
+      "distanceRate": 2,
+      "freeKm": 20,
+      "items": [
+        {"nameIncludes": "kamer", "quantity": 2},
+        {"nameIncludes": "skrętki", "quantity": 30}
+      ],
+      "forbiddenItems": ["Uruchomienie podglądu zdalnego"]
+    }
+  },
+  {
+    "id": "CCTV_02",
+    "description": "Naturalna forma z etykietą Klient i osobnymi materiałami",
+    "text": "Klient Jan Kowalski, telefon 501 222 333, adres ulica Szymanowskiego 48 Mielec. Montaż 2 kamer zewnętrznych po 200 zł netto. 30 metrów skrętki Cat 6 po 3 zł netto. Dojazd 45 km, 20 km bezpłatne, stawka 2 zł.",
+    "expect": {
+      "clientName": "Jan Kowalski",
+      "phoneDigits": "501222333",
+      "addressIncludes": ["Szymanowskiego 48", "Mielec"],
+      "distanceKm": 45,
+      "distanceRate": 2,
+      "freeKm": 20,
+      "items": [
+        {"nameIncludes": "kamer", "quantity": 2},
+        {"nameIncludes": "Cat 6", "quantity": 30}
+      ],
+      "forbiddenItems": ["Uruchomienie podglądu zdalnego"]
+    }
+  },
+  {
+    "id": "ANTENA_01",
+    "description": "Antena, przewód RG6 i złącza F",
+    "text": "Klient Anna Nowak telefon 600700800, adres Czermin 12. Montaż anteny DVB-T, ustawienie anteny i 45 metrów kabla antenowego RG6. 8 złączy F. Dojazd 10 km.",
+    "expect": {
+      "clientName": "Anna Nowak",
+      "phoneDigits": "600700800",
+      "addressIncludes": ["Czermin", "12"],
+      "distanceKm": 10,
+      "items": [
+        {"nameIncludes": "Montaż anteny", "quantity": 1},
+        {"nameIncludes": "RG6", "quantity": 45},
+        {"nameIncludes": "Złącze F", "quantity": 8}
+      ],
+      "forbiddenItems": ["Uruchomienie podglądu zdalnego"]
+    }
+  },
+  {
+    "id": "WIFI_01",
+    "description": "Konfiguracja routera bez elementów CCTV",
+    "text": "Piotr Test, telefon 500600700, adres Mielec ulica Wolności 5. Konfiguracja routera i test Wi-Fi. Dojazd 0 km.",
+    "expect": {
+      "clientName": "Piotr Test",
+      "phoneDigits": "500600700",
+      "addressIncludes": ["Wolności 5", "Mielec"],
+      "distanceKm": 0,
+      "items": [
+        {"nameIncludes": "router", "quantity": 1},
+        {"nameIncludes": "Wi-Fi", "quantity": 1}
+      ],
+      "forbiddenItems": ["Uruchomienie podglądu zdalnego"]
+    }
+  }
+]
