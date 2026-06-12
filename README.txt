@@ -1,18 +1,30 @@
 Pomocnik Instalatora PWA
-Aktualna wersja programu jest zapisana w pliku app-version.json.
+Wersja: 4.0 - 1206260737
 
-Etap 3 — jedno zrodlo danych i wersji:
-- numer wersji jest pobierany wylacznie z app-version.json,
-- cennik uslug jest przechowywany wylacznie w cennik.json,
-- ceny materialow sa przechowywane wylacznie w material-prices.json,
-- usunieto powielone pliki pricing-data.js oraz material-prices.js,
-- js/bootstrap.js wczytuje konfiguracje i dane przed uruchomieniem pozostalych modulow,
-- service worker tworzy nazwe cache automatycznie na podstawie app-version.json,
-- app.js nadal jest generowanym pakietem zgodnosci i nie jest glownym punktem uruchamiania,
-- dodano upload_to_github.ps1 do automatycznej synchronizacji z repozytorium.
+ETAP 4 — NOWY INTERFEJS PROCESOWY
 
-Repozytorium:
-https://github.com/tomalawsb/Asystent-instalatora
+Najważniejsze zmiany:
+- nowa główna nawigacja: Wycena, Zapisane, Cennik, Więcej,
+- na telefonie główna nawigacja znajduje się na dole ekranu,
+- na komputerze główna nawigacja znajduje się w bocznym panelu,
+- tworzenie wyceny podzielono na cztery etapy:
+  1. Opis wizyty,
+  2. Weryfikacja danych,
+  3. Pozycje i ceny,
+  4. Finalizacja,
+- ustawienia podzielono na: Podstawowe, Analiza tekstu, Synchronizacja, Zaawansowane i Pomoc,
+- cennik oraz zarządzanie bazami otrzymały czytelniejszy układ,
+- zachowano wszystkie funkcje, identyfikatory pól i zgodność z danymi z wersji 3.9,
+- nie zmieniano parsera lokalnego, parsera AI, obliczeń, zapisu wycen ani synchronizacji Dropbox.
 
-Uruchamianie:
-Aplikacje nalezy otwierac przez serwer HTTP/HTTPS. Tryb PWA i ladowanie plikow JSON nie dzialaja poprawnie po bezposrednim otwarciu index.html jako file://.
+Uruchomienie lokalne:
+- aplikację należy otwierać przez serwer HTTP, a nie bezpośrednio jako plik file://,
+- przykładowo: python -m http.server 8000
+- następnie: http://localhost:8000
+
+Wysyłka na GitHub:
+- uruchom plik upload_to_github.ps1 w głównym katalogu programu,
+- repozytorium: https://github.com/tomalawsb/Asystent-instalatora.git
+
+Uwaga dotycząca OpenAI:
+Klucz API jest zapisywany lokalnie w przeglądarce/PWA. Nie jest umieszczany w plikach programu ani w repozytorium GitHub.

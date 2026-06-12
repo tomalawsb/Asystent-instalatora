@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-12T05:29:55.946Z",
+  "generatedAt": "2026-06-12T05:41:13.171Z",
   "summary": {
     "pass": 44,
     "fail": 4,
@@ -106,7 +106,7 @@
       "group": "Pliki i spójność",
       "name": "Wersja ma jedno zrodlo w app-version.json",
       "status": "PASS",
-      "details": "3.9 - 1206260723"
+      "details": "4.0 - 1206260737"
     },
     {
       "group": "Pliki i spójność",
@@ -202,13 +202,13 @@
       "group": "Zapis i synchronizacja danych",
       "name": "Scalanie wybiera nowszą wycenę",
       "status": "PASS",
-      "details": "[{\"id\":\"q1\",\"createdAt\":\"2026-01-01T10:00:00Z\",\"clientName\":\"Nowa\",\"clientPhone\":\"\",\"clientAddress\":\"\",\"visitDate\":\"\",\"jobType\":\"Kamery CCTV\",\"notes\":\"\",\"distanceKm\":0,\"distanceRate\":2,\"freeKm\":20,\"services\":[],\"updatedAt\":\"2026-01-02T10:00:00Z\",\"version\":2,\"deletedAt\":null,\"deviceId\":\"a06ef742-f074-49eb-a7e0-0b7cf823f701\"}]"
+      "details": "[{\"id\":\"q1\",\"createdAt\":\"2026-01-01T10:00:00Z\",\"clientName\":\"Nowa\",\"clientPhone\":\"\",\"clientAddress\":\"\",\"visitDate\":\"\",\"jobType\":\"Kamery CCTV\",\"notes\":\"\",\"distanceKm\":0,\"distanceRate\":2,\"freeKm\":20,\"services\":[],\"updatedAt\":\"2026-01-02T10:00:00Z\",\"version\":2,\"deletedAt\":null,\"deviceId\":\"18aabd3d-5086-440e-b65e-e9288ae0c777\"}]"
     },
     {
       "group": "Zapis i synchronizacja danych",
       "name": "Zapis i odczyt aktywnej wyceny",
       "status": "PASS",
-      "details": "[{\"id\":\"q2\",\"createdAt\":\"2026-01-01T10:00:00Z\",\"clientName\":\"Test\",\"clientPhone\":\"\",\"clientAddress\":\"\",\"visitDate\":\"\",\"jobType\":\"Kamery CCTV\",\"notes\":\"\",\"distanceKm\":0,\"distanceRate\":2,\"freeKm\":20,\"services\":[],\"updatedAt\":\"2026-01-01T10:00:00Z\",\"version\":1,\"deletedAt\":null,\"deviceId\":\"a06ef742-f074-49eb-a7e0-0b7cf823f701\"}]"
+      "details": "[{\"id\":\"q2\",\"createdAt\":\"2026-01-01T10:00:00Z\",\"clientName\":\"Test\",\"clientPhone\":\"\",\"clientAddress\":\"\",\"visitDate\":\"\",\"jobType\":\"Kamery CCTV\",\"notes\":\"\",\"distanceKm\":0,\"distanceRate\":2,\"freeKm\":20,\"services\":[],\"updatedAt\":\"2026-01-01T10:00:00Z\",\"version\":1,\"deletedAt\":null,\"deviceId\":\"18aabd3d-5086-440e-b65e-e9288ae0c777\"}]"
     },
     {
       "group": "Zapis i synchronizacja danych",
@@ -220,7 +220,7 @@
       "group": "Zapis i synchronizacja danych",
       "name": "Znacznik usunięcia pozostaje do synchronizacji",
       "status": "PASS",
-      "details": "[{\"id\":\"q2\",\"createdAt\":\"2026-01-01T10:00:00Z\",\"clientName\":\"Test\",\"clientPhone\":\"\",\"clientAddress\":\"\",\"visitDate\":\"\",\"jobType\":\"Kamery CCTV\",\"notes\":\"\",\"distanceKm\":0,\"distanceRate\":2,\"freeKm\":20,\"services\":[],\"updatedAt\":\"2026-06-12T05:29:53.711Z\",\"version\":2,\"deletedAt\":\"2026-06-12T05:29:53.711Z\",\"deviceId\":\"a06ef742-f074-49eb-a7e0-0b7cf823f701\"}]"
+      "details": "[{\"id\":\"q2\",\"createdAt\":\"2026-01-01T10:00:00Z\",\"clientName\":\"Test\",\"clientPhone\":\"\",\"clientAddress\":\"\",\"visitDate\":\"\",\"jobType\":\"Kamery CCTV\",\"notes\":\"\",\"distanceKm\":0,\"distanceRate\":2,\"freeKm\":20,\"services\":[],\"updatedAt\":\"2026-06-12T05:41:10.940Z\",\"version\":2,\"deletedAt\":\"2026-06-12T05:41:10.940Z\",\"deviceId\":\"18aabd3d-5086-440e-b65e-e9288ae0c777\"}]"
     },
     {
       "group": "Zapis i synchronizacja danych",
@@ -232,13 +232,13 @@
       "group": "Zapis i synchronizacja danych",
       "name": "Ładunek synchronizacji ma schemat i rekordy",
       "status": "PASS",
-      "details": "{\"schema\":2,\"records\":1,\"deviceId\":\"a06ef742-f074-49eb-a7e0-0b7cf823f701\"}"
+      "details": "{\"schema\":2,\"records\":1,\"deviceId\":\"18aabd3d-5086-440e-b65e-e9288ae0c777\"}"
     },
     {
       "group": "Zapis i synchronizacja danych",
       "name": "Odczyt rekordów ze starszego formatu kopii",
       "status": "PASS",
-      "details": "[{\"id\":\"backup1\",\"createdAt\":\"2026-01-01T10:00:00Z\",\"clientName\":\"Z kopii\",\"clientPhone\":\"\",\"clientAddress\":\"\",\"visitDate\":\"\",\"jobType\":\"Kamery CCTV\",\"notes\":\"\",\"distanceKm\":0,\"distanceRate\":2,\"freeKm\":20,\"services\":[],\"updatedAt\":\"2026-01-01T10:00:00Z\",\"deletedAt\":null,\"deviceId\":\"a06ef742-f074-49eb-a7e0-0b7cf823f701\",\"version\":0}]"
+      "details": "[{\"id\":\"backup1\",\"createdAt\":\"2026-01-01T10:00:00Z\",\"clientName\":\"Z kopii\",\"clientPhone\":\"\",\"clientAddress\":\"\",\"visitDate\":\"\",\"jobType\":\"Kamery CCTV\",\"notes\":\"\",\"distanceKm\":0,\"distanceRate\":2,\"freeKm\":20,\"services\":[],\"updatedAt\":\"2026-01-01T10:00:00Z\",\"deletedAt\":null,\"deviceId\":\"18aabd3d-5086-440e-b65e-e9288ae0c777\",\"version\":0}]"
     },
     {
       "group": "Zapis i synchronizacja danych",
@@ -298,7 +298,7 @@
       "group": "Parser AI",
       "name": "Konwersja odpowiedzi AI do formatu aplikacji",
       "status": "PASS",
-      "details": "[{\"id\":\"fa580698-d8aa-4c8f-9ac6-109dc1cc4857\",\"category\":\"Kamery CCTV\",\"name\":\"Montaż kamery IP zewnętrznej\",\"unit\":\"szt\",\"quantity\":2,\"priceNet\":260,\"_voiceKey\":\"ai_camera_mount\",\"itemKind\":\"labor\",\"parserSource\":\"ai\",\"parserKey\":\"ai_camera_mount\",\"learningSignature\":\"ai|montaz kamery ip zewnetrznej|szt|260\"}]"
+      "details": "[{\"id\":\"adde2851-4ee3-456b-93f3-4068552c7dfe\",\"category\":\"Kamery CCTV\",\"name\":\"Montaż kamery IP zewnętrznej\",\"unit\":\"szt\",\"quantity\":2,\"priceNet\":260,\"_voiceKey\":\"ai_camera_mount\",\"itemKind\":\"labor\",\"parserSource\":\"ai\",\"parserKey\":\"ai_camera_mount\",\"learningSignature\":\"ai|montaz kamery ip zewnetrznej|szt|260\"}]"
     },
     {
       "group": "Parser AI",

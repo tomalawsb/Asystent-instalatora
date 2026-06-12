@@ -42,7 +42,8 @@ $RequiredFiles = @(
     "cennik.json",
     "material-prices.json",
     "js\bootstrap.js",
-    "js\state.js"
+    "js\state.js",
+    "js\workflow.js"
 )
 
 foreach ($File in $RequiredFiles) {

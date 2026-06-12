@@ -17,7 +17,8 @@ const APP_SCRIPT_FILES = [
   'js/ui.js',
   'js/state.js',
   'js/patches.js',
-  'js/ai-runtime.js'
+  'js/ai-runtime.js',
+  'js/workflow.js'
 ];
 
 const ROOT_URL = new URL('../', import.meta.url);

@@ -1,0 +1,33 @@
+Wersja: 4.0 - 1206260737
+
+ZMODYFIKOWANE:
+- index.html
+- style.css
+- app-version.json
+- README.txt
+- service-worker.js
+- app.js
+- js/bootstrap.js
+- tools/build-app-bundle.js
+- upload_to_github.ps1
+
+DODANE:
+- js/workflow.js
+- ETAP_4_DOKUMENTACJA/run_stage4_validation.py
+- ETAP_4_DOKUMENTACJA/run_stage4_ui_tests.py
+- ETAP_4_DOKUMENTACJA/VALIDATION_RESULTS.txt
+- ETAP_4_DOKUMENTACJA/validation-results.json
+- ETAP_4_DOKUMENTACJA/UI_TEST_RESULTS.txt
+- ETAP_4_DOKUMENTACJA/BASELINE_RESULTS.txt
+- ETAP_4_DOKUMENTACJA/DIFFERENTIAL_RESULTS.txt
+- ETAP_4_DOKUMENTACJA/MODULE_LOAD_ORDER.json
+- ETAP_4_DOKUMENTACJA/screenshot-desktop.png
+- ETAP_4_DOKUMENTACJA/screenshot-mobile.png
+
+NIE ZMIENIANO LOGIKI:
+- parsera lokalnego,
+- parsera OpenAI,
+- obliczeń netto/VAT/brutto,
+- zapisu wycen,
+- synchronizacji Dropbox,
+- cennika i bazy cen materiałów.

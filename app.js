@@ -1,6 +1,6 @@
 /*
  * PLIK GENEROWANY — nie edytowac recznie.
- * Wersja: 3.9 - 1206260723
+ * Wersja: 4.0 - 1206260737
  * Zrodla kodu: katalog js/.
  * Zrodla danych: app-version.json, cennik.json, material-prices.json.
  * Odbudowa: node tools/build-app-bundle.js
@@ -7787,4 +7787,263 @@ analyzeVoiceCommandFromField = function() {
 
 
 
+
+/*
+ * Pomocnik Instalatora PWA — etap 4: sterowanie interfejsem procesowym.
+ * Ten modul nie zmienia parsera, obliczen ani zapisu danych.
+ */
+
+(function () {
+  'use strict';
+
+  const STEP_META = {
+    1: {
+      title: 'Opis wizyty',
+      counter: 'Krok 1 z 4',
+      next: 'Dalej: weryfikacja',
+      hint: 'Dodaj opis wizyty albo przejdź dalej.'
+    },
+    2: {
+      title: 'Weryfikacja danych',
+      counter: 'Krok 2 z 4',
+      next: 'Dalej: wycena',
+      hint: 'Sprawdź dane klienta i zatwierdź wynik analizy.'
+    },
+    3: {
+      title: 'Pozycje i ceny',
+      counter: 'Krok 3 z 4',
+      next: 'Dalej: finalizacja',
+      hint: 'Uzupełnij pozycje, ceny i koszt dojazdu.'
+    },
+    4: {
+      title: 'Finalizacja',
+      counter: 'Krok 4 z 4',
+      next: 'Finalizacja',
+      hint: 'Sprawdź dokumenty i zapisz wycenę.'
+    }
+  };
+
+  let activeWorkflowStep = 1;
+
+  function getElement(id) {
+    return document.getElementById(id);
+  }
+
+  function serviceCount() {
+    if (typeof state !== 'undefined' && Array.isArray(state.services)) return state.services.length;
+    return document.querySelectorAll('#servicesBody tr').length;
+  }
+
+  function hasVoiceText() {
+    return Boolean(String(getElement('voiceCommand')?.value || '').trim());
+  }
+
+  function parserIsVisible() {
+    const preview = getElement('parserPreview');
+    return Boolean(preview && !preview.hidden);
+  }
+
+  function updateStepStatuses() {
+    const count = serviceCount();
+    const statuses = {
+      1: hasVoiceText() ? 'Gotowy' : (activeWorkflowStep === 1 ? 'Teraz' : 'Oczekuje'),
+      2: parserIsVisible() ? 'Sprawdź' : (count > 0 ? 'Gotowy' : (activeWorkflowStep === 2 ? 'Teraz' : 'Oczekuje')),
+      3: count > 0 ? `${count} ${count === 1 ? 'pozycja' : count < 5 ? 'pozycje' : 'pozycji'}` : (activeWorkflowStep === 3 ? 'Teraz' : 'Oczekuje'),
+      4: count > 0 ? 'Gotowe' : (activeWorkflowStep === 4 ? 'Teraz' : 'Oczekuje')
+    };
+
+    for (let step = 1; step <= 4; step += 1) {
+      const status = getElement(`step${step}Status`);
+      if (status) status.textContent = statuses[step];
+    }
+  }
+
+  function updateWorkflowMirrors() {
+    const gross = getElement('sumGross')?.textContent || '0,00 zł';
+    const client = String(getElement('clientName')?.value || '').trim();
+    const address = String(getElement('clientAddress')?.value || '').trim();
+    const count = serviceCount();
+
+    const grossMirror = getElement('finalGrossMirror');
+    if (grossMirror) grossMirror.textContent = gross;
+
+    const clientMirror = getElement('finalClientMirror');
+    if (clientMirror) {
+      clientMirror.textContent = client || address
+        ? [client || 'Klient bez nazwy', address].filter(Boolean).join(' — ')
+        : 'Aktualna wycena';
+    }
+
+    const countLabel = getElement('workflowServicesCount');
+    if (countLabel) {
+      countLabel.textContent = `${count} ${count === 1 ? 'pozycja' : count > 1 && count < 5 ? 'pozycje' : 'pozycji'}`;
+    }
+
+    updateStepStatuses();
+  }
+
+  function updateParserWaitingState() {
+    const waiting = getElement('parserWaitingState');
+    if (waiting) waiting.hidden = parserIsVisible();
+  }
+
+  function setWorkflowStep(step, options = {}) {
+    const normalized = Math.max(1, Math.min(4, Number(step) || 1));
+    const previous = activeWorkflowStep;
+    activeWorkflowStep = normalized;
+
+    document.querySelectorAll('[data-workflow-step]').forEach(panel => {
+      const isActive = Number(panel.dataset.workflowStep) === normalized;
+      panel.classList.toggle('active', isActive);
+      panel.hidden = !isActive;
+      panel.setAttribute('aria-hidden', String(!isActive));
+    });
+
+    document.querySelectorAll('[data-workflow-target]').forEach(button => {
+      const buttonStep = Number(button.dataset.workflowTarget);
+      const isActive = buttonStep === normalized;
+      button.classList.toggle('active', isActive);
+      button.classList.toggle('completed', buttonStep < normalized);
+      button.setAttribute('aria-current', isActive ? 'step' : 'false');
+    });
+
+    const meta = STEP_META[normalized];
+    const counter = getElement('workflowStepCounter');
+    const title = getElement('workflowStepTitle');
+    const next = getElement('workflowNextBtn');
+    const prev = getElement('workflowPrevBtn');
+    const hint = getElement('workflowActionHint');
+
+    if (counter) counter.textContent = meta.counter;
+    if (title) title.textContent = meta.title;
+    if (hint) hint.textContent = meta.hint;
+    if (prev) prev.disabled = normalized === 1;
+    if (next) {
+      next.hidden = normalized === 4;
+      next.textContent = meta.next;
+    }
+
+    updateParserWaitingState();
+    updateWorkflowMirrors();
+
+    if (options.scroll !== false && previous !== normalized) {
+      const heading = document.querySelector('.workflow-steps');
+      const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      heading?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    }
+  }
+
+  function initWorkflowNavigation() {
+    document.querySelectorAll('[data-workflow-target]').forEach(button => {
+      button.addEventListener('click', () => setWorkflowStep(button.dataset.workflowTarget));
+    });
+
+    getElement('workflowPrevBtn')?.addEventListener('click', () => setWorkflowStep(activeWorkflowStep - 1));
+    getElement('workflowNextBtn')?.addEventListener('click', () => setWorkflowStep(activeWorkflowStep + 1));
+
+    getElement('newQuoteBtn')?.addEventListener('click', () => {
+      window.setTimeout(() => {
+        document.querySelector('[data-tab="quoteTab"]')?.click();
+        setWorkflowStep(1);
+      }, 0);
+    });
+
+    getElement('acceptParserBtn')?.addEventListener('click', () => {
+      window.setTimeout(() => setWorkflowStep(3), 0);
+    });
+
+    getElement('rejectParserBtn')?.addEventListener('click', () => {
+      window.setTimeout(() => setWorkflowStep(1), 0);
+    });
+
+    getElement('savedQuotes')?.addEventListener('click', event => {
+      if (!event.target.closest('.load')) return;
+      window.setTimeout(() => setWorkflowStep(3, { scroll: false }), 0);
+    });
+
+    getElement('catalogView')?.addEventListener('click', event => {
+      if (!event.target.closest('[data-action="add"]')) return;
+      window.setTimeout(() => setWorkflowStep(3, { scroll: false }), 0);
+    });
+
+    getElement('voiceCommand')?.addEventListener('input', updateStepStatuses);
+    getElement('clientName')?.addEventListener('input', updateWorkflowMirrors);
+    getElement('clientAddress')?.addEventListener('input', updateWorkflowMirrors);
+  }
+
+  function initParserObserver() {
+    const preview = getElement('parserPreview');
+    if (!preview) return;
+
+    const observer = new MutationObserver(() => {
+      updateParserWaitingState();
+      updateStepStatuses();
+      if (!preview.hidden && activeWorkflowStep === 1) {
+        setWorkflowStep(2);
+      }
+    });
+
+    observer.observe(preview, {
+      attributes: true,
+      attributeFilter: ['hidden', 'style', 'class'],
+      childList: true,
+      subtree: false
+    });
+  }
+
+  function initValueObservers() {
+    const observer = new MutationObserver(updateWorkflowMirrors);
+    ['sumGross', 'sumNet', 'sumVat', 'servicesBody', 'serviceCards'].forEach(id => {
+      const element = getElement(id);
+      if (element) observer.observe(element, { childList: true, subtree: true, characterData: true });
+    });
+  }
+
+  function activateMorePanel(targetId) {
+    document.querySelectorAll('.more-nav-button').forEach(button => {
+      const active = button.dataset.moreTarget === targetId;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', String(active));
+    });
+
+    document.querySelectorAll('.more-panel').forEach(panel => {
+      const active = panel.id === targetId;
+      panel.classList.toggle('active', active);
+      panel.hidden = !active;
+    });
+  }
+
+  function initMoreNavigation() {
+    document.querySelectorAll('.more-nav-button').forEach(button => {
+      button.addEventListener('click', () => activateMorePanel(button.dataset.moreTarget));
+    });
+    activateMorePanel('settingsTab');
+  }
+
+  function improveMainNavigationAccessibility() {
+    document.querySelectorAll('.main-navigation .tab').forEach(button => {
+      button.setAttribute('aria-selected', String(button.classList.contains('active')));
+      button.addEventListener('click', () => {
+        document.querySelectorAll('.main-navigation .tab').forEach(item => {
+          item.setAttribute('aria-selected', String(item === button));
+        });
+      });
+    });
+  }
+
+  function initStage4Interface() {
+    initWorkflowNavigation();
+    initParserObserver();
+    initValueObservers();
+    initMoreNavigation();
+    improveMainNavigationAccessibility();
+    setWorkflowStep(1, { scroll: false });
+    updateWorkflowMirrors();
+  }
+
+  document.addEventListener('DOMContentLoaded', initStage4Interface);
+
+  window.setWorkflowStep = setWorkflowStep;
+  window.getWorkflowStep = () => activeWorkflowStep;
+}());
 

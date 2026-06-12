@@ -14,7 +14,8 @@ const files = [
   'ui.js',
   'state.js',
   'patches.js',
-  'ai-runtime.js'
+  'ai-runtime.js',
+  'workflow.js'
 ];
 
 const versionConfig = JSON.parse(fs.readFileSync(path.join(root, 'app-version.json'), 'utf8'));

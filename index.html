@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f6f8fb">
+  <meta name="theme-color" content="#f5f7fb">
   <meta name="description" content="Pomocnik Instalatora — szybkie wyceny, klienci, cennik i notatki z wizyt.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.dropboxapi.com https://content.dropboxapi.com https://api.openai.com https://*.workers.dev https://*.pages.dev https://*.vercel.app https://*.netlify.app http://localhost:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
   <title>Pomocnik Instalatora PWA</title>
@@ -13,494 +13,663 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div>
-        <div class="eyebrow" id="appVersionBadge">Wczytywanie wersji…</div>
-        <h1>Pomocnik Instalatora</h1>
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">PI</div>
+        <div>
+          <div class="eyebrow" id="appVersionBadge">Wczytywanie wersji…</div>
+          <h1>Pomocnik Instalatora</h1>
+          <p class="topbar-subtitle">Wycena wizyty od notatki do gotowej oferty</p>
+        </div>
       </div>
       <div class="top-actions">
-        <button id="installBtn" class="btn btn-soft" hidden>Zainstaluj</button>
+        <button id="installBtn" class="btn btn-soft" hidden>Zainstaluj aplikację</button>
+        <button id="newQuoteBtn" class="btn btn-primary">Nowa wycena</button>
       </div>
     </header>
 
-    <nav class="tabs" aria-label="Nawigacja">
-      <button class="tab active" data-tab="quoteTab">Nowa wycena</button>
-      <button class="tab" data-tab="savedTab">Zapisane</button>
-      <button class="tab" data-tab="catalogTab">Cennik</button>
-      <button class="tab" data-tab="settingsTab">Ustawienia</button>
-      <button class="tab" data-tab="helpTab">Pomoc</button>
-    </nav>
+    <div class="app-layout">
+      <nav class="tabs main-navigation" aria-label="Główna nawigacja">
+        <button class="tab active" data-tab="quoteTab" aria-label="Wycena">
+          <span class="nav-icon" aria-hidden="true">▤</span><span>Wycena</span>
+        </button>
+        <button class="tab" data-tab="savedTab" aria-label="Zapisane wyceny">
+          <span class="nav-icon" aria-hidden="true">▣</span><span>Zapisane</span>
+        </button>
+        <button class="tab" data-tab="catalogTab" aria-label="Cennik">
+          <span class="nav-icon" aria-hidden="true">₿</span><span>Cennik</span>
+        </button>
+        <button class="tab" data-tab="moreTab" aria-label="Więcej opcji">
+          <span class="nav-icon" aria-hidden="true">•••</span><span>Więcej</span>
+        </button>
+      </nav>
 
-    <nav class="quick-jumps" aria-label="Szybki przeskok w wycenie">
-      <a href="#dictationCard">Dyktowanie</a>
-      <a href="#clientDataCard">Dane</a>
-      <a href="#parserPreview">Rozbicie</a>
-      <a href="#summaryCard">Podsumowanie</a>
-      <a href="#servicesCard">Pozycje</a>
-      <a href="#materialsCard">Materiały</a>
-    </nav>
-
-    <main>
-      <section id="quoteTab" class="tab-panel active">
-        <div class="grid grid-main">
-          <section id="clientDataCard" class="card">
-            <div id="dictationCard" class="section-head">
-              <div>
-                <h2>Dyktowanie i rozbicie wizyty</h2>
-              </div>
-              <button id="newQuoteBtn" class="btn btn-ghost">Nowa wycena</button>
+      <main class="main-content">
+        <section id="quoteTab" class="tab-panel active">
+          <div class="workspace-heading">
+            <div>
+              <span class="workspace-kicker">Nowa wycena</span>
+              <h2>Przygotuj ofertę krok po kroku</h2>
+              <p>Każdy etap pokazuje tylko funkcje potrzebne w danym momencie.</p>
             </div>
+            <div class="workflow-current-state" aria-live="polite">
+              <span id="workflowStepCounter">Krok 1 z 4</span>
+              <strong id="workflowStepTitle">Opis wizyty</strong>
+            </div>
+          </div>
 
-            <div class="voice-panel voice-panel-main">
-              <div class="voice-head">
+          <nav class="workflow-steps" aria-label="Etapy tworzenia wyceny">
+            <button class="workflow-step active" type="button" data-workflow-target="1">
+              <span class="step-number">1</span>
+              <span><strong>Opis wizyty</strong><small>Dyktowanie lub plik TXT</small></span>
+              <i id="step1Status" class="step-status">Teraz</i>
+            </button>
+            <button class="workflow-step" type="button" data-workflow-target="2">
+              <span class="step-number">2</span>
+              <span><strong>Weryfikacja</strong><small>Dane i wynik analizy</small></span>
+              <i id="step2Status" class="step-status">Oczekuje</i>
+            </button>
+            <button class="workflow-step" type="button" data-workflow-target="3">
+              <span class="step-number">3</span>
+              <span><strong>Wycena</strong><small>Pozycje, ceny i dojazd</small></span>
+              <i id="step3Status" class="step-status">Oczekuje</i>
+            </button>
+            <button class="workflow-step" type="button" data-workflow-target="4">
+              <span class="step-number">4</span>
+              <span><strong>Finalizacja</strong><small>Zapis i dokumenty</small></span>
+              <i id="step4Status" class="step-status">Oczekuje</i>
+            </button>
+          </nav>
+
+          <section class="workflow-panel active" data-workflow-step="1" aria-labelledby="workflowStepTitle">
+            <section id="clientDataCard" class="card workflow-card primary-work-card">
+              <div id="dictationCard" class="section-head">
                 <div>
-                  <h3>Opis wizyty / transkrypcja</h3>
+                  <span class="section-kicker">Krok 1</span>
+                  <h2>Opis wizyty</h2>
+                  <p>Wklej notatkę, podyktuj ją albo załaduj gotową transkrypcję.</p>
+                </div>
+                <span class="privacy-chip">Dane lokalne</span>
+              </div>
+
+              <div class="voice-panel voice-panel-main">
+                <label class="voice-label" for="voiceCommand">Opis wizyty / transkrypcja</label>
+                <textarea id="voiceCommand" rows="10" placeholder="Przykład: klient Jan Kowalski, Mielec, montaż 4 kamer, 45 m przewodu, podgląd w telefonie..."></textarea>
+                <div class="action-row voice-main-actions primary-action-group">
+                  <button id="voiceBtn" class="btn btn-primary">Dyktuj wizytę</button>
+                  <button id="loadTextFileBtn" class="btn btn-soft">Wczytaj TXT</button>
+                  <input id="voiceTextFile" type="file" accept="text/plain,.txt,.log,.md" hidden>
+                </div>
+                <div class="action-row secondary-action-group">
+                  <button id="selectVoiceBtn" class="btn btn-ghost">Zaznacz wszystko</button>
+                  <button id="clearVoiceBtn" class="btn btn-ghost">Wyczyść pole</button>
+                </div>
+                <div id="voiceSelectionActions" class="voice-selection-actions" hidden>
+                  <span>Zaznaczono fragment:</span>
+                  <button id="copyVoiceSelectionBtn" class="btn btn-soft">Kopiuj</button>
+                  <button id="clearVoiceSelectionBtn" class="btn btn-danger">Usuń zaznaczone</button>
                 </div>
               </div>
-              <textarea id="voiceCommand" rows="6" placeholder="Tu pojawi się tekst z mikrofonu. Możesz też wkleić albo wczytać plik TXT z transkrypcją wizyty..."></textarea>
-              <div class="action-row voice-main-actions">
-                <button id="voiceBtn" class="btn btn-primary">Dyktuj wizytę</button>
-                <button id="analyzeVoiceBtn" class="btn btn-soft">Rozbij tekst</button>
-                <button id="analyzeVoiceAiBtn" class="btn btn-primary">Rozbij AI</button>
-                <button id="loadTextFileBtn" class="btn btn-soft">Wczytaj TXT</button>
-                <button id="selectVoiceBtn" class="btn btn-ghost">Zaznacz wszystko</button>
-                <button id="clearVoiceBtn" class="btn btn-ghost">Wyczyść pole</button>
-                <input id="voiceTextFile" type="file" accept="text/plain,.txt,.log,.md" hidden>
-              </div>
-              <div id="voiceSelectionActions" class="voice-selection-actions" hidden>
-                <span>Zaznaczono tekst:</span>
-                <button id="copyVoiceSelectionBtn" class="btn btn-soft">Kopiuj</button>
-                <button id="clearVoiceSelectionBtn" class="btn btn-danger">Wyczyść zaznaczone</button>
-              </div>
-            </div>
 
-            <div id="parserPreview" class="parser-preview" hidden>
-              <div class="preview-head">
+              <div class="analysis-choice">
                 <div>
-                  <h3>Rozpoznane dane do zatwierdzenia</h3>
+                  <h3>Przeanalizuj opis</h3>
+                  <p>Możesz użyć parsera lokalnego albo OpenAI. Wynik zawsze sprawdzisz przed zatwierdzeniem.</p>
+                </div>
+                <div class="action-row">
+                  <button id="analyzeVoiceBtn" class="btn btn-soft">Analizuj lokalnie</button>
+                  <button id="analyzeVoiceAiBtn" class="btn btn-primary">Analizuj przez AI</button>
                 </div>
               </div>
-              <div id="parserPreviewContent"></div>
-              <div class="action-row">
-                <button id="acceptParserBtn" class="btn btn-primary">Zatwierdź rozbicie</button>
-                <button id="rejectParserBtn" class="btn btn-ghost">Odrzuć</button>
-              </div>
-            </div>
-
-            <details id="clientDetails" class="client-details-card">
-              <summary>Dane klienta / popraw ręcznie</summary>
-
-              <div class="form-grid">
-                <label>Klient
-                  <input id="clientName" type="text" placeholder="np. Jan Kowalski">
-                </label>
-                <label>Telefon
-                  <input id="clientPhone" type="tel" placeholder="np. 600 000 000">
-                </label>
-                <label class="span-2">Adres / miejscowość
-                  <input id="clientAddress" type="text" placeholder="np. Mielec, ul. ...">
-                </label>
-                <label>Data wizyty
-                  <input id="visitDate" type="date">
-                </label>
-                <label>Typ zlecenia
-                  <select id="jobType"></select>
-                </label>
-              </div>
-
-              <label class="block-label">Notatki z wizyty
-                <textarea id="notes" rows="5" placeholder="np. klient chce 4 kamery zewnętrzne, rejestrator NVR, prowadzenie skrętki, podgląd w telefonie..."></textarea>
-              </label>
-            </details>
-
-            <div class="action-row">
-              <button id="suggestBtn" class="btn btn-soft">Podpowiedz z notatek</button>
-              <button id="undoParseBtn" class="btn btn-ghost" hidden>Cofnij ostatnie rozbicie</button>
-              <button id="copyReportBtn" class="btn btn-soft">Kopiuj raport</button>
-            </div>
-            <div id="parserInfo" class="info-box" hidden></div>
+            </section>
           </section>
 
-          <aside id="summaryCard" class="card sticky-card">
-            <h2>Podsumowanie</h2>
-            <div class="summary-list">
-              <div><span>Netto</span><strong id="sumNet">0,00 zł</strong></div>
-              <div><span>VAT</span><strong id="sumVat">0,00 zł</strong></div>
-              <div class="total"><span>Brutto</span><strong id="sumGross">0,00 zł</strong></div>
+          <section class="workflow-panel" data-workflow-step="2" aria-labelledby="workflowStepTitle">
+            <div class="workflow-grid verification-grid">
+              <section class="card workflow-card">
+                <div class="section-head">
+                  <div>
+                    <span class="section-kicker">Krok 2</span>
+                    <h2>Rozpoznane dane</h2>
+                    <p>Sprawdź wynik analizy przed dodaniem pozycji do wyceny.</p>
+                  </div>
+                </div>
+
+                <div id="parserWaitingState" class="empty-guidance">
+                  <strong>Nie ma jeszcze wyniku analizy.</strong>
+                  <span>Wróć do kroku 1 i użyj przycisku analizy.</span>
+                </div>
+
+                <div id="parserPreview" class="parser-preview" hidden>
+                  <div class="preview-head">
+                    <div><h3>Dane i pozycje do zatwierdzenia</h3></div>
+                  </div>
+                  <div id="parserPreviewContent"></div>
+                  <div class="action-row parser-decision-row">
+                    <button id="acceptParserBtn" class="btn btn-primary">Zatwierdź rozbicie</button>
+                    <button id="rejectParserBtn" class="btn btn-ghost">Odrzuć wynik</button>
+                  </div>
+                </div>
+                <div id="parserInfo" class="info-box" hidden></div>
+              </section>
+
+              <section class="card workflow-card client-data-panel">
+                <div class="section-head">
+                  <div>
+                    <h2>Dane klienta</h2>
+                    <p>Możesz je poprawić niezależnie od wyniku parsera.</p>
+                  </div>
+                </div>
+
+                <details id="clientDetails" class="client-details-card" open>
+                  <summary>Dane podstawowe</summary>
+                  <div class="form-grid">
+                    <label>Klient
+                      <input id="clientName" type="text" placeholder="np. Jan Kowalski">
+                    </label>
+                    <label>Telefon
+                      <input id="clientPhone" type="tel" placeholder="np. 600 000 000">
+                    </label>
+                    <label class="span-2">Adres / miejscowość
+                      <input id="clientAddress" type="text" placeholder="np. Mielec, ul. ...">
+                    </label>
+                    <label>Data wizyty
+                      <input id="visitDate" type="date">
+                    </label>
+                    <label>Typ zlecenia
+                      <select id="jobType"></select>
+                    </label>
+                  </div>
+                  <label class="block-label">Notatki z wizyty
+                    <textarea id="notes" rows="6" placeholder="Dodatkowe ustalenia, warunki techniczne i uwagi klienta..."></textarea>
+                  </label>
+                </details>
+
+                <div class="action-row">
+                  <button id="suggestBtn" class="btn btn-soft">Podpowiedz z notatek</button>
+                  <button id="undoParseBtn" class="btn btn-ghost" hidden>Cofnij rozbicie</button>
+                  <button id="copyReportBtn" class="btn btn-ghost">Kopiuj raport</button>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="workflow-panel" data-workflow-step="3" aria-labelledby="workflowStepTitle">
+            <div class="workflow-grid quote-builder-grid">
+              <section id="servicesCard" class="card workflow-card">
+                <div class="section-head">
+                  <div>
+                    <span class="section-kicker">Krok 3</span>
+                    <h2>Pozycje wyceny</h2>
+                    <p>Dodaj usługi i materiały, a następnie popraw ilości i ceny.</p>
+                  </div>
+                  <span id="workflowServicesCount" class="count-chip">0 pozycji</span>
+                </div>
+
+                <div class="service-adder">
+                  <label>Kategoria
+                    <select id="categorySelect"></select>
+                  </label>
+                  <label>Usługa
+                    <select id="serviceSelect"></select>
+                  </label>
+                  <label>Ilość
+                    <input id="qtyInput" type="number" min="0" step="0.5" value="1">
+                  </label>
+                  <label>Cena netto
+                    <input id="priceInput" type="number" min="0" step="0.01" value="0">
+                  </label>
+                  <button id="addServiceBtn" class="btn btn-primary">Dodaj pozycję</button>
+                </div>
+
+                <div class="table-wrap services-table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Usługa / typ</th>
+                        <th>Jm.</th>
+                        <th>Ilość</th>
+                        <th>Cena netto</th>
+                        <th>Razem</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="servicesBody"></tbody>
+                  </table>
+                </div>
+                <div id="serviceCards" class="service-cards" aria-label="Usługi w wycenie"></div>
+                <div id="emptyServices" class="empty-state">Brak pozycji w wycenie.</div>
+              </section>
+
+              <aside id="summaryCard" class="card workflow-card summary-work-card sticky-card">
+                <div class="section-head compact-head">
+                  <div>
+                    <h2>Podsumowanie</h2>
+                    <p>Wartość aktualnej wyceny</p>
+                  </div>
+                </div>
+                <div class="summary-list">
+                  <div><span>Netto</span><strong id="sumNet">0,00 zł</strong></div>
+                  <div><span>VAT</span><strong id="sumVat">0,00 zł</strong></div>
+                  <div class="total"><span>Brutto</span><strong id="sumGross">0,00 zł</strong></div>
+                </div>
+
+                <div class="distance-box">
+                  <h3>Dojazd</h3>
+                  <div class="mini-grid">
+                    <label>Km łącznie
+                      <input id="distanceKm" type="number" min="0" step="1" value="0">
+                    </label>
+                    <label>Stawka/km
+                      <input id="distanceRate" type="number" min="0" step="0.1" value="2">
+                    </label>
+                    <label>Darmowe km
+                      <input id="freeKm" type="number" min="0" step="1" value="20">
+                    </label>
+                  </div>
+                  <p id="distanceInfo" class="muted">Dojazd: 0,00 zł netto</p>
+                </div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="workflow-panel" data-workflow-step="4" aria-labelledby="workflowStepTitle">
+            <div class="finalization-hero card">
+              <div>
+                <span class="section-kicker">Krok 4</span>
+                <h2>Finalizacja wyceny</h2>
+                <p>Sprawdź podsumowanie, przygotuj materiały i zapisz ofertę.</p>
+              </div>
+              <div class="final-total">
+                <span>Razem brutto</span>
+                <strong id="finalGrossMirror">0,00 zł</strong>
+              </div>
             </div>
 
-            <div class="distance-box">
-              <h3>Dojazd</h3>
-              <div class="mini-grid">
-                <label>Km łącznie
-                  <input id="distanceKm" type="number" min="0" step="1" value="0">
+            <div class="workflow-grid finalization-grid">
+              <section class="card client-message-card workflow-card">
+                <div class="section-head">
+                  <div>
+                    <h2>Wiadomość do klienta</h2>
+                    <p>Gotowy tekst tworzony na podstawie bieżącej wyceny.</p>
+                  </div>
+                  <button id="refreshClientMessageBtn" class="btn btn-ghost">Odśwież</button>
+                </div>
+                <textarea id="clientMessagePreview" rows="8" readonly></textarea>
+                <div class="action-row">
+                  <button id="copyClientSmsPreviewBtn" class="btn btn-primary">Kopiuj SMS</button>
+                  <button id="copyClientDescriptionBtn" class="btn btn-soft">Kopiuj opis wyceny</button>
+                  <button id="offerPdfPreviewBtn" class="btn btn-soft">Generuj ofertę PDF</button>
+                </div>
+              </section>
+
+              <section id="materialsCard" class="card materials-card workflow-card">
+                <div class="section-head">
+                  <div>
+                    <h2>Materiały do zabrania</h2>
+                    <p>Lista wynikająca z pozycji dodanych do wyceny.</p>
+                  </div>
+                  <button id="refreshMaterialsBtn" class="btn btn-ghost">Odśwież</button>
+                </div>
+                <div id="materialsPreview" class="materials-preview"></div>
+                <div class="action-row">
+                  <button id="copyMaterialsBtn" class="btn btn-primary">Kopiuj listę materiałów</button>
+                </div>
+              </section>
+            </div>
+
+            <section class="card workflow-card checklist-card">
+              <div class="section-head">
+                <div>
+                  <h2>Checklista techniczna</h2>
+                  <p>Kontrola elementów potrzebnych do realizacji zlecenia.</p>
+                </div>
+              </div>
+              <div id="checklist" class="checklist"></div>
+            </section>
+
+            <section class="card final-actions-card">
+              <div>
+                <h2>Zapis i dokumenty</h2>
+                <p id="finalClientMirror">Aktualna wycena</p>
+              </div>
+              <div class="final-primary-actions">
+                <button id="saveQuoteBtn" class="btn btn-primary">Zapisz wycenę</button>
+                <button id="offerPdfBtn" class="btn btn-soft">Oferta PDF</button>
+                <button id="copyClientSmsBtn" class="btn btn-soft">Kopiuj SMS</button>
+              </div>
+              <div class="final-secondary-actions">
+                <button id="exportTxtBtn" class="btn btn-ghost">Eksport TXT</button>
+                <button id="printBtn" class="btn btn-ghost">Drukuj widok</button>
+              </div>
+            </section>
+          </section>
+
+          <div id="workflowActions" class="workflow-actions" aria-label="Nawigacja po etapach">
+            <button id="workflowPrevBtn" type="button" class="btn btn-ghost">Wstecz</button>
+            <div class="workflow-actions-info">
+              <span id="workflowActionHint">Dodaj opis wizyty albo przejdź dalej.</span>
+            </div>
+            <button id="workflowNextBtn" type="button" class="btn btn-primary">Dalej: weryfikacja</button>
+          </div>
+        </section>
+
+        <section id="savedTab" class="tab-panel">
+          <div class="workspace-heading">
+            <div>
+              <span class="workspace-kicker">Archiwum</span>
+              <h2>Zapisane wyceny</h2>
+              <p>Wczytaj wcześniejszą wycenę albo przygotuj dokumenty.</p>
+            </div>
+            <details class="toolbar-menu">
+              <summary>Kopia danych</summary>
+              <div class="toolbar-menu-content">
+                <button id="exportBackupBtn" class="btn btn-soft">Pobierz kopię JSON</button>
+                <button id="importBackupBtn" class="btn btn-soft">Wgraj kopię JSON</button>
+                <input id="importBackupFile" type="file" accept="application/json,.json" hidden>
+              </div>
+            </details>
+          </div>
+          <section class="card saved-workspace-card">
+            <div id="savedQuotes" class="quote-list"></div>
+            <div id="emptySaved" class="empty-state">Nie ma jeszcze zapisanych wycen.</div>
+          </section>
+        </section>
+
+        <section id="catalogTab" class="tab-panel">
+          <div class="workspace-heading">
+            <div>
+              <span class="workspace-kicker">Baza cen</span>
+              <h2>Cennik usług i materiałów</h2>
+              <p>Wyszukuj pozycje używane podczas przygotowania wyceny.</p>
+            </div>
+          </div>
+
+          <section class="card catalog-main-card">
+            <div class="section-head catalog-header">
+              <div><h2>Cennik usług</h2></div>
+              <input id="catalogSearch" class="search" type="search" placeholder="Szukaj usługi...">
+            </div>
+
+            <details class="catalog-editor collapsible-editor">
+              <summary>Dodaj lub edytuj pozycję cennika</summary>
+              <div class="form-grid">
+                <label>Kategoria
+                  <input id="catalogEditCategory" list="catalogCategoryList" type="text" placeholder="np. Kamery CCTV">
+                  <datalist id="catalogCategoryList"></datalist>
                 </label>
-                <label>Stawka/km
-                  <input id="distanceRate" type="number" min="0" step="0.1" value="2">
+                <label>Nazwa usługi
+                  <input id="catalogEditName" type="text" placeholder="np. Montaż kamery IP z puszką">
                 </label>
-                <label>Darmowe km
-                  <input id="freeKm" type="number" min="0" step="1" value="20">
+                <label>Jednostka
+                  <input id="catalogEditUnit" type="text" placeholder="np. szt, mb, godz, usł">
+                </label>
+                <label>Cena netto
+                  <input id="catalogEditPrice" type="number" min="0" step="0.01" placeholder="np. 200">
                 </label>
               </div>
-              <p id="distanceInfo" class="muted">Dojazd: 0,00 zł netto</p>
-            </div>
+              <div class="action-row">
+                <button id="saveCatalogItemBtn" class="btn btn-primary">Zapisz pozycję</button>
+                <button id="clearCatalogEditorBtn" class="btn btn-ghost">Wyczyść formularz</button>
+                <button id="exportCatalogBtn" class="btn btn-soft">Eksport cennika</button>
+                <button id="importCatalogBtn" class="btn btn-soft">Import cennika</button>
+                <button id="resetCatalogBtn" class="btn btn-danger">Przywróć domyślny</button>
+                <input id="importCatalogFile" type="file" accept="application/json,.json" hidden>
+              </div>
+              <div id="catalogEditInfo" class="catalog-edit-info" hidden></div>
+            </details>
+            <div id="catalogView" class="catalog-view"></div>
+          </section>
 
-            <div class="action-col">
-              <button id="saveQuoteBtn" class="btn btn-primary full">Zapisz wycenę</button>
-              <button id="exportTxtBtn" class="btn btn-soft full">Eksport TXT</button>
-              <button id="copyClientSmsBtn" class="btn btn-soft full">Kopiuj SMS</button>
-              <button id="offerPdfBtn" class="btn btn-soft full">Oferta PDF</button>
-              <button id="printBtn" class="btn btn-soft full">Drukuj widok</button>
+          <section class="card material-prices-card">
+            <div class="section-head catalog-header">
+              <div>
+                <h2>Ceny materiałów</h2>
+                <strong id="materialPriceVersion">Baza cen: —</strong>
+              </div>
+              <input id="materialPriceSearch" class="search" type="search" placeholder="Szukaj produktu...">
             </div>
-          </aside>
-        </div>
+            <details class="price-update-box collapsible-editor">
+              <summary>Zarządzanie bazą cen materiałów</summary>
+              <div class="action-row">
+                <button id="applyMaterialPricesBtn" class="btn btn-primary">Uzupełnij cennik cenami materiałów</button>
+                <button id="refreshMaterialPricesBtn" class="btn btn-soft">Pobierz najnowszą bazę</button>
+                <button id="exportMaterialPricesBtn" class="btn btn-soft">Eksport bazy</button>
+                <button id="importMaterialPricesBtn" class="btn btn-soft">Import bazy</button>
+                <input id="importMaterialPricesFile" type="file" accept="application/json,.json" hidden>
+              </div>
+            </details>
+            <div id="materialPriceStatus" class="catalog-edit-info"></div>
+            <div id="materialPricesView" class="material-prices-view"></div>
+          </section>
+        </section>
 
-        <section id="servicesCard" class="card">
-          <div class="section-head">
+        <section id="moreTab" class="tab-panel">
+          <div class="workspace-heading">
             <div>
-              <h2>Usługi i materiały w wycenie</h2>
-
+              <span class="workspace-kicker">Konfiguracja</span>
+              <h2>Więcej opcji</h2>
+              <p>Ustawienia podstawowe, synchronizacja, narzędzia techniczne i pomoc.</p>
             </div>
           </div>
 
-          <div class="service-adder">
-            <label>Kategoria
-              <select id="categorySelect"></select>
-            </label>
-            <label>Usługa
-              <select id="serviceSelect"></select>
-            </label>
-            <label>Ilość
-              <input id="qtyInput" type="number" min="0" step="0.5" value="1">
-            </label>
-            <label>Cena netto
-              <input id="priceInput" type="number" min="0" step="0.01" value="0">
-            </label>
-            <button id="addServiceBtn" class="btn btn-primary">Dodaj</button>
-          </div>
+          <nav class="more-navigation" aria-label="Sekcje dodatkowe">
+            <button type="button" class="more-nav-button active" data-more-target="settingsTab">Podstawowe</button>
+            <button type="button" class="more-nav-button" data-more-target="aiSettingsPanel">Analiza tekstu</button>
+            <button type="button" class="more-nav-button" data-more-target="syncSettingsPanel">Synchronizacja</button>
+            <button type="button" class="more-nav-button" data-more-target="advancedSettingsPanel">Zaawansowane</button>
+            <button type="button" class="more-nav-button" data-more-target="helpTab">Pomoc</button>
+          </nav>
 
-          <div class="table-wrap services-table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Usługa / typ</th>
-                  <th>Jm.</th>
-                  <th>Ilość</th>
-                  <th>Cena netto</th>
-                  <th>Razem</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="servicesBody"></tbody>
-            </table>
-          </div>
-          <div id="serviceCards" class="service-cards" aria-label="Usługi w wycenie"></div>
-          <div id="emptyServices" class="empty-state">Brak usług w wycenie.</div>
+          <section id="settingsTab" class="more-panel active">
+            <section class="card settings-section-card">
+              <div class="section-head">
+                <div>
+                  <h2>Ustawienia podstawowe</h2>
+                  <p>Dane firmy, podatek VAT i wygląd aplikacji.</p>
+                </div>
+              </div>
+              <div class="form-grid">
+                <label>Nazwa firmy
+                  <input id="companyName" type="text" value="Moja Firma Instalacyjna">
+                </label>
+                <label>VAT %
+                  <input id="vatRate" type="number" min="0" max="100" step="1" value="23">
+                </label>
+                <label>Motyw interfejsu
+                  <select id="uiTheme">
+                    <option value="light">Jasny klasyczny</option>
+                    <option value="blue">Błękitny techniczny</option>
+                    <option value="green">Zielony serwisowy</option>
+                    <option value="amber">Ciepły kontrast</option>
+                    <option value="dark">Ciemny grafitowy</option>
+                  </select>
+                </label>
+              </div>
+              <div class="action-row">
+                <button id="saveSettingsBtn" class="btn btn-primary">Zapisz ustawienia</button>
+              </div>
+            </section>
+          </section>
+
+          <section id="aiSettingsPanel" class="more-panel">
+            <section class="card settings-section-card ai-parser-panel">
+              <div class="section-head">
+                <div>
+                  <h2>Analiza tekstu</h2>
+                  <p>Wybierz domyślny parser i skonfiguruj połączenie z OpenAI.</p>
+                </div>
+              </div>
+              <div class="form-grid">
+                <label>Domyślny tryb rozbijania
+                  <select id="aiParserMode">
+                    <option value="local">Parser lokalny</option>
+                    <option value="ai">AI OpenAI</option>
+                  </select>
+                </label>
+                <label>Model OpenAI
+                  <select id="aiModel">
+                    <option value="gpt-4o-mini">gpt-4o-mini — tańszy / szybki</option>
+                    <option value="gpt-4o">gpt-4o — dokładniejszy</option>
+                    <option value="gpt-4.1-mini">gpt-4.1-mini — nowszy mały model</option>
+                    <option value="gpt-4.1">gpt-4.1 — mocniejszy model</option>
+                  </select>
+                </label>
+                <label class="span-2">Klucz OpenAI API
+                  <input id="aiOpenAiKey" type="password" autocomplete="off" placeholder="sk-...">
+                </label>
+              </div>
+              <div class="action-row">
+                <button id="saveAiSettingsBtn" class="btn btn-primary">Zapisz ustawienia AI</button>
+                <button id="aiTestBtn" class="btn btn-soft">Test klucza</button>
+              </div>
+              <div id="aiParserStatus" class="dropbox-status">Parser lokalny — AI wyłączone.</div>
+            </section>
+          </section>
+
+          <section id="syncSettingsPanel" class="more-panel">
+            <section class="card settings-section-card dropbox-panel">
+              <div class="section-head">
+                <div>
+                  <h2>Synchronizacja Dropbox</h2>
+                  <p>Wspólne wyceny na telefonie i komputerze.</p>
+                </div>
+              </div>
+              <div class="form-grid">
+                <label>Tryb zapisu
+                  <select id="storageMode">
+                    <option value="local">Lokalnie w przeglądarce</option>
+                    <option value="dropbox">Dropbox</option>
+                  </select>
+                </label>
+                <label>Ścieżka pliku w Dropbox
+                  <input id="dropboxPath" type="text" value="/pomocnik_instalatora_data.json">
+                </label>
+                <label class="span-2">Access token Dropbox
+                  <input id="dropboxToken" type="password" autocomplete="off" placeholder="Wklej token aplikacji Dropbox">
+                </label>
+                <label class="checkbox-row span-2">
+                  <input id="dropboxAutoSync" type="checkbox">
+                  <span>Automatycznie synchronizuj po zapisaniu albo usunięciu wyceny</span>
+                </label>
+              </div>
+              <div class="action-row">
+                <button id="saveDropboxSettingsBtn" class="btn btn-primary">Zapisz Dropbox</button>
+                <button id="dropboxSyncBtn" class="btn btn-soft">Synchronizuj teraz</button>
+                <button id="dropboxPullBtn" class="btn btn-soft">Pobierz i scal</button>
+                <button id="dropboxPushBtn" class="btn btn-soft">Wyślij lokalne</button>
+                <button id="dropboxTestBtn" class="btn btn-ghost">Test połączenia</button>
+              </div>
+              <div id="dropboxStatus" class="dropbox-status">Tryb lokalny — Dropbox wyłączony.</div>
+            </section>
+          </section>
+
+          <section id="advancedSettingsPanel" class="more-panel">
+            <section class="card settings-section-card">
+              <div class="section-head">
+                <div>
+                  <h2>Narzędzia zaawansowane</h2>
+                  <p>Funkcje techniczne używane podczas rozwoju i diagnostyki parsera.</p>
+                </div>
+              </div>
+
+              <details class="advanced-block dictionary-panel">
+                <summary>Słownik własnych zwrotów</summary>
+                <textarea id="phraseDictionary" rows="8" spellcheck="false"></textarea>
+                <div class="action-row">
+                  <button id="savePhraseDictionaryBtn" class="btn btn-primary">Zapisz słownik</button>
+                  <button id="resetPhraseDictionaryBtn" class="btn btn-soft">Przywróć domyślny</button>
+                </div>
+              </details>
+
+              <details class="advanced-block learning-panel">
+                <summary>Zapamiętane korekty parsera</summary>
+                <div id="learnedRulesView"></div>
+                <div class="action-row">
+                  <button id="clearLearnedRulesBtn" class="btn btn-danger">Usuń zapamiętane korekty</button>
+                </div>
+              </details>
+
+              <details class="advanced-block archive-learning-panel">
+                <summary>Wzorce z archiwum transkrypcji</summary>
+                <div id="archiveLearningView" class="archive-learning-view"></div>
+              </details>
+
+              <details class="advanced-block parser-test-panel">
+                <summary>Test parsera</summary>
+                <textarea id="parserTestInput" rows="6" spellcheck="false" placeholder="Wklej tekst do rozbicia..."></textarea>
+                <div class="mini-grid">
+                  <label>Oczekiwane netto
+                    <input id="parserExpectedNet" type="number" min="0" step="0.01" placeholder="np. 1040">
+                  </label>
+                  <label>Oczekiwane brutto
+                    <input id="parserExpectedGross" type="number" min="0" step="0.01" placeholder="np. 1279.20">
+                  </label>
+                </div>
+                <div class="action-row">
+                  <button id="runParserTestBtn" class="btn btn-primary">Uruchom test</button>
+                  <button id="fillExampleParserTestBtn" class="btn btn-soft">Wstaw przykład Bogusława</button>
+                </div>
+                <div id="parserTestResult" class="parser-test-result"></div>
+              </details>
+
+              <details class="advanced-block danger-zone">
+                <summary>Aktualizacja i dane lokalne</summary>
+                <div class="action-row">
+                  <button id="refreshAppBtn" class="btn btn-soft">Aktualizuj aplikację</button>
+                  <button id="clearDataBtn" class="btn btn-danger">Usuń dane lokalne</button>
+                </div>
+              </details>
+            </section>
+          </section>
+
+          <section id="helpTab" class="more-panel">
+            <section class="card help-card settings-section-card">
+              <div class="section-head">
+                <div>
+                  <h2>Pomoc</h2>
+                  <p>Najważniejsze informacje o pracy z aplikacją.</p>
+                </div>
+              </div>
+              <div class="help-grid">
+                <article>
+                  <h3>Proces wyceny</h3>
+                  <ol>
+                    <li>Wklej, podyktuj albo wczytaj plik TXT.</li>
+                    <li>Przeanalizuj opis i sprawdź rozpoznane dane.</li>
+                    <li>Uzupełnij pozycje, ceny oraz dojazd.</li>
+                    <li>Zapisz wycenę albo przygotuj dokument dla klienta.</li>
+                  </ol>
+                </article>
+                <article>
+                  <h3>Ceny materiałów</h3>
+                  <p>Jeżeli w dyktowaniu nie podasz ceny sprzętu, program może użyć ceny sugerowanej z bazy. Sprawdź ją przed wysłaniem oferty.</p>
+                </article>
+                <article>
+                  <h3>Pliki TXT</h3>
+                  <p>Przycisk <strong>Wczytaj TXT</strong> pozwala załadować gotową transkrypcję z telefonu lub komputera.</p>
+                </article>
+                <article>
+                  <h3>Dropbox</h3>
+                  <p>Tryb Dropbox zapisuje wspólny plik JSON dla telefonu i komputera. Konfigurację znajdziesz w sekcji Synchronizacja.</p>
+                </article>
+              </div>
+            </section>
+          </section>
         </section>
+      </main>
+    </div>
 
-        <section class="card client-message-card">
-          <div class="section-head">
-            <div>
-              <h2>Wiadomość do klienta</h2>
-
-            </div>
-            <button id="refreshClientMessageBtn" class="btn btn-ghost">Odśwież</button>
-          </div>
-          <textarea id="clientMessagePreview" rows="5" readonly></textarea>
-          <div class="action-row">
-            <button id="copyClientSmsPreviewBtn" class="btn btn-primary">Kopiuj SMS</button>
-            <button id="copyClientDescriptionBtn" class="btn btn-soft">Kopiuj opis wyceny</button>
-            <button id="offerPdfPreviewBtn" class="btn btn-soft">Generuj ofertę PDF</button>
-          </div>
-        </section>
-
-        <section id="materialsCard" class="card materials-card">
-          <div class="section-head">
-            <div>
-              <h2>Lista materiałów do zabrania</h2>
-
-            </div>
-            <button id="refreshMaterialsBtn" class="btn btn-ghost">Odśwież</button>
-          </div>
-          <div id="materialsPreview" class="materials-preview"></div>
-          <div class="action-row">
-            <button id="copyMaterialsBtn" class="btn btn-primary">Kopiuj listę materiałów</button>
-          </div>
-        </section>
-
-        <section class="card">
-          <h2>Checklisty techniczne</h2>
-          <div id="checklist" class="checklist"></div>
-        </section>
-      </section>
-
-      <section id="savedTab" class="tab-panel">
-        <section class="card">
-          <div class="section-head">
-            <div>
-              <h2>Zapisane wyceny</h2>
-
-            </div>
-            <div class="action-row backup-actions">
-              <button id="exportBackupBtn" class="btn btn-soft">Kopia JSON</button>
-              <button id="importBackupBtn" class="btn btn-soft">Wgraj JSON</button>
-              <input id="importBackupFile" type="file" accept="application/json,.json" hidden>
-            </div>
-          </div>
-          <div id="savedQuotes" class="quote-list"></div>
-          <div id="emptySaved" class="empty-state">Nie ma jeszcze zapisanych wycen.</div>
-        </section>
-      </section>
-
-      <section id="catalogTab" class="tab-panel">
-        <section class="card">
-          <div class="section-head">
-            <div>
-              <h2>Cennik</h2>
-
-            </div>
-            <input id="catalogSearch" class="search" type="search" placeholder="Szukaj usługi...">
-          </div>
-
-          <div class="catalog-editor">
-            <h3>Edycja cennika</h3>
-
-            <div class="form-grid">
-              <label>Kategoria
-                <input id="catalogEditCategory" list="catalogCategoryList" type="text" placeholder="np. Kamery CCTV">
-                <datalist id="catalogCategoryList"></datalist>
-              </label>
-              <label>Nazwa usługi
-                <input id="catalogEditName" type="text" placeholder="np. Montaż kamery IP z puszką">
-              </label>
-              <label>Jednostka
-                <input id="catalogEditUnit" type="text" placeholder="np. szt, mb, godz, usł">
-              </label>
-              <label>Cena netto
-                <input id="catalogEditPrice" type="number" min="0" step="0.01" placeholder="np. 200">
-              </label>
-            </div>
-            <div class="action-row">
-              <button id="saveCatalogItemBtn" class="btn btn-primary">Zapisz pozycję</button>
-              <button id="clearCatalogEditorBtn" class="btn btn-ghost">Wyczyść formularz</button>
-              <button id="exportCatalogBtn" class="btn btn-soft">Eksport cennika</button>
-              <button id="importCatalogBtn" class="btn btn-soft">Import cennika</button>
-              <button id="resetCatalogBtn" class="btn btn-danger">Przywróć domyślny</button>
-              <input id="importCatalogFile" type="file" accept="application/json,.json" hidden>
-            </div>
-            <div id="catalogEditInfo" class="catalog-edit-info" hidden></div>
-          </div>
-
-          <div id="catalogView" class="catalog-view"></div>
-        </section>
-
-
-        <section class="card material-prices-card">
-          <div class="section-head">
-            <div>
-              <h2>Ceny materiałów</h2>
-
-            </div>
-            <input id="materialPriceSearch" class="search" type="search" placeholder="Szukaj produktu...">
-          </div>
-
-          <div class="price-update-box">
-            <div>
-              <strong id="materialPriceVersion">Baza cen: —</strong>
-
-            </div>
-            <div class="action-row">
-              <button id="applyMaterialPricesBtn" class="btn btn-primary">Uzupełnij cennik cenami materiałów</button>
-              <button id="refreshMaterialPricesBtn" class="btn btn-soft">Pobierz najnowszą bazę cen</button>
-              <button id="exportMaterialPricesBtn" class="btn btn-soft">Eksport bazy</button>
-              <button id="importMaterialPricesBtn" class="btn btn-soft">Import bazy</button>
-              <input id="importMaterialPricesFile" type="file" accept="application/json,.json" hidden>
-            </div>
-          </div>
-
-          <div id="materialPriceStatus" class="catalog-edit-info"></div>
-
-          <div id="materialPricesView" class="material-prices-view"></div>
-        </section>
-      </section>
-
-      <section id="settingsTab" class="tab-panel">
-        <section class="card narrow">
-          <h2>Ustawienia</h2>
-          <div class="form-grid">
-            <label>Nazwa firmy
-              <input id="companyName" type="text" value="Moja Firma Instalacyjna">
-            </label>
-            <label>VAT %
-              <input id="vatRate" type="number" min="0" max="100" step="1" value="23">
-            </label>
-            <label>Motyw interfejsu
-              <select id="uiTheme">
-                <option value="light">Jasny klasyczny</option>
-                <option value="blue">Błękitny techniczny</option>
-                <option value="green">Zielony serwisowy</option>
-                <option value="amber">Ciepły kontrast</option>
-                <option value="dark">Ciemny grafitowy</option>
-              </select>
-            </label>
-          </div>
-          <div class="action-row">
-            <button id="saveSettingsBtn" class="btn btn-primary">Zapisz ustawienia</button>
-            <button id="refreshAppBtn" class="btn btn-soft">Aktualizuj aplikację</button>
-            <button id="clearDataBtn" class="btn btn-danger">Usuń dane lokalne</button>
-          </div>
-
-          <div class="ai-parser-panel">
-            <h3>Parser AI OpenAI</h3>
-            <p class="muted">Bez backendu i bez serwera pośredniego: wpisujesz klucz OpenAI raz, a aplikacja zapamiętuje go lokalnie w tej przeglądarce/PWA.</p>
-            <div class="form-grid">
-              <label>Domyślny tryb rozbijania
-                <select id="aiParserMode">
-                  <option value="local">Parser lokalny</option>
-                  <option value="ai">AI OpenAI</option>
-                </select>
-              </label>
-              <label>Model OpenAI
-                <select id="aiModel">
-                  <option value="gpt-4o-mini">gpt-4o-mini — tańszy / szybki</option>
-                  <option value="gpt-4o">gpt-4o — dokładniejszy</option>
-                  <option value="gpt-4.1-mini">gpt-4.1-mini — nowszy mały model</option>
-                  <option value="gpt-4.1">gpt-4.1 — mocniejszy model</option>
-                </select>
-              </label>
-              <label class="span-2">Klucz OpenAI API
-                <input id="aiOpenAiKey" type="password" autocomplete="off" placeholder="sk-...">
-              </label>
-            </div>
-            <div class="action-row">
-              <button id="saveAiSettingsBtn" class="btn btn-primary">Zapisz AI</button>
-              <button id="aiTestBtn" class="btn btn-soft">Test klucza</button>
-            </div>
-            <div id="aiParserStatus" class="dropbox-status">Parser lokalny — AI wyłączone.</div>
-          </div>
-
-
-          <div class="dictionary-panel">
-            <h3>Słownik własnych zwrotów</h3>
-
-            <textarea id="phraseDictionary" rows="8" spellcheck="false"></textarea>
-            <div class="action-row">
-              <button id="savePhraseDictionaryBtn" class="btn btn-primary">Zapisz słownik</button>
-              <button id="resetPhraseDictionaryBtn" class="btn btn-soft">Przywróć domyślny</button>
-            </div>
-          </div>
-
-
-
-          <div class="learning-panel">
-            <h3>Uczenie parsera z ręcznych poprawek</h3>
-
-            <div id="learnedRulesView"></div>
-            <div class="action-row">
-              <button id="clearLearnedRulesBtn" class="btn btn-danger">Usuń zapamiętane korekty</button>
-            </div>
-          </div>
-
-
-          <div class="archive-learning-panel">
-            <h3>Wzorce z archiwum transkrypcji</h3>
-
-            <div id="archiveLearningView" class="archive-learning-view"></div>
-          </div>
-
-          <div class="parser-test-panel">
-            <h3>Test parsera</h3>
-
-            <textarea id="parserTestInput" rows="6" spellcheck="false" placeholder="Wklej tekst do rozbicia..."></textarea>
-            <div class="mini-grid">
-              <label>Oczekiwane netto
-                <input id="parserExpectedNet" type="number" min="0" step="0.01" placeholder="np. 1040">
-              </label>
-              <label>Oczekiwane brutto
-                <input id="parserExpectedGross" type="number" min="0" step="0.01" placeholder="np. 1279.20">
-              </label>
-            </div>
-            <div class="action-row">
-              <button id="runParserTestBtn" class="btn btn-primary">Uruchom test</button>
-              <button id="fillExampleParserTestBtn" class="btn btn-soft">Wstaw przykład Bogusława</button>
-            </div>
-            <div id="parserTestResult" class="parser-test-result"></div>
-          </div>
-
-          <div class="dropbox-panel">
-            <h3>Dropbox — synchronizacja telefonu i komputera</h3>
-
-            <div class="form-grid">
-              <label>Tryb zapisu
-                <select id="storageMode">
-                  <option value="local">Lokalnie w przeglądarce</option>
-                  <option value="dropbox">Dropbox</option>
-                </select>
-              </label>
-              <label>Ścieżka pliku w Dropbox
-                <input id="dropboxPath" type="text" value="/pomocnik_instalatora_data.json">
-              </label>
-              <label class="span-2">Access token Dropbox
-                <input id="dropboxToken" type="password" autocomplete="off" placeholder="Wklej token aplikacji Dropbox">
-              </label>
-              <label class="checkbox-row span-2">
-                <input id="dropboxAutoSync" type="checkbox">
-                <span>Automatycznie synchronizuj po zapisaniu albo usunięciu wyceny</span>
-              </label>
-            </div>
-            <div class="action-row">
-              <button id="saveDropboxSettingsBtn" class="btn btn-primary">Zapisz Dropbox</button>
-              <button id="dropboxSyncBtn" class="btn btn-soft">Synchronizuj teraz</button>
-              <button id="dropboxPullBtn" class="btn btn-soft">Pobierz i scal</button>
-              <button id="dropboxPushBtn" class="btn btn-soft">Wyślij lokalne</button>
-              <button id="dropboxTestBtn" class="btn btn-ghost">Test połączenia</button>
-            </div>
-            <div id="dropboxStatus" class="dropbox-status">Tryb lokalny — Dropbox wyłączony.</div>
-          </div>
-        </section>
-      </section>
-
-      <section id="helpTab" class="tab-panel">
-        <section class="card help-card">
-          <h2>Pomoc</h2>
-          <div class="help-grid">
-            <article>
-              <h3>Szybka wycena</h3>
-              <ol>
-                <li>Wklej, podyktuj albo wczytaj plik TXT.</li>
-                <li>Kliknij <strong>Rozbij tekst</strong>.</li>
-                <li>Sprawdź klienta, adres, pozycje i ostrzeżenia.</li>
-                <li>Kliknij <strong>Zatwierdź rozbicie</strong>.</li>
-                <li>Zapisz wycenę albo skopiuj SMS.</li>
-              </ol>
-            </article>
-            <article>
-              <h3>Ceny materiałów</h3>
-              <p>Jeżeli w dyktowaniu nie podasz ceny sprzętu, program używa ceny sugerowanej z bazy. Taką cenę trzeba sprawdzić przed wysłaniem oferty.</p>
-            </article>
-            <article>
-              <h3>Pliki TXT</h3>
-              <p>Przycisk <strong>Wczytaj TXT</strong> pozwala wgrać gotową transkrypcję z telefonu lub komputera.</p>
-            </article>
-            <article>
-              <h3>Dropbox</h3>
-              <p>Tryb Dropbox zapisuje wspólny plik JSON dla telefonu i komputera. Ustawienia znajdziesz w zakładce <strong>Ustawienia</strong>.</p>
-            </article>
-          </div>
-        </section>
-      </section>
-
-    </main>
     <footer class="app-footer" id="appVersionFooter">Wczytywanie wersji programu…</footer>
   </div>
 
   <template id="savedQuoteTemplate">
     <article class="saved-card">
-      <div>
+      <div class="saved-card-content">
         <h3></h3>
         <p></p>
       </div>
       <div class="saved-actions">
-        <button class="btn btn-soft load">Wczytaj</button>
+        <button class="btn btn-primary load">Wczytaj</button>
         <button class="btn btn-soft txt">TXT</button>
         <button class="btn btn-soft sms">SMS</button>
         <button class="btn btn-soft pdf">PDF</button>

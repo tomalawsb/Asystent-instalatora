@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-12T05:19:26.692Z",
-  "original": "app.js z pakietu etapu 1 (porównanie wykonane przed utworzeniem paczki)",
+  "generatedAt": "2026-06-12T05:44:37.842Z",
+  "original": "/tmp/stage4_ref1/app.js",
   "summary": {
     "pass": 8,
     "fail": 0

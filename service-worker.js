@@ -16,6 +16,7 @@ const STATIC_FILES = [
   './js/state.js',
   './js/patches.js',
   './js/ai-runtime.js',
+  './js/workflow.js',
   './dane_uczace_transkrypcji.json',
   './cennik.json',
   './material-prices.json',

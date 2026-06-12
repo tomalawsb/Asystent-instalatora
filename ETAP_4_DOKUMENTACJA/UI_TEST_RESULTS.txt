@@ -1,0 +1,20 @@
+PASS | Brak błędów uruchomienia
+PASS | Aktywny krok 1
+PASS | Tylko jeden aktywny etap
+PASS | Cztery kroki procesu
+PASS | Cztery pozycje nawigacji głównej
+PASS | Przejście do kroku 2
+PASS | Przejście Dalej do kroku 3
+PASS | Przejście Wstecz do kroku 2
+PASS | Otwarcie zakładki Więcej
+PASS | Otwarcie synchronizacji
+PASS | Otwarcie ustawień zaawansowanych
+PASS | Analiza otwiera krok 2
+PASS | Podgląd parsera jest widoczny
+PASS | Zatwierdzenie otwiera krok 3
+PASS | Pozycje zostały dodane
+PASS | Mobilna nawigacja jest przyklejona | position=fixed
+PASS | Mobilna nawigacja jest na dole | bottom=0px
+PASS | Brak poziomego przepełnienia 390 px
+PASS | Brak błędów mobilnych
+SUMMARY 19/19

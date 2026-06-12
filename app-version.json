@@ -1,8 +1,8 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "3.9 - 1206260723",
-  "build": "1206260723-etap-3-single-source",
-  "stage": 3,
-  "released_at": "2026-06-12T07:23:00+02:00",
-  "note": "Etap 3: jedno zrodlo wersji, cennika i cen materialow; automatyczne ladowanie konfiguracji przed uruchomieniem aplikacji."
+  "version": "4.0 - 1206260737",
+  "build": "1206260737-etap-4-workflow-interface",
+  "stage": 4,
+  "released_at": "2026-06-12T07:37:00+02:00",
+  "note": "Etap 4: nowa nawigacja i czteroetapowy proces wyceny bez zmian w parserze, obliczeniach i zapisie danych."
 }
