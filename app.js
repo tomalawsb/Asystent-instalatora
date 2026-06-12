@@ -1,6 +1,6 @@
 /*
  * PLIK GENEROWANY — nie edytowac recznie.
- * Wersja: 4.5 - 1206260915
+ * Wersja: 4.6 - 1206260917
  * Zrodla kodu: katalog js/.
  * Zrodla danych: app-version.json, cennik.json, material-prices.json.
  * Odbudowa: node tools/build-app-bundle.js
@@ -22,6 +22,7 @@ function defaultSettings() {
     dropboxAutoSync: false,
     lastDropboxSyncAt: '',
     uiTheme: 'light',
+    uiSkin: 'standard',
     aiParserMode: 'local',
     aiOpenAiKey: '',
     aiModel: 'gpt-4o-mini',
@@ -41,6 +42,16 @@ function saveSettings(settings) {
 function normalizeTheme(theme) {
   const allowed = new Set(['light', 'blue', 'green', 'amber', 'dark']);
   return allowed.has(String(theme || '')) ? String(theme) : 'light';
+}
+
+function normalizeSkin(skin) {
+  const allowed = new Set(['standard', 'compact', 'dashboard', 'field', 'glass', 'minimal']);
+  return allowed.has(String(skin || '')) ? String(skin) : 'standard';
+}
+
+function applySkin(skin) {
+  const selected = normalizeSkin(skin);
+  document.body.dataset.skin = selected;
 }
 
 function applyTheme(theme) {
@@ -229,6 +240,7 @@ function extractBackupRecords(payload) {
 function refreshFormAfterBackupImport() {
   const settings = loadSettings();
   applyTheme(settings.uiTheme || 'light');
+  applySkin(settings.uiSkin || 'standard');
   if ($('companyName')) $('companyName').value = settings.companyName || '';
   if ($('vatRate')) $('vatRate').value = settings.vatRate ?? 23;
   if ($('storageMode')) $('storageMode').value = settings.storageMode || 'local';
@@ -236,6 +248,7 @@ function refreshFormAfterBackupImport() {
   if ($('dropboxPath')) $('dropboxPath').value = settings.dropboxPath || '/pomocnik_instalatora_data.json';
   if ($('dropboxAutoSync')) $('dropboxAutoSync').checked = !!settings.dropboxAutoSync;
   if ($('uiTheme')) $('uiTheme').value = normalizeTheme(settings.uiTheme || 'light');
+  if ($('uiSkin')) $('uiSkin').value = normalizeSkin(settings.uiSkin || 'standard');
   if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
   if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
   fillAiModelSelect();
@@ -277,7 +290,8 @@ function importBackupFromFile(event) {
           ...defaultSettings(),
           ...loadSettings(),
           ...parsed.settings,
-          uiTheme: normalizeTheme(parsed.settings.uiTheme || loadSettings().uiTheme || 'light')
+          uiTheme: normalizeTheme(parsed.settings.uiTheme || loadSettings().uiTheme || 'light'),
+          uiSkin: normalizeSkin(parsed.settings.uiSkin || loadSettings().uiSkin || 'standard')
         });
       }
 
@@ -316,6 +330,7 @@ function readSettingsFromForm() {
     dropboxPath: normalizeDropboxPath($('dropboxPath')?.value || '/pomocnik_instalatora_data.json'),
     dropboxAutoSync: !!$('dropboxAutoSync')?.checked,
     uiTheme: normalizeTheme($('uiTheme')?.value || current.uiTheme || 'light'),
+    uiSkin: normalizeSkin($('uiSkin')?.value || current.uiSkin || 'standard'),
     aiParserMode: normalizeAiParserMode($('aiParserMode')?.value || current.aiParserMode || 'local'),
     aiOpenAiKey: $('aiOpenAiKey')?.value.trim() || current.aiOpenAiKey || '',
     aiModel: getSelectedAiModel(current.aiModel)
@@ -326,6 +341,7 @@ function saveSettingsFromForm() {
   const settings = readSettingsFromForm();
   saveSettings(settings);
   applyTheme(settings.uiTheme);
+  applySkin(settings.uiSkin);
   renderSummary();
   renderDropboxStatus();
   renderAiParserStatus();
@@ -378,7 +394,9 @@ function clearLocalData() {
   CATEGORIES = Object.keys(CATALOG);
   state = createEmptyQuote();
   applyTheme(defaultSettings().uiTheme);
+  applySkin(defaultSettings().uiSkin);
   if ($('uiTheme')) $('uiTheme').value = defaultSettings().uiTheme;
+  if ($('uiSkin')) $('uiSkin').value = defaultSettings().uiSkin;
   syncToForm();
   renderAll();
 }
@@ -1150,8 +1168,10 @@ function makeLearningSignature(rawText, item) {
 function fillExampleParserTest() {
   const text = 'Bogusław Biernacki ul Szymanowskiego 48 miejscowość Mielec instalacja czterech kamer IP dojazd 15 km 2 zł za kilometr nie ma darmowego dojazdu cena za montaż jednej kamery i puszki to 200 zł netto nauka obsługi aplikacji i instalacja aplikacji 50 zł puszki montażowe kosztują za sztukę 60 zł dwie puszki i prądowe 20 zł dwie puszki';
   $('parserTestInput').value = text;
-  $('parserExpectedNet').value = '1040';
-  $('parserExpectedGross').value = '1279.20';
+  const expectedNet = 1040;
+  const currentVat = number($('vatRate')?.value, loadSettings().vatRate ?? 23);
+  $('parserExpectedNet').value = String(expectedNet);
+  $('parserExpectedGross').value = (expectedNet * (1 + currentVat / 100)).toFixed(2);
   $('parserTestResult').innerHTML = '';
 }
 
@@ -5352,9 +5372,12 @@ function initPwa() {
 function initForm() {
   const settings = loadSettings();
   applyTheme(settings.uiTheme || 'light');
+  applySkin(settings.uiSkin || 'standard');
   $('companyName').value = settings.companyName;
   $('vatRate').value = settings.vatRate;
   if ($('uiTheme')) $('uiTheme').value = normalizeTheme(settings.uiTheme);
+  if ($('uiSkin')) $('uiSkin').value = normalizeSkin(settings.uiSkin);
+  renderSkinHint(settings.uiSkin);
   if ($('storageMode')) $('storageMode').value = settings.storageMode || 'local';
   if ($('dropboxToken')) $('dropboxToken').value = settings.dropboxAccessToken || '';
   if ($('dropboxPath')) $('dropboxPath').value = settings.dropboxPath || '/pomocnik_instalatora_data.json';
@@ -5374,6 +5397,21 @@ function initForm() {
   const today = new Date().toISOString().slice(0, 10);
   state.visitDate = today;
   $('visitDate').value = today;
+}
+
+
+function renderSkinHint(skin) {
+  const hint = $('uiSkinHint');
+  if (!hint) return;
+  const descriptions = {
+    standard: 'Klasyczny układ z boczną nawigacją na komputerze i dolnym paskiem na telefonie.',
+    compact: 'Mniej odstępów i niższe karty — więcej informacji mieści się na ekranie.',
+    dashboard: 'Nawigacja u góry i szerszy pulpit roboczy przypominający panel zarządzania.',
+    field: 'Etapy po lewej stronie na komputerze oraz maksymalnie prosty układ do pracy w terenie.',
+    glass: 'Przestrzenne, półprzezroczyste karty i bardziej reprezentacyjny wygląd.',
+    minimal: 'Lekki interfejs bez zbędnych ozdobników, cieni i rozbudowanego nagłówka.'
+  };
+  hint.textContent = descriptions[normalizeSkin(skin)] || descriptions.standard;
 }
 
 function initEvents() {
@@ -5404,7 +5442,12 @@ function initEvents() {
   $('saveSettingsBtn').addEventListener('click', saveSettingsFromForm);
   if ($('uiTheme')) $('uiTheme').addEventListener('change', () => {
     applyTheme($('uiTheme').value);
-    showInfo('Podgląd motywu zmieniony. Kliknij „Zapisz wszystkie ustawienia”, aby zachować zmianę.');
+    showInfo('Podgląd kolorystyki zmieniony. Kliknij „Zapisz wszystkie ustawienia”, aby zachować zmianę.');
+  });
+  if ($('uiSkin')) $('uiSkin').addEventListener('change', () => {
+    applySkin($('uiSkin').value);
+    renderSkinHint($('uiSkin').value);
+    showInfo('Podgląd układu zmieniony. Kliknij „Zapisz wszystkie ustawienia”, aby zachować zmianę.');
   });
   if ($('aiParserMode')) $('aiParserMode').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
   if ($('aiModel')) $('aiModel').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
@@ -7721,6 +7764,24 @@ function finalQaHasRemotePreviewIntent(rawText) {
     || /\b(?:aplikacj|telefon)\b.{0,45}\b(?:do kamer|dla kamer|podglad)\b/.test(text);
 }
 
+function finalQaDedupeRouterConfiguration(rawText, result) {
+  if (!result || !Array.isArray(result.items)) return;
+  const text = finalQaNormalizeText(rawText);
+  const explicitQuantityMatch = text.match(/\b(\d+)\s*(?:routery|routerow|routera)\b/);
+  const explicitQuantity = explicitQuantityMatch ? Math.max(1, number(explicitQuantityMatch[1], 1)) : 1;
+  let kept = null;
+
+  result.items = result.items.filter(item => {
+    if (!/^Konfiguracja routera$/i.test(String(item?.name || ''))) return true;
+    if (!kept) {
+      kept = item;
+      kept.quantity = explicitQuantity;
+      return true;
+    }
+    return false;
+  });
+}
+
 function finalQaDedupeSingleAntennaService(rawText, result) {
   if (!result || !Array.isArray(result.items)) return;
   const text = finalQaNormalizeText(rawText);
@@ -7772,6 +7833,7 @@ parseSmartCommand = function(rawText) {
     finalQaAddCatalogItem(result, 'Sieć / Wi‑Fi', 'Test i optymalizacja Wi‑Fi', 140, 'wifi_test_final_qa');
   }
 
+  finalQaDedupeRouterConfiguration(source, result);
   finalQaDedupeSingleAntennaService(source, result);
   result.items = mergeParserItems(result.items || []);
 

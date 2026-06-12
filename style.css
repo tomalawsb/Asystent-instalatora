@@ -3223,3 +3223,357 @@ button,
     overflow-y: auto;
   }
 }
+
+/* =========================================================
+   WERSJA 4.6 — SKÓRKI I ALTERNATYWNE UKŁADY INTERFEJSU
+   Kolorystyka (data-theme) i układ (data-skin) są niezależne.
+   ========================================================= */
+.skin-hint {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+body[data-skin] .topbar,
+body[data-skin] .card,
+body[data-skin] .main-navigation,
+body[data-skin] .workflow-step,
+body[data-skin] .workflow-actions {
+  transition: border-radius .18s ease, box-shadow .18s ease, background-color .18s ease;
+}
+
+/* 1. STANDARDOWA — zachowuje bazowy układ 4.5. */
+body[data-skin="standard"] {
+  --skin-label: "Standardowa";
+}
+
+/* 2. ZWARTA PROFESJONALNA — więcej danych na jednym ekranie. */
+body[data-skin="compact"] {
+  --nav-width: 112px;
+  --radius: 12px;
+  --control: 36px;
+}
+
+body[data-skin="compact"] .app-shell {
+  width: min(1360px, calc(100% - 16px));
+  padding-top: 8px;
+}
+
+body[data-skin="compact"] .topbar {
+  min-height: 58px;
+  padding: 8px 12px;
+  border-radius: 12px;
+}
+
+body[data-skin="compact"] .brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+body[data-skin="compact"] .topbar h1 { font-size: 21px; }
+body[data-skin="compact"] .topbar-subtitle { display: none; }
+body[data-skin="compact"] .app-layout { gap: 9px; margin-top: 9px; }
+body[data-skin="compact"] .main-navigation.tabs { padding: 6px; border-radius: 12px; }
+body[data-skin="compact"] .main-navigation .tab { min-height: 53px; padding: 5px; }
+body[data-skin="compact"] .nav-icon { height: 19px; font-size: 17px; }
+body[data-skin="compact"] .workspace-heading { margin-bottom: 8px; }
+body[data-skin="compact"] .workspace-heading h2 { font-size: 23px; }
+body[data-skin="compact"] .workspace-heading p { font-size: 13px; }
+body[data-skin="compact"] .workflow-steps { gap: 5px; margin-bottom: 9px; }
+body[data-skin="compact"] .workflow-step { min-height: 56px; padding: 6px 8px; border-radius: 10px; }
+body[data-skin="compact"] .workflow-step .step-number { width: 28px; height: 28px; }
+body[data-skin="compact"] .workflow-step small,
+body[data-skin="compact"] .step-status { display: none; }
+body[data-skin="compact"] .card { padding: 12px; margin-bottom: 9px; border-radius: 12px; }
+body[data-skin="compact"] .primary-work-card { padding: 14px; }
+body[data-skin="compact"] .voice-panel-main textarea { min-height: 170px; }
+body[data-skin="compact"] .section-head { margin-bottom: 9px; }
+body[data-skin="compact"] .section-head h2 { font-size: 18px; }
+body[data-skin="compact"] .workflow-actions { padding: 7px; border-radius: 11px; }
+body[data-skin="compact"] .summary-list { gap: 6px; margin: 9px 0; }
+body[data-skin="compact"] .summary-list div { padding: 7px 9px; border-radius: 9px; }
+
+/* 3. PANEL ZARZĄDZANIA — nawigacja u góry i szeroki pulpit. */
+@media (min-width: 851px) {
+  body[data-skin="dashboard"] .app-shell {
+    width: min(1480px, calc(100% - 28px));
+  }
+
+  body[data-skin="dashboard"] .app-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  body[data-skin="dashboard"] .main-navigation.tabs {
+    position: sticky;
+    top: 8px;
+    z-index: 45;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 5px;
+    width: min(720px, 100%);
+    margin-inline: auto;
+    padding: 6px;
+    border-radius: 16px;
+  }
+
+  body[data-skin="dashboard"] .main-navigation .tab {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 7px 12px;
+    font-size: 13px;
+  }
+
+  body[data-skin="dashboard"] .main-navigation .tab.active {
+    box-shadow: inset 0 -3px 0 var(--accent);
+  }
+
+  body[data-skin="dashboard"] .nav-icon { min-width: 22px; height: auto; font-size: 18px; }
+  body[data-skin="dashboard"] .main-content { width: 100%; }
+  body[data-skin="dashboard"] .app-footer { margin-left: 0; }
+
+  body[data-skin="dashboard"] .workspace-heading {
+    padding: 18px 22px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    background: linear-gradient(125deg, var(--panel), var(--accent-2));
+    box-shadow: var(--shadow);
+  }
+
+  body[data-skin="dashboard"] .workspace-heading h2 { font-size: 32px; }
+  body[data-skin="dashboard"] .workflow-steps { max-width: 1120px; margin-inline: auto; }
+  body[data-skin="dashboard"] .primary-work-card { max-width: 1120px; }
+  body[data-skin="dashboard"] .verification-grid,
+  body[data-skin="dashboard"] .quote-builder-grid { grid-template-columns: minmax(0, 1fr) 360px; }
+}
+
+/* 4. TRYB TERENOWY — pionowa lista etapów obok formularza. */
+@media (min-width: 851px) {
+  body[data-skin="field"] #quoteTab.active {
+    display: grid;
+    grid-template-columns: 215px minmax(0, 1fr);
+    grid-template-areas:
+      "heading heading"
+      "steps panel"
+      "steps actions";
+    gap: 12px 15px;
+    align-items: start;
+  }
+
+  body[data-skin="field"] #quoteTab > .workspace-heading { grid-area: heading; }
+  body[data-skin="field"] #quoteTab > .workflow-steps {
+    grid-area: steps;
+    position: sticky;
+    top: 12px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin: 0;
+  }
+
+  body[data-skin="field"] #quoteTab > .workflow-panel { grid-area: panel; min-width: 0; }
+  body[data-skin="field"] #quoteTab > .workflow-actions { grid-area: actions; }
+
+  body[data-skin="field"] .workflow-step {
+    grid-template-columns: 40px minmax(0, 1fr);
+    min-height: 76px;
+    padding: 10px;
+  }
+
+  body[data-skin="field"] .workflow-step strong,
+  body[data-skin="field"] .workflow-step small {
+    white-space: normal;
+  }
+
+  body[data-skin="field"] .workflow-step .step-status {
+    right: 10px;
+    bottom: 7px;
+  }
+
+  body[data-skin="field"] .primary-work-card { max-width: none; }
+  body[data-skin="field"] .workspace-heading {
+    padding: 14px 18px;
+    border-left: 6px solid var(--accent);
+    border-radius: 0 16px 16px 0;
+    background: var(--panel);
+  }
+}
+
+/* 5. SZKLANA NOWOCZESNA — półprzezroczyste, miękkie powierzchnie. */
+body[data-skin="glass"] {
+  background:
+    radial-gradient(circle at 10% 5%, color-mix(in srgb, var(--accent) 24%, transparent), transparent 34%),
+    radial-gradient(circle at 95% 25%, color-mix(in srgb, var(--success) 16%, transparent), transparent 30%),
+    var(--bg);
+}
+
+body[data-skin="glass"] .topbar,
+body[data-skin="glass"] .card,
+body[data-skin="glass"] .main-navigation.tabs,
+body[data-skin="glass"] .workflow-step,
+body[data-skin="glass"] .workflow-actions,
+body[data-skin="glass"] .workspace-heading {
+  border-color: color-mix(in srgb, var(--line) 72%, transparent);
+  background: color-mix(in srgb, var(--panel) 77%, transparent);
+  box-shadow: 0 18px 45px rgba(31, 50, 77, .13), inset 0 1px 0 rgba(255, 255, 255, .62);
+  backdrop-filter: blur(18px) saturate(135%);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+}
+
+body[data-skin="glass"] .topbar,
+body[data-skin="glass"] .card,
+body[data-skin="glass"] .workflow-actions { border-radius: 25px; }
+body[data-skin="glass"] .workflow-step { border-radius: 18px; }
+body[data-skin="glass"] .workflow-step.active {
+  background: color-mix(in srgb, var(--accent-2) 74%, transparent);
+}
+body[data-skin="glass"] input,
+body[data-skin="glass"] select,
+body[data-skin="glass"] textarea {
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+}
+
+@media (min-width: 851px) {
+  body[data-skin="glass"] .app-shell { width: min(1300px, calc(100% - 34px)); }
+  body[data-skin="glass"] .app-layout { grid-template-columns: 170px minmax(0, 1fr); gap: 18px; }
+  body[data-skin="glass"] .workspace-heading {
+    padding: 16px 20px;
+    border-radius: 22px;
+  }
+}
+
+/* 6. MINIMALISTYCZNA — płasko, lekko i bez zbędnych dekoracji. */
+body[data-skin="minimal"] {
+  --shadow: none;
+  --radius: 9px;
+}
+
+body[data-skin="minimal"] .topbar,
+body[data-skin="minimal"] .card,
+body[data-skin="minimal"] .main-navigation.tabs,
+body[data-skin="minimal"] .workflow-step,
+body[data-skin="minimal"] .workflow-actions {
+  box-shadow: none;
+}
+
+body[data-skin="minimal"] .topbar {
+  min-height: 58px;
+  padding: 8px 4px;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background: transparent;
+}
+
+body[data-skin="minimal"] .brand-mark { width: 36px; height: 36px; border-radius: 8px; box-shadow: none; }
+body[data-skin="minimal"] .topbar-subtitle { display: none; }
+body[data-skin="minimal"] .card { border-radius: 9px; }
+body[data-skin="minimal"] .workflow-step { border-radius: 8px; }
+body[data-skin="minimal"] .section-head h2 { border-left: 0; padding-left: 0; }
+body[data-skin="minimal"] .workspace-kicker,
+body[data-skin="minimal"] .section-kicker { letter-spacing: .04em; }
+
+@media (min-width: 851px) {
+  body[data-skin="minimal"] .app-shell { width: min(1120px, calc(100% - 24px)); }
+  body[data-skin="minimal"] .app-layout { display: block; }
+  body[data-skin="minimal"] .main-navigation.tabs {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 8px 0 14px;
+    padding: 4px 0;
+    border-width: 0 0 1px;
+    border-radius: 0;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  body[data-skin="minimal"] .main-navigation .tab {
+    display: flex;
+    flex-direction: row;
+    gap: 7px;
+    width: auto;
+    min-height: 40px;
+    padding: 7px 14px;
+    border-radius: 7px;
+  }
+
+  body[data-skin="minimal"] .nav-icon { min-width: 18px; height: auto; font-size: 16px; }
+  body[data-skin="minimal"] .app-footer { margin-left: 0; }
+}
+
+/* Dostosowanie wszystkich skórek do telefonu. */
+@media (max-width: 850px) {
+  body[data-skin="compact"] .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  body[data-skin="compact"] .top-actions {
+    width: auto;
+    display: block;
+  }
+
+  body[data-skin="compact"] .top-actions #newQuoteBtn {
+    width: auto;
+    min-height: 38px;
+  }
+
+  body[data-skin="compact"] .workspace-heading p { display: none; }
+  body[data-skin="compact"] .workflow-step { min-height: 52px; }
+  body[data-skin="compact"] .card { padding: 10px; }
+  body[data-skin="compact"] .voice-panel-main textarea { min-height: 145px; }
+
+  body[data-skin="field"] .topbar-subtitle,
+  body[data-skin="field"] .workspace-heading p { display: none; }
+  body[data-skin="field"] .workspace-heading { margin-bottom: 7px; }
+  body[data-skin="field"] .workspace-heading h2 { font-size: 21px; }
+  body[data-skin="field"] .workflow-steps { gap: 3px; }
+  body[data-skin="field"] .workflow-step { min-height: 54px; border-radius: 8px; }
+  body[data-skin="field"] .primary-work-card { padding: 10px; }
+  body[data-skin="field"] .section-head p { font-size: 12px; }
+
+  body[data-skin="glass"] .topbar,
+  body[data-skin="glass"] .card,
+  body[data-skin="glass"] .workflow-actions { border-radius: 19px; }
+  body[data-skin="glass"] .app-shell { padding-inline: 9px; }
+
+  body[data-skin="minimal"] .topbar {
+    padding: 7px 3px;
+    border-radius: 0;
+  }
+  body[data-skin="minimal"] .top-actions #newQuoteBtn {
+    border-radius: 7px;
+  }
+  body[data-skin="minimal"] .workspace-heading { margin-top: 10px; }
+  body[data-skin="minimal"] .workspace-heading p { display: none; }
+  body[data-skin="minimal"] .card { padding: 10px; }
+  body[data-skin="minimal"] .workflow-actions { border-radius: 8px; }
+}
+
+@media (max-width: 620px) {
+  body[data-skin="dashboard"] .workspace-heading {
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    background: linear-gradient(135deg, var(--panel), var(--accent-2));
+  }
+
+  body[data-skin="dashboard"] .workspace-heading p { display: none; }
+  body[data-skin="dashboard"] .workflow-step { background: var(--panel); }
+
+  body[data-skin="compact"] .brand-block { flex-basis: auto; }
+  body[data-skin="compact"] .topbar h1 { font-size: 17px; }
+  body[data-skin="compact"] .eyebrow { font-size: 8px; }
+}

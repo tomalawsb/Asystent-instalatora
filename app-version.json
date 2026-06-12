@@ -1,8 +1,8 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "4.5 - 1206260915",
-  "build": "1206260915-mobile-fix-icon",
+  "version": "4.6 - 1206260917",
+  "build": "1206260917-skins-layouts",
   "stage": "7-hotfix",
   "released_at": "2026-06-12T08:36:00+02:00",
-  "note": "Poprawki mobilnej obsługi, przewijania i nowa ikona aplikacji."
+  "note": "Dodano sześć skórek interfejsu, niezależną kolorystykę i alternatywne układy aplikacji."
 }

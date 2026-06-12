@@ -47,9 +47,12 @@ function initPwa() {
 function initForm() {
   const settings = loadSettings();
   applyTheme(settings.uiTheme || 'light');
+  applySkin(settings.uiSkin || 'standard');
   $('companyName').value = settings.companyName;
   $('vatRate').value = settings.vatRate;
   if ($('uiTheme')) $('uiTheme').value = normalizeTheme(settings.uiTheme);
+  if ($('uiSkin')) $('uiSkin').value = normalizeSkin(settings.uiSkin);
+  renderSkinHint(settings.uiSkin);
   if ($('storageMode')) $('storageMode').value = settings.storageMode || 'local';
   if ($('dropboxToken')) $('dropboxToken').value = settings.dropboxAccessToken || '';
   if ($('dropboxPath')) $('dropboxPath').value = settings.dropboxPath || '/pomocnik_instalatora_data.json';
@@ -69,6 +72,21 @@ function initForm() {
   const today = new Date().toISOString().slice(0, 10);
   state.visitDate = today;
   $('visitDate').value = today;
+}
+
+
+function renderSkinHint(skin) {
+  const hint = $('uiSkinHint');
+  if (!hint) return;
+  const descriptions = {
+    standard: 'Klasyczny układ z boczną nawigacją na komputerze i dolnym paskiem na telefonie.',
+    compact: 'Mniej odstępów i niższe karty — więcej informacji mieści się na ekranie.',
+    dashboard: 'Nawigacja u góry i szerszy pulpit roboczy przypominający panel zarządzania.',
+    field: 'Etapy po lewej stronie na komputerze oraz maksymalnie prosty układ do pracy w terenie.',
+    glass: 'Przestrzenne, półprzezroczyste karty i bardziej reprezentacyjny wygląd.',
+    minimal: 'Lekki interfejs bez zbędnych ozdobników, cieni i rozbudowanego nagłówka.'
+  };
+  hint.textContent = descriptions[normalizeSkin(skin)] || descriptions.standard;
 }
 
 function initEvents() {
@@ -99,7 +117,12 @@ function initEvents() {
   $('saveSettingsBtn').addEventListener('click', saveSettingsFromForm);
   if ($('uiTheme')) $('uiTheme').addEventListener('change', () => {
     applyTheme($('uiTheme').value);
-    showInfo('Podgląd motywu zmieniony. Kliknij „Zapisz wszystkie ustawienia”, aby zachować zmianę.');
+    showInfo('Podgląd kolorystyki zmieniony. Kliknij „Zapisz wszystkie ustawienia”, aby zachować zmianę.');
+  });
+  if ($('uiSkin')) $('uiSkin').addEventListener('change', () => {
+    applySkin($('uiSkin').value);
+    renderSkinHint($('uiSkin').value);
+    showInfo('Podgląd układu zmieniony. Kliknij „Zapisz wszystkie ustawienia”, aby zachować zmianę.');
   });
   if ($('aiParserMode')) $('aiParserMode').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));
   if ($('aiModel')) $('aiModel').addEventListener('change', () => renderAnalysisModeHint(readSettingsFromForm()));

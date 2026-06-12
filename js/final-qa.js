@@ -76,6 +76,24 @@ function finalQaHasRemotePreviewIntent(rawText) {
     || /\b(?:aplikacj|telefon)\b.{0,45}\b(?:do kamer|dla kamer|podglad)\b/.test(text);
 }
 
+function finalQaDedupeRouterConfiguration(rawText, result) {
+  if (!result || !Array.isArray(result.items)) return;
+  const text = finalQaNormalizeText(rawText);
+  const explicitQuantityMatch = text.match(/\b(\d+)\s*(?:routery|routerow|routera)\b/);
+  const explicitQuantity = explicitQuantityMatch ? Math.max(1, number(explicitQuantityMatch[1], 1)) : 1;
+  let kept = null;
+
+  result.items = result.items.filter(item => {
+    if (!/^Konfiguracja routera$/i.test(String(item?.name || ''))) return true;
+    if (!kept) {
+      kept = item;
+      kept.quantity = explicitQuantity;
+      return true;
+    }
+    return false;
+  });
+}
+
 function finalQaDedupeSingleAntennaService(rawText, result) {
   if (!result || !Array.isArray(result.items)) return;
   const text = finalQaNormalizeText(rawText);
@@ -127,6 +145,7 @@ parseSmartCommand = function(rawText) {
     finalQaAddCatalogItem(result, 'Sieć / Wi‑Fi', 'Test i optymalizacja Wi‑Fi', 140, 'wifi_test_final_qa');
   }
 
+  finalQaDedupeRouterConfiguration(source, result);
   finalQaDedupeSingleAntennaService(source, result);
   result.items = mergeParserItems(result.items || []);
 

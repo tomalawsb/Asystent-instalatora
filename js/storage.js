@@ -14,6 +14,7 @@ function defaultSettings() {
     dropboxAutoSync: false,
     lastDropboxSyncAt: '',
     uiTheme: 'light',
+    uiSkin: 'standard',
     aiParserMode: 'local',
     aiOpenAiKey: '',
     aiModel: 'gpt-4o-mini',
@@ -33,6 +34,16 @@ function saveSettings(settings) {
 function normalizeTheme(theme) {
   const allowed = new Set(['light', 'blue', 'green', 'amber', 'dark']);
   return allowed.has(String(theme || '')) ? String(theme) : 'light';
+}
+
+function normalizeSkin(skin) {
+  const allowed = new Set(['standard', 'compact', 'dashboard', 'field', 'glass', 'minimal']);
+  return allowed.has(String(skin || '')) ? String(skin) : 'standard';
+}
+
+function applySkin(skin) {
+  const selected = normalizeSkin(skin);
+  document.body.dataset.skin = selected;
 }
 
 function applyTheme(theme) {
@@ -221,6 +232,7 @@ function extractBackupRecords(payload) {
 function refreshFormAfterBackupImport() {
   const settings = loadSettings();
   applyTheme(settings.uiTheme || 'light');
+  applySkin(settings.uiSkin || 'standard');
   if ($('companyName')) $('companyName').value = settings.companyName || '';
   if ($('vatRate')) $('vatRate').value = settings.vatRate ?? 23;
   if ($('storageMode')) $('storageMode').value = settings.storageMode || 'local';
@@ -228,6 +240,7 @@ function refreshFormAfterBackupImport() {
   if ($('dropboxPath')) $('dropboxPath').value = settings.dropboxPath || '/pomocnik_instalatora_data.json';
   if ($('dropboxAutoSync')) $('dropboxAutoSync').checked = !!settings.dropboxAutoSync;
   if ($('uiTheme')) $('uiTheme').value = normalizeTheme(settings.uiTheme || 'light');
+  if ($('uiSkin')) $('uiSkin').value = normalizeSkin(settings.uiSkin || 'standard');
   if ($('aiParserMode')) $('aiParserMode').value = settings.aiParserMode || 'local';
   if ($('aiOpenAiKey')) $('aiOpenAiKey').value = settings.aiOpenAiKey || '';
   fillAiModelSelect();
@@ -269,7 +282,8 @@ function importBackupFromFile(event) {
           ...defaultSettings(),
           ...loadSettings(),
           ...parsed.settings,
-          uiTheme: normalizeTheme(parsed.settings.uiTheme || loadSettings().uiTheme || 'light')
+          uiTheme: normalizeTheme(parsed.settings.uiTheme || loadSettings().uiTheme || 'light'),
+          uiSkin: normalizeSkin(parsed.settings.uiSkin || loadSettings().uiSkin || 'standard')
         });
       }
 
@@ -308,6 +322,7 @@ function readSettingsFromForm() {
     dropboxPath: normalizeDropboxPath($('dropboxPath')?.value || '/pomocnik_instalatora_data.json'),
     dropboxAutoSync: !!$('dropboxAutoSync')?.checked,
     uiTheme: normalizeTheme($('uiTheme')?.value || current.uiTheme || 'light'),
+    uiSkin: normalizeSkin($('uiSkin')?.value || current.uiSkin || 'standard'),
     aiParserMode: normalizeAiParserMode($('aiParserMode')?.value || current.aiParserMode || 'local'),
     aiOpenAiKey: $('aiOpenAiKey')?.value.trim() || current.aiOpenAiKey || '',
     aiModel: getSelectedAiModel(current.aiModel)
@@ -318,6 +333,7 @@ function saveSettingsFromForm() {
   const settings = readSettingsFromForm();
   saveSettings(settings);
   applyTheme(settings.uiTheme);
+  applySkin(settings.uiSkin);
   renderSummary();
   renderDropboxStatus();
   renderAiParserStatus();
@@ -370,7 +386,9 @@ function clearLocalData() {
   CATEGORIES = Object.keys(CATALOG);
   state = createEmptyQuote();
   applyTheme(defaultSettings().uiTheme);
+  applySkin(defaultSettings().uiSkin);
   if ($('uiTheme')) $('uiTheme').value = defaultSettings().uiTheme;
+  if ($('uiSkin')) $('uiSkin').value = defaultSettings().uiSkin;
   syncToForm();
   renderAll();
 }

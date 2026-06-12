@@ -8,8 +8,6 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://api.dropboxapi.com https://content.dropboxapi.com https://api.openai.com https://*.workers.dev https://*.pages.dev https://*.vercel.app https://*.netlify.app http://localhost:*; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
   <title>Pomocnik Instalatora PWA</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -487,14 +485,25 @@
                 <label>VAT %
                   <input id="vatRate" type="number" min="0" max="100" step="1" value="23">
                 </label>
-                <label>Motyw interfejsu
+                <label>Kolorystyka
                   <select id="uiTheme">
-                    <option value="light">Jasny klasyczny</option>
-                    <option value="blue">Błękitny techniczny</option>
-                    <option value="green">Zielony serwisowy</option>
-                    <option value="amber">Ciepły kontrast</option>
-                    <option value="dark">Ciemny grafitowy</option>
+                    <option value="light">Jasna neutralna</option>
+                    <option value="blue">Błękitna techniczna</option>
+                    <option value="green">Zielona serwisowa</option>
+                    <option value="amber">Ciepła kontrastowa</option>
+                    <option value="dark">Ciemna grafitowa</option>
                   </select>
+                </label>
+                <label>Układ / skórka aplikacji
+                  <select id="uiSkin">
+                    <option value="standard">Standardowa</option>
+                    <option value="compact">Zwarta profesjonalna</option>
+                    <option value="dashboard">Panel zarządzania</option>
+                    <option value="field">Tryb terenowy</option>
+                    <option value="glass">Szklana nowoczesna</option>
+                    <option value="minimal">Minimalistyczna</option>
+                  </select>
+                  <small id="uiSkinHint" class="skin-hint">Klasyczny układ aplikacji.</small>
                 </label>
               </div>
 

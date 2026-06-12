@@ -32,8 +32,10 @@ function makeLearningSignature(rawText, item) {
 function fillExampleParserTest() {
   const text = 'Bogusław Biernacki ul Szymanowskiego 48 miejscowość Mielec instalacja czterech kamer IP dojazd 15 km 2 zł za kilometr nie ma darmowego dojazdu cena za montaż jednej kamery i puszki to 200 zł netto nauka obsługi aplikacji i instalacja aplikacji 50 zł puszki montażowe kosztują za sztukę 60 zł dwie puszki i prądowe 20 zł dwie puszki';
   $('parserTestInput').value = text;
-  $('parserExpectedNet').value = '1040';
-  $('parserExpectedGross').value = '1279.20';
+  const expectedNet = 1040;
+  const currentVat = number($('vatRate')?.value, loadSettings().vatRate ?? 23);
+  $('parserExpectedNet').value = String(expectedNet);
+  $('parserExpectedGross').value = (expectedNet * (1 + currentVat / 100)).toFixed(2);
   $('parserTestResult').innerHTML = '';
 }
 
