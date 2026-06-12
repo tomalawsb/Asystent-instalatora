@@ -1,8 +1,8 @@
 {
   "name": "Pomocnik Instalatora PWA",
-  "version": "4.3 - 1206260820",
-  "build": "1206260820-etap-7-final-qa",
-  "stage": 7,
-  "released_at": "2026-06-12T08:20:00+02:00",
-  "note": "Etap 7: końcowa walidacja PWA, naprawa potwierdzonych regresji parsera, testy zgodności danych oraz oczyszczenie paczki produkcyjnej."
+  "version": "4.4 - 1206260836",
+  "build": "1206260836-startup-hotfix",
+  "stage": "7-hotfix",
+  "released_at": "2026-06-12T08:36:00+02:00",
+  "note": "Poprawka krytyczna uruchamiania: statyczny pakiet produkcyjny działa po wdrożeniu oraz po bezpośrednim otwarciu index.html z dysku."
 }

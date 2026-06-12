@@ -4,7 +4,7 @@ const STATIC_FILES = [
   './index.html',
   './style.css',
   './app.js',
-  './js/bootstrap.js',
+  './runtime-data.js',
   './js/storage.js',
   './js/catalog.js',
   './js/quote.js',

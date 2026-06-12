@@ -1,6 +1,6 @@
 /*
  * PLIK GENEROWANY — nie edytowac recznie.
- * Wersja: 4.3 - 1206260820
+ * Wersja: 4.4 - 1206260836
  * Zrodla kodu: katalog js/.
  * Zrodla danych: app-version.json, cennik.json, material-prices.json.
  * Odbudowa: node tools/build-app-bundle.js

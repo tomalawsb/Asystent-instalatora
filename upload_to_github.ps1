@@ -32,6 +32,16 @@ Info "Folder projektu: $ProjectPath"
 Info "Repozytorium: $RepoUrl"
 
 try { git --version | Out-Null } catch { Stop-WithMessage "Git nie jest zainstalowany albo nie jest dostepny w PATH." }
+try { node --version | Out-Null } catch { Stop-WithMessage "Node.js nie jest zainstalowany albo nie jest dostepny w PATH." }
+
+Info "Odbudowuje pliki produkcyjne z aktualnych zrodel JSON i modulow..."
+Push-Location $ProjectPath
+node tools/build-runtime-data.js
+if ($LASTEXITCODE -ne 0) { Pop-Location; Stop-WithMessage "Nie udalo sie odbudowac runtime-data.js." }
+node tools/build-app-bundle.js
+if ($LASTEXITCODE -ne 0) { Pop-Location; Stop-WithMessage "Nie udalo sie odbudowac app.js." }
+Pop-Location
+Ok "Pliki runtime-data.js i app.js zostaly odbudowane."
 
 $RequiredFiles = @(
     "index.html",
@@ -41,7 +51,7 @@ $RequiredFiles = @(
     "app-version.json",
     "cennik.json",
     "material-prices.json",
-    "js\bootstrap.js",
+    "runtime-data.js",
     "js\state.js",
     "js\workflow.js",
     "js\final-qa.js",
@@ -105,7 +115,8 @@ $ObsoleteFiles = @(
     "icon-512.svg",
     "RAPORT_uczenia_transkrypcji.txt",
     "slownik_bledow_transkrypcji_do_wklejenia.txt",
-    "dane_uczace_transkrypcji.json"
+    "dane_uczace_transkrypcji.json",
+    "js\bootstrap.js"
 )
 foreach ($File in $ObsoleteFiles) {
     $Target = Join-Path $RepoWorkPath $File
